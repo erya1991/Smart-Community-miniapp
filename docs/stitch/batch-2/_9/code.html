@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>购物车 - 大光路智慧社区</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: "#1B4D53",
+              light: "#EAF2F3",
+              dark: "#133B40"
+            },
+            terracotta: {
+              DEFAULT: "#C85A32",
+              light: "#FDF1EC"
+            },
+            surface: "#F8F9FC",
+            card: "#FFFFFF",
+            border: "#E1E4E6",
+            subtle: "#70797A",
+            charcoal: "#151D1F"
+          },
+          borderRadius: {
+            'card': '14px',
+            'btn': '12px'
+          },
+          fontFamily: {
+            sans: ["-apple-system", "BlinkMacSystemFont", "'PingFang SC'", "'Microsoft YaHei'", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #F8F9FC;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #151D1F;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-surface text-charcoal min-h-screen flex flex-col antialiased select-none">
+<!-- 顶部状态栏与导航栏 (标准微信小程序顶部) -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border">
+<!-- iOS 微信小程序系统状态栏 (约44px) -->
+<div class="h-11 px-5 flex items-center justify-between text-xs font-semibold text-charcoal tracking-tight">
+<span>09:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[15px]">wifi</span>
+<span class="material-symbols-outlined text-[18px]">battery_full</span>
+</div>
+</div>
+<!-- 微信小程序原生导航标题栏 (44px) -->
+<div class="h-11 px-4 flex items-center justify-between relative">
+<div class="flex items-center gap-2">
+<button aria-label="返回" class="w-8 h-8 -ml-1 flex items-center justify-center text-charcoal active:opacity-60" type="button">
+<span class="material-symbols-outlined text-[22px]">arrow_back_ios_new</span>
+</button>
+<h1 class="text-[17px] font-bold tracking-tight text-charcoal">购物车</h1>
+</div>
+<!-- 右侧管理按钮与小程序胶囊占位 -->
+<div class="flex items-center gap-3">
+<button class="text-[15px] font-medium text-brand active:opacity-60 min-h-[44px] flex items-center px-1" type="button">管理</button>
+<div class="h-8 w-[84px] rounded-full border border-border bg-white flex items-center justify-around px-2 shadow-xs">
+<span class="material-symbols-outlined text-[16px] text-charcoal">more_horiz</span>
+<div class="w-[1px] h-3.5 bg-border"></div>
+<span class="material-symbols-outlined text-[15px] text-charcoal">adjust</span>
+</div>
+</div>
+</div>
+</header>
+<!-- 主体内容区域 -->
+<main class="flex-1 w-full max-w-[420px] mx-auto px-4 py-3 pb-24 space-y-3.5">
+<!-- 社区便民直供温和提示 -->
+<div class="bg-brand-light rounded-card p-3 flex items-center gap-2.5 border border-brand/15">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0">verified_user</span>
+<p class="text-[13px] leading-[18px] text-[#164247] font-normal">
+<strong class="font-semibold text-brand">社区便民直供：</strong>各商户独立配货履约，订单支持分别结算。
+      </p>
+</div>
+<!-- 分组 1：邻里生鲜（大光路店） -->
+<section class="bg-card rounded-card p-4 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col space-y-3.5">
+<!-- 商户头部 -->
+<div class="flex items-center justify-between border-b border-border/60 pb-3">
+<div class="flex items-center gap-2.5">
+<!-- 全选复选框 -->
+<button aria-label="全选商户商品" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 shadow-xs active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-brand text-[20px]">storefront</span>
+<span class="text-[16px] font-bold text-charcoal">邻里生鲜（大光路店）</span>
+</div>
+</div>
+<span class="text-[12px] font-medium text-brand bg-brand-light px-2 py-0.5 rounded-md border border-brand/10">社区直供</span>
+</div>
+<!-- 商品列表 -->
+<div class="flex flex-col space-y-4 pt-1">
+<!-- 商品 1: 当日新鲜蔬菜组合 -->
+<div class="flex items-center gap-3">
+<button aria-label="勾选商品" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<div class="w-[78px] h-[78px] rounded-lg bg-surface overflow-hidden shrink-0 border border-border">
+<img alt="当日新鲜蔬菜组合" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnn1pRbLu6r53ajr6iv2bEgVfq3wpEGx-dImpUcyAyK2p9u6VeLa3MUwNOFlWq4AFk60FvqtYDZ1_RmAtUOiijAL6MBv1XL3S4JPaGFUfVW5yKliJLzpPo-JBs4FevBTCoOD0D1OwEKRNE6ku_U4wmlYrnNgrsC8T_hZzUs43fim4OkvzRMe1ncJ0T9lS9MfdPyJVgCanlg8l2RC3DY0zhqCG-GRxggoInc7vRJLl7IH55ZLg2Mr_W"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between h-[78px]">
+<div>
+<h3 class="text-[15px] font-semibold text-charcoal truncate leading-snug">当日新鲜蔬菜组合</h3>
+<p class="text-[13px] text-subtle truncate mt-0.5">规格：家庭装约2.5kg</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[17px] font-bold text-terracotta leading-none">¥19.90</span>
+<!-- 数量步进器 (热区 ≥ 44px) -->
+<div class="flex items-center rounded-lg border border-border bg-[#F8F9FB] h-8">
+<button aria-label="减少数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-l" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-8 text-center text-[15px] font-medium text-charcoal">2</span>
+<button aria-label="增加数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-r" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 商品 2: 时令水果家庭装 -->
+<div class="flex items-center gap-3">
+<button aria-label="勾选商品" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<div class="w-[78px] h-[78px] rounded-lg bg-surface overflow-hidden shrink-0 border border-border">
+<img alt="时令水果家庭装" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCR41oLtSaNCmURPMPfsPNy6278nl97D7GDA4x4-A-qoHF-FQKMFO9hk82-87eqWJ8OVvpWEdgnA6T5h9Wjl28SeMO45rxklpVmMxcXTe8ojknlOVbWPVGHP9xnrSprqg8c7pBk9iKFLcFGYSVyrYQlQpYpEBMDVUDpImzIK3JODplksUjBzGBh3mGstZB5zpA-7TJ4o7Gx2l8iccX_IW0pjCs9ILM3nbtitN7jz6xt3tx93X-yCB01"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between h-[78px]">
+<div>
+<h3 class="text-[15px] font-semibold text-charcoal truncate leading-snug">时令水果家庭装（精品特大水蜜桃4只装）</h3>
+<p class="text-[13px] text-subtle truncate mt-0.5">规格：4只礼盒装</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[17px] font-bold text-terracotta leading-none">¥29.90</span>
+<div class="flex items-center rounded-lg border border-border bg-[#F8F9FB] h-8">
+<button aria-label="减少数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-l" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-8 text-center text-[15px] font-medium text-charcoal">1</span>
+<button aria-label="增加数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-r" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 分组 1 专属底栏结算条 -->
+<div class="mt-3 pt-3 border-t border-border flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[13px] text-subtle">已选 2 种商品（共3件）</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="text-[13px] font-medium text-charcoal">合计</span>
+<span class="text-[19px] font-bold text-terracotta">¥69.70</span>
+</div>
+</div>
+<button class="h-11 px-6 rounded-btn bg-brand hover:bg-brand-dark active:opacity-90 text-white font-semibold text-[15px] flex items-center justify-center transition-colors shadow-sm" type="button">
+          去结算
+        </button>
+</div>
+</section>
+<!-- 分组 2：大光路生活超市 -->
+<section class="bg-card rounded-card p-4 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col space-y-3.5">
+<!-- 商户头部 -->
+<div class="flex items-center justify-between border-b border-border/60 pb-3">
+<div class="flex items-center gap-2.5">
+<button aria-label="全选超市商品" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 shadow-xs active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-brand text-[20px]">storefront</span>
+<span class="text-[16px] font-bold text-charcoal">大光路生活超市</span>
+</div>
+</div>
+<span class="text-[12px] font-medium text-brand bg-brand-light px-2 py-0.5 rounded-md border border-brand/10">便民超市</span>
+</div>
+<!-- 商品列表 -->
+<div class="flex flex-col space-y-4 pt-1">
+<!-- 商品 1: 优质五常大米 5kg -->
+<div class="flex items-center gap-3">
+<button aria-label="勾选商品" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</button>
+<div class="w-[78px] h-[78px] rounded-lg bg-surface overflow-hidden shrink-0 border border-border">
+<img alt="优质五常大米 5kg" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwvcIbzIkomfNzfMOEPOL2f-fi8IHWT2Jpyh8c0ZXvlr3u-NJTkPSHGuqlaIxOeiHBsyevbtGOJHbTJ1CH7RVrl7XtwAgzrBhOFQuPxHmEZPLglMDGec5ZcUm55vMsDNqgn1Fh4IB7MeaOoKlxjuJh1LeEyQyomTYjkxZ02tuLfveuzljE9giOy5hFvelIKtbhRYYqdmWvDjvnaiXtlBufqm6PzMuSZBTUNysw0shahaiD9nR0MXuZ"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between h-[78px]">
+<div>
+<h3 class="text-[15px] font-semibold text-charcoal truncate leading-snug">优质五常大米 5kg</h3>
+<p class="text-[13px] text-subtle truncate mt-0.5">规格：5kg 抽真空锁鲜装</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[17px] font-bold text-terracotta leading-none">¥49.90</span>
+<div class="flex items-center rounded-lg border border-border bg-[#F8F9FB] h-8">
+<button aria-label="减少数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-l" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-8 text-center text-[15px] font-medium text-charcoal">1</span>
+<button aria-label="增加数量" class="w-8 h-8 flex items-center justify-center text-charcoal hover:bg-black/5 active:bg-black/10 rounded-r" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 分组 2 专属结算条 -->
+<div class="mt-3 pt-3 border-t border-border flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[13px] text-subtle">已选 1 种商品（共1件）</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="text-[13px] font-medium text-charcoal">合计</span>
+<span class="text-[19px] font-bold text-terracotta">¥49.90</span>
+</div>
+</div>
+<button class="h-11 px-6 rounded-btn bg-brand hover:bg-brand-dark active:opacity-90 text-white font-semibold text-[15px] flex items-center justify-center transition-colors shadow-sm" type="button">
+          去结算
+        </button>
+</div>
+</section>
+<!-- 分组 3：不可结算商品模块 -->
+<section class="bg-card rounded-card p-4 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col space-y-3.5">
+<div class="flex items-center justify-between border-b border-border/60 pb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-subtle text-[20px]">remove_shopping_cart</span>
+<h2 class="text-[15px] font-bold text-charcoal">不可结算商品 (2)</h2>
+</div>
+<button class="text-[13px] text-subtle hover:text-terracotta flex items-center gap-1 active:opacity-70" type="button">
+<span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+<span>一键清空</span>
+</button>
+</div>
+<div class="flex flex-col space-y-3.5">
+<!-- 失效商品 1: 大光路手作鲜豆腐皮 -->
+<div class="flex items-center gap-3">
+<div class="w-6 h-6 flex items-center justify-center shrink-0">
+<div class="w-4 h-4 rounded-full border border-border bg-slate-100"></div>
+</div>
+<div class="w-[68px] h-[68px] rounded-lg bg-surface overflow-hidden shrink-0 border border-border opacity-70">
+<img alt="大光路手作鲜豆腐皮" class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2GXdGEe_m3M0J7U-CvMRLDEyTTvg_5p-FrZ8ItgeWTJskk-rXzP__S2LEQ-IWgXVN-2bFWqa_uU7VsdXHadaUFxWAbabISq-g_wawrEpucbPQTEomAV6wgrkPiiihPzpfbqcdZ4C9r353EM1rrjCG3ofj3KF4YCRgUc8DOZiSo06vMEDmPOflFlb_ld7TV3eBPL06JyqOVIm5cPk2x87vQg0TnUuQ63OozEYcDn8N_xO8jwNJ4MiB"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] font-semibold text-terracotta bg-terracotta-light border border-terracotta/20 px-1.5 py-0.5 rounded">库存不足</span>
+<h3 class="text-[14px] font-medium text-charcoal/80 truncate">大光路手作鲜豆腐皮</h3>
+</div>
+<p class="text-[12px] text-subtle truncate mt-0.5">规格：传统石膏现做</p>
+<p class="text-[12px] text-terracotta font-medium mt-0.5">当前库存不足（仅剩0件），请调整购买数量</p>
+</div>
+<button aria-label="移除商品" class="w-8 h-8 flex items-center justify-center text-subtle hover:text-charcoal active:opacity-60 shrink-0" type="button">
+<span class="material-symbols-outlined text-[19px]">close</span>
+</button>
+</div>
+<!-- 失效商品 2: 时令草莓尝鲜小盒装 -->
+<div class="flex items-center gap-3">
+<div class="w-6 h-6 flex items-center justify-center shrink-0">
+<div class="w-4 h-4 rounded-full border border-border bg-slate-100"></div>
+</div>
+<div class="w-[68px] h-[68px] rounded-lg bg-surface overflow-hidden shrink-0 border border-border opacity-70">
+<img alt="时令草莓尝鲜小盒装" class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4ekFsBL0SH2IZudfuOUWatk0EYTZU9YAePFPWZEnitK8AFK2J5ZePFJhSV9zSYT8H7v4vywyLitVImdrXL6-s250IDKNIim15_SfbMRZ5eA5XSSubnrZObtxVf24XJaYeLfkn9gUdijo3lzWtTPTCWKE2cwWBrvBRz310KH6x1TUyvUyN5xS7K5MIg8r4ELafzkLEvt_8JobHMuxK_Ngh7Q1w02S63H1PYbK6tRoPooYDdiz3AVB6"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] font-semibold text-subtle bg-slate-100 border border-border px-1.5 py-0.5 rounded">已下架</span>
+<h3 class="text-[14px] font-medium text-charcoal/80 truncate">时令草莓尝鲜小盒装</h3>
+</div>
+<p class="text-[12px] text-subtle truncate mt-0.5">规格：本地草莓 250g</p>
+<p class="text-[12px] text-subtle font-normal mt-0.5">商品已下架</p>
+</div>
+<button aria-label="移除商品" class="w-8 h-8 flex items-center justify-center text-subtle hover:text-charcoal active:opacity-60 shrink-0" type="button">
+<span class="material-symbols-outlined text-[19px]">close</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 底部暖心说明 -->
+<div class="py-3 text-center">
+<p class="text-[12px] text-subtle">大光路智慧社区 · 邻里直供 安心便民</p>
+</div>
+</main>
+<!-- 底部全局导航 (住户端四大一级导航：首页 | 服务 | 商城 | 我的) -->
+<nav class="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border pb-safe">
+<div class="h-[56px] grid grid-cols-4 items-center max-w-[420px] mx-auto px-2">
+<!-- 首页 -->
+<a class="flex flex-col items-center justify-center min-h-[44px] py-1 text-subtle active:text-brand transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[11px] mt-0.5">首页</span>
+</a>
+<!-- 服务 -->
+<a class="flex flex-col items-center justify-center min-h-[44px] py-1 text-subtle active:text-brand transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">support</span>
+<span class="text-[11px] mt-0.5">服务</span>
+</a>
+<!-- 商城 (当前激活) -->
+<a aria-current="page" class="flex flex-col items-center justify-center min-h-[44px] py-1 text-brand font-semibold transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<span class="text-[11px] mt-0.5">商城</span>
+</a>
+<!-- 我的 -->
+<a class="flex flex-col items-center justify-center min-h-[44px] py-1 text-subtle active:text-brand transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+<span class="text-[11px] mt-0.5">我的</span>
+</a>
+</div>
+</nav>
+</body></html>

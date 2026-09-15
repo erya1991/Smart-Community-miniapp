@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["../../packages/ui/components/*"],
+      "@/composables/*": ["../../packages/common/composables/*"],
+      "@/utils/*": ["../../packages/common/utils/*"],
+      "@/types/*": ["../../packages/common/types/*"],
+      "@shared/*": ["../../packages/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "../../packages/**/*.ts", "../../packages/**/*.vue"]
+}

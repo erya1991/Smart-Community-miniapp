@@ -1,0 +1,15 @@
+{
+  "pages": [
+    { "path": "pages/workbench/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/operation/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/order/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "大光路商户",
+    "navigationBarBackgroundColor": "#F8F9FC",
+    "backgroundColor": "#F8F9FC",
+    "backgroundTextStyle": "dark"
+  }
+}

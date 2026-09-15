@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=-apple-system,+BlinkMacSystemFont,+'PingFang+SC',+'Microsoft+YaHei',+sans-serif:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {darkMode: "class",theme: {extend: {"colors": {"tertiary-container": "#005138","error-container": "#ffdad6","on-background": "#151d1f","on-secondary-fixed": "#390c00","error": "#ba1a1a","on-tertiary-container": "#7fc3a2","surface-container": "#e7eff1","surface": "#f3fbfd","outline": "#70797a","surface-bright": "#f3fbfd","surface-tint": "#36656c","tertiary": "#003825","surface-variant": "#dce4e6","primary-container": "#1b4d53","on-error": "#ffffff","inverse-primary": "#9fcfd6","tertiary-fixed-dim": "#90d5b3","on-tertiary": "#ffffff","on-primary": "#ffffff","on-secondary": "#ffffff","on-primary-fixed-variant": "#1c4d53","surface-container-lowest": "#ffffff","inverse-surface": "#2a3234","on-primary-fixed": "#001f23","outline-variant": "#c0c8c9","tertiary-fixed": "#acf1ce","surface-container-high": "#e2eaec","secondary-fixed": "#ffdbcf","surface-dim": "#d3dbdd","surface-container-low": "#edf5f7","primary": "#00363b","secondary-container": "#fe8357","on-surface": "#151d1f","on-secondary-container": "#6f2000","surface-container-highest": "#dce4e6","on-secondary-fixed-variant": "#822801","background": "#f3fbfd","primary-fixed-dim": "#9fcfd6","on-surface-variant": "#404849","secondary-fixed-dim": "#ffb59c","inverse-on-surface": "#eaf2f4","on-tertiary-fixed-variant": "#005138","on-tertiary-fixed": "#002114","primary-fixed": "#baebf2","on-error-container": "#93000a","on-primary-container": "#8dbdc3","secondary": "#a23e18"},"borderRadius": {"DEFAULT": "0.25rem","lg": "0.5rem","xl": "0.75rem","full": "9999px"},"spacing": {},"fontFamily": {"headline": ["-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif"],"display": ["-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif"],"body": ["-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif"],"label": ["-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif"]},"fontSize": {}},},}</script></head><body class="bg-surface font-body text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(27,77,83,0.04)]"><div class="h-14 px-3 flex items-center justify-between"><div class="flex items-center gap-1"><button aria-label="返回" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-variant/40 transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span></button><h1 class="text-base font-headline font-semibold text-on-surface tracking-tight line-clamp-1">订单确认</h1></div><div class="flex items-center gap-3 pr-1"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div aria-label="小程序胶囊菜单" class="h-8 px-2.5 rounded-full bg-surface-variant/60 flex items-center gap-2 border border-outline-variant/30"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">more_horiz</span><div class="w-[1px] h-3.5 bg-outline-variant/50"></div><span class="material-symbols-outlined text-on-surface-variant text-[16px]">radio_button_checked</span></div></div></div></header><main class="flex flex-col relative w-full pt-14 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- 顶部轻量规则提示条 -->
+<div class="px-4 py-2.5 bg-surface-container-low flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-lg mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1;">info</span>
+<p class="text-xs leading-relaxed text-on-surface-variant font-body">当前正在结算 <span class="font-medium text-on-surface">【邻里生鲜（大光路店）】</span> 订单，请确认履约与收货信息。</p>
+</div>
+<div class="p-4 flex flex-col gap-3.5 pb-28">
+<!-- 履约方式选择卡片 (Segmented / Tabs) -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-[0_2px_8px_rgba(27,77,83,0.04)] flex flex-col gap-3">
+<div class="text-xs text-on-surface-variant font-medium px-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-[18px]">local_shipping</span><span class="">选择履约方式（当前订单支持以下方式）</span></div>
+<!-- Segmented Buttons -->
+<div class="grid grid-cols-3 gap-2 p-1 bg-surface-container rounded-lg" id="fulfillmentTabs"><button class="h-10 rounded-md flex items-center justify-center gap-1.5 text-sm font-semibold transition-all bg-primary text-on-primary shadow-sm" id="tab-delivery" onclick="switchFulfillment('delivery')" type="button"><span class="material-symbols-outlined text-[18px]">moped</span><span class="">商户配送</span></button><button class="h-10 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all text-on-surface-variant hover:text-on-surface" id="tab-pickup" onclick="switchFulfillment('pickup')" type="button"><span class="material-symbols-outlined text-[18px]">storefront</span><span class="">社区自提</span></button><button class="h-10 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all text-on-surface-variant hover:text-on-surface" id="tab-in-store" onclick="switchFulfillment('in-store')" type="button"><span class="material-symbols-outlined text-[18px]">qr_code_2</span><span class="">到店核销</span></button></div>
+<!-- 履约详情动态展示区 -->
+<!-- 1. 商户配送卡片 -->
+<div class="flex flex-col gap-2.5 pt-1" id="panel-delivery">
+<div class="flex items-start justify-between gap-3 p-3 bg-surface-container-low rounded-lg active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-start gap-3 min-w-0">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="text-base font-semibold text-on-surface">王阿姨</span>
+<span class="text-sm text-on-surface-variant font-medium">138****5821</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary">默认</span>
+</div>
+<p class="text-sm font-medium text-on-surface mt-1 leading-snug line-clamp-2">
+                秦淮区大光路街道大光新村12幢2单元302室
+              </p>
+</div>
+</div>
+<div class="flex items-center gap-0.5 text-primary text-xs font-semibold shrink-0 pt-1">
+<span class="">更换</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</div>
+</div>
+<!-- 履约时效 -->
+<div class="flex items-center gap-2 px-1 text-xs text-primary font-medium"><span class="material-symbols-outlined text-[16px]">schedule</span><span class="">预计今日 17:30 前送达 · 商户专人送货上门</span></div>
+</div>
+<!-- 2. 社区自提卡片 (默认隐藏) -->
+<div class="hidden flex-col gap-2.5 pt-1" id="panel-pickup">
+<div class="p-3 bg-surface-container-low rounded-lg flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="text-base font-semibold text-on-surface">大光路社区综合服务点</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary">便民驿站</span>
+</div>
+<span class="text-xs text-on-surface-variant">距您 260m</span>
+</div>
+<p class="text-sm text-on-surface leading-snug">当前正在结算 <span class="font-medium text-on-surface">【邻里生鲜（大光路店）】</span> 订单，请确认履约与收货信息。</p>
+<div class="text-xs text-primary font-medium pt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">access_time</span>
+<span class="">自提时段：今日 14:00 - 20:00（凭提货码取件）</span>
+</div>
+</div>
+</div>
+<!-- 3. 到店核销卡片 (默认隐藏) -->
+<div class="hidden flex-col gap-2.5 pt-1" id="panel-in-store">
+<div class="p-3 bg-surface-container-low rounded-lg flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="text-base font-semibold text-on-surface">邻里生鲜（大光路直营店）</span>
+<span class="text-xs text-primary font-medium">门店直提</span>
+</div>
+<p class="text-sm text-on-surface leading-snug">当前正在结算 <span class="font-medium text-on-surface">【邻里生鲜（大光路店）】</span> 订单，请确认履约与收货信息。</p>
+<div class="text-xs text-primary font-medium pt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="">营业时间：07:30 - 20:30 · 请至服务台出示核销二维码</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 订单商品清单 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_2px_8px_rgba(27,77,83,0.04)] flex flex-col gap-4">
+<!-- 店铺头部 -->
+<div class="flex items-center justify-between pb-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[15px]">storefront</span>
+</div>
+<span class="text-base font-semibold text-on-surface">邻里生鲜（大光路店）</span>
+</div>
+
+</div>
+<!-- 商品列表 -->
+<div class="flex flex-col gap-4">
+<!-- 商品 1：新鲜蔬菜组合 -->
+<div class="flex gap-3 items-start">
+<img alt="当日采摘的新鲜蔬菜组合，青翠欲滴的青菜水灵鲜嫩，搭配水嫩黄瓜与红润饱满的西红柿，陈列在秦淮老城街巷农贸市场的竹编提篮中，自然柔和日光，体现大光路社区菜场的丰盛与新鲜生活气息" class="w-20 h-20 rounded-lg object-cover bg-surface-container shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Xsl9qDr_VXJNxL1PoFV8A1b2Qvut6084524qOk8z2qlaBRbBDzVIO0Ds8s6M8xtzk4Jhves5QtlZTmCkQjOMuBwk-JADDqp5_tKTHQWNiJmx5LvbfbYrCSjKNAQs2Gq9J_7aXBi6GmVXIHeLnhegmniNOotxBgVPbTqo_7piBhqjewjBi-DaWyqUGZbAChCCartXmuAuhWBUnoXTjp9Z_qOFP8Lz-VQIwn38Go015cdAy-N85XxiVPfiI">
+<div class="flex flex-col flex-1 min-w-0 justify-between h-20 py-0.5">
+<div>
+<h3 class="text-base font-semibold text-on-surface truncate leading-tight">当日新鲜蔬菜组合</h3>
+<p class="text-xs text-on-surface-variant mt-1 truncate">规格：家庭装（约2.5kg）</p>
+</div>
+<div class="flex items-baseline justify-between">
+<span class="text-base font-bold text-secondary font-headline">¥25.80</span>
+<span class="text-xs text-on-surface-variant font-medium">× 1</span>
+</div>
+</div>
+</div>
+<!-- 商品 2：时令水蜜桃鲜果装 -->
+<div class="flex gap-3 items-start">
+<img class="w-20 h-20 rounded-lg object-cover bg-surface-container shrink-0" data-alt="精选熟透的白凤水蜜桃4只装，表皮粉嫩带茸毛，果实饱满圆润带有清晨水珠，放置在干净极简的环保果盘中，暖色系温润柔和采光，特写构图，尽显邻里果铺的新鲜高品质" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR506hKVQxY79faDqQb06VH5SpQUtIl0LoqLII2jHfviT1bmjtW5VD0jAI9JJmbtwjuBUoluVV1cD5mLpxw4K2L4vBswWJsaLDn1DLgQfxGlctwflN9BNov_TZcLvzq4j8yk3t2KbKb94seuvieXtYzRI7qdbZ7N1Fubs-Kk9EG5UlAAeXQXhgkZZFCZbBGuvoJF9CDdSoAxa1VhkFCnlbjx2mpItBjuF7j2oLZJgIIC_nC8m-_M-a">
+<div class="flex flex-col flex-1 min-w-0 justify-between h-20 py-0.5">
+<div>
+<h3 class="text-base font-semibold text-on-surface truncate leading-tight">时令水蜜桃鲜果装</h3>
+<p class="text-xs text-on-surface-variant mt-1 truncate">规格：精品特大果 4只/盒</p>
+</div>
+<div class="flex items-baseline justify-between">
+<span class="text-base font-bold text-secondary font-headline">¥24.00</span>
+<span class="text-xs text-on-surface-variant font-medium">× 1</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 订单备注栏 -->
+<div class="pt-2 flex flex-col gap-1.5">
+<label class="text-xs font-medium text-on-surface-variant flex items-center gap-1" for="order-note">
+<span class="material-symbols-outlined text-[15px]">edit_note</span>
+<span class="">订单备注</span>
+</label>
+<div class="bg-surface-container-low rounded-lg p-2.5">
+<input class="w-full bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none" id="order-note" placeholder="选填：请与商户协商一致后填写（如需无接触放置门口）" type="text">
+</div>
+</div>
+</div>
+<!-- 金额明细卡片 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_2px_8px_rgba(27,77,83,0.04)] flex flex-col gap-3">
+<div class="text-sm font-semibold text-on-surface">金额明细</div>
+<div class="flex flex-col gap-2.5 text-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="">商品金额</span>
+<span class="font-medium text-on-surface">¥49.80</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant"><span class="">配送费</span><span class="font-medium text-on-surface">¥0.00</span></div>
+</div>
+<div class="pt-2 flex items-baseline justify-end gap-1.5">
+<span class="text-xs text-on-surface-variant">共 2 件商品</span>
+<span class="text-sm text-on-surface font-medium">小计：</span>
+<span class="text-lg font-bold text-secondary font-headline">¥49.80</span>
+</div>
+</div>
+<!-- 交易保障微标说明 -->
+<div class="py-2 flex items-center justify-center gap-1.5 text-xs text-on-surface-variant/80"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: &quot;FILL&quot; 1;">verified_user</span><span class="">请在提交订单前核对商品规格与履约信息</span></div>
+</div>
+<!-- 底部固定结算操作栏 (Bottom Action Bar) -->
+<aside class="fixed bottom-0 inset-x-0 bg-surface-container-lowest shadow-[0_-2px_12px_rgba(0,0,0,0.05)] z-40 pb-safe">
+<div class="h-16 px-4 flex items-center justify-between gap-3">
+<!-- 左侧实付金额 -->
+<div class="flex flex-col justify-center min-w-0">
+<div class="flex items-baseline gap-1">
+<span class="text-xs font-medium text-on-surface-variant">实付金额:</span>
+<span class="text-xs font-bold text-secondary">¥</span>
+<span class="text-2xl font-bold text-secondary font-headline tracking-tight leading-none">49.80</span>
+</div>
+
+</div>
+<!-- 右侧提交按钮 -->
+<button class="h-12 px-7 rounded-xl bg-primary hover:bg-primary-container active:scale-[0.98] transition-all flex items-center justify-center text-on-primary font-semibold text-base shadow-sm shrink-0" id="btn-submit" onclick="handleSubmitOrder()" type="button">
+<span class="">提交订单</span>
+</button>
+</div>
+</aside>
+<!-- 交互脚本：履约模式切换与提交反馈 -->
+<script>
+    function switchFulfillment(mode) {
+      const modes = ['delivery', 'pickup', 'in-store'];
+      modes.forEach(m => {
+        const tab = document.getElementById('tab-' + m);
+        const panel = document.getElementById('panel-' + m);
+        if (m === mode) {
+          tab.className = 'h-10 rounded-md flex items-center justify-center gap-1.5 text-sm font-semibold transition-all bg-primary text-on-primary shadow-sm';
+          panel.classList.remove('hidden');
+          panel.classList.add('flex');
+        } else {
+          tab.className = 'h-10 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all text-on-surface-variant hover:text-on-surface';
+          panel.classList.remove('flex');
+          panel.classList.add('hidden');
+        }
+      });
+    }
+
+    function handleSubmitOrder() {
+      const btn = document.getElementById('btn-submit');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-xl">progress_activity</span>';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = '<span>已生成订单</span>';
+        alert('订单已成功提交！进入社区快捷免密支付流程。');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 700);
+    }
+  </script>
+</div></main>
+
+
+
+</body></html>

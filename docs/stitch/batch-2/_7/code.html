@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>住户端-商城订单详情</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#1B4D53',
+              dark: '#143B40',
+              light: '#EAF2F3',
+            },
+            accent: {
+              DEFAULT: '#C85A32',
+              light: '#FAEEE9',
+            },
+            success: {
+              DEFAULT: '#2E7256',
+              light: '#EBF4F0',
+            },
+            warning: {
+              DEFAULT: '#C76A22',
+              light: '#FAF1E8',
+            },
+            neutral: {
+              title: '#191C1E',
+              body: '#5F6769',
+              disabled: '#8B9294',
+              page: '#F8F9FC',
+              card: '#FFFFFF',
+              border: '#E1E4E6',
+              group: '#F2F4F6',
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'Arial', 'sans-serif'],
+          },
+          boxShadow: {
+            card: '0 2px 8px rgba(27, 77, 83, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #F8F9FC;
+      color: #191C1E;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+    }
+    .safe-bottom {
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 72px);
+    }
+  </style>
+</head>
+<body class="bg-neutral-page min-h-screen text-neutral-title flex flex-col antialiased selection:bg-primary/20 max-w-[390px] mx-auto">
+<!-- 微信小程序原生顶部导航栏 (模拟小程序胶囊) -->
+<header class="sticky top-0 z-50 bg-[#1B4D53] text-white">
+<div class="h-11 flex items-center justify-between px-4">
+<button aria-label="返回" class="w-9 h-9 flex items-center justify-start text-white active:opacity-70 transition-opacity">
+<i class="fa-solid fa-chevron-left text-lg"></i>
+</button>
+<h1 class="text-[17px] font-semibold tracking-wide">订单详情</h1>
+<!-- 微信小程序胶囊安全区占位 (Capsule button) -->
+<div class="flex items-center space-x-2 bg-black/20 border border-white/20 px-2.5 py-1 rounded-full text-xs">
+<i class="fa-solid fa-ellipsis text-white/90"></i>
+<span class="w-[1px] h-3 bg-white/30"></span>
+<i class="fa-regular fa-circle-dot text-white/90"></i>
+</div>
+</div>
+</header>
+<!-- 页面主体内容区 -->
+<main class="flex-1 px-4 pt-3 pb-6 safe-bottom space-y-3.5">
+<!-- 一、状态头部卡片 (生活化业务主状态 + 温暖提示) -->
+<div class="bg-[#1B4D53] rounded-2xl p-5 text-white relative overflow-hidden shadow-card">
+<!-- 装饰水印背景 -->
+<div class="absolute -right-4 -bottom-6 text-white/5 pointer-events-none">
+<i class="fa-solid fa-bag-shopping text-9xl"></i>
+</div>
+<div class="flex items-start justify-between relative z-10">
+<div>
+<div class="flex items-center space-x-2">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<h2 class="text-2xl font-bold tracking-tight">商户备货中</h2>
+<span class="text-xs px-2 py-0.5 rounded-full bg-white/15 text-white/90 font-medium">商户配送</span>
+</div>
+<p class="text-[15px] text-white/90 mt-2 font-normal leading-relaxed">
+            邻里生鲜已接单，正在分拣新鲜果蔬，预计今日 <span class="font-bold text-amber-300">17:30</span> 前送达。
+          </p>
+</div>
+</div>
+<!-- 快速联系与保障条 -->
+
+</div>
+<!-- 二、履约进度模块 (商户配送专属流程：已支付 → 商户备货 → 配送中 → 已送达 → 已完成) -->
+<div class="bg-white rounded-2xl p-4 border border-neutral-border shadow-card">
+<div class="flex items-center justify-between pb-3 border-b border-neutral-border/60">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-4 rounded-full bg-primary"></span>
+<h3 class="text-[16px] font-bold text-neutral-title">履约进度</h3>
+</div>
+<span class="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded">步骤 2/5 正在处理</span>
+</div>
+<!-- 进度条横向节点 (大字号、适老清晰) -->
+<div class="pt-4 pb-1">
+<div class="grid grid-cols-5 relative">
+<!-- 连接线背景 -->
+<div class="absolute top-4 left-[10%] right-[10%] h-[3px] bg-neutral-group -z-0">
+<!-- 激活长度：从第1点到第2点 -->
+<div class="h-full bg-primary w-[25%] transition-all"></div>
+</div>
+<!-- 节点 1: 已支付 (已完成) -->
+<div class="flex flex-col items-center relative z-10">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shadow-sm">
+<i class="fa-solid fa-check"></i>
+</div>
+<span class="text-[13px] font-semibold text-neutral-title mt-2">已支付</span>
+<span class="text-[11px] text-neutral-disabled mt-0.5">09:30</span>
+</div>
+<!-- 节点 2: 商户备货 (当前进行中) -->
+<div class="flex flex-col items-center relative z-10">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold ring-4 ring-primary-light shadow-sm">
+<i class="fa-solid fa-box-open text-xs"></i>
+</div>
+<span class="text-[13px] font-bold text-primary mt-2">商户备货</span>
+<span class="text-[11px] text-primary font-medium mt-0.5">备货中</span>
+</div>
+<!-- 节点 3: 配送中 (未开始) -->
+<div class="flex flex-col items-center relative z-10">
+<div class="w-8 h-8 rounded-full bg-neutral-group text-neutral-disabled flex items-center justify-center text-xs">
+              3
+            </div>
+<span class="text-[13px] font-medium text-neutral-disabled mt-2">配送中</span>
+<span class="text-[11px] text-neutral-disabled/70 mt-0.5">专人送达</span>
+</div>
+<!-- 节点 4: 已送达 (未开始) -->
+<div class="flex flex-col items-center relative z-10">
+<div class="w-8 h-8 rounded-full bg-neutral-group text-neutral-disabled flex items-center justify-center text-xs">
+              4
+            </div>
+<span class="text-[13px] font-medium text-neutral-disabled mt-2">已送达</span>
+<span class="text-[11px] text-neutral-disabled/70 mt-0.5">验货收件</span>
+</div>
+<!-- 节点 5: 已完成 (未开始) -->
+<div class="flex flex-col items-center relative z-10">
+<div class="w-8 h-8 rounded-full bg-neutral-group text-neutral-disabled flex items-center justify-center text-xs">
+              5
+            </div>
+<span class="text-[13px] font-medium text-neutral-disabled mt-2">已完成</span>
+<span class="text-[11px] text-neutral-disabled/70 mt-0.5">订单完结</span>
+</div>
+</div>
+<!-- 履约动态状态文字 -->
+<div class="mt-4 p-3 bg-neutral-page rounded-xl flex items-center justify-between text-xs text-neutral-body">
+<div class="flex items-center space-x-2">
+<i class="fa-solid fa-truck-ramp-box text-primary text-sm"></i>
+<span class="">商户备货完成后，将由社区商户专人送货上门</span>
+</div>
+<span class="text-neutral-disabled">09:32 更新</span>
+</div>
+</div>
+</div>
+<!-- 三、收货与履约信息卡片 (商户配送专属：收件人、脱敏电话、详细门牌号、特别叮嘱) -->
+<div class="bg-white rounded-2xl p-4 border border-neutral-border shadow-card">
+<div class="flex items-center justify-between pb-3 border-b border-neutral-border/60">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-4 rounded-full bg-primary"></span>
+<h3 class="text-[16px] font-bold text-neutral-title">配送与收货信息</h3>
+</div>
+<span class="text-xs text-neutral-body">送货上门</span>
+</div>
+<div class="pt-3 space-y-3">
+<!-- 居民姓名与电话 -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-sm">
+<i class="fa-solid fa-location-dot"></i>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<span class="text-[17px] font-bold text-neutral-title">王阿姨</span>
+<span class="text-[15px] font-medium text-neutral-body tracking-wider">138****5821</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-group text-neutral-body text-[11px]">居民本人</span>
+</div>
+<p class="text-[15px] font-medium text-neutral-title mt-1 leading-snug">
+                秦淮区大光路街道大光新村 12 幢 2 单元 302 室
+              </p>
+</div>
+</div>
+</div>
+<!-- 社区老人送达特别嘱咐 (适老生活化体验) -->
+<div class="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3 flex items-start space-x-2.5">
+<i class="fa-solid fa-clipboard-check text-accent text-sm mt-0.5"></i>
+<div class="text-xs text-amber-900 leading-relaxed">
+<span class="font-bold text-accent">订单特别备注：</span>
+<span class="">今日 16:00—18:00 送货上门，老人行动不便请轻叩门或提前致电。</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 四、订单商品清单卡片 (社区直供商户 + 真实商品 + 规格数量 + 价格) -->
+<div class="bg-white rounded-2xl p-4 border border-neutral-border shadow-card">
+<!-- 商户信息标头 -->
+<div class="flex items-center justify-between pb-3 border-b border-neutral-border/60">
+<div class="flex items-center space-x-2">
+<div class="w-6 h-6 rounded bg-primary-light text-primary flex items-center justify-center text-xs">
+<i class="fa-solid fa-store"></i>
+</div>
+<span class="text-[16px] font-bold text-neutral-title">邻里生鲜（大光路店）</span>
+
+</div>
+<i class="fa-solid fa-chevron-right text-xs text-neutral-disabled"></i>
+</div>
+<!-- 商品列表 -->
+<div class="divide-y divide-neutral-border/50">
+<!-- 商品 1: 当日新鲜蔬菜组合 -->
+<div class="py-3.5 flex items-center space-x-3">
+<div class="w-20 h-20 rounded-xl bg-neutral-group overflow-hidden flex-shrink-0 border border-neutral-border/60">
+<img alt="当日新鲜蔬菜组合" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCo0hXojBRmaaNyesygtEF4ip8QZ3l12zpaPpuYCA6tm23kxDxZxsXbuE_Bf6-1WV16Pmjf8TGHe67urdVUwGJ_BGJDvIx6qzvF5Qv3YxHiUktbogbfMe10lHUpUPCH55ud4EDaJ_QPbisp11WM1DKM5yNpMI2vffJvpG9EIU-0SUpn_uGfdwDHRau7dn5xs8gFT05WEEsPK85yMPejmTqfc4AxWujj9oD0rpTKx6cVm-IHQx67ujF1">
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between h-20 py-0.5">
+<div>
+<h4 class="text-[16px] font-bold text-neutral-title leading-snug truncate">当日新鲜蔬菜组合</h4>
+<p class="text-[13px] text-neutral-body mt-1">规格：家庭装（约2.5kg）</p>
+</div>
+<div class="flex items-baseline justify-between">
+<span class="text-accent font-bold text-[18px]">¥25.80</span>
+<span class="text-[14px] text-neutral-body font-medium">× 1</span>
+</div>
+</div>
+</div>
+<!-- 商品 2: 时令水蜜桃鲜果装 -->
+<div class="py-3.5 flex items-center space-x-3">
+<div class="w-20 h-20 rounded-xl bg-neutral-group overflow-hidden flex-shrink-0 border border-neutral-border/60">
+<img alt="时令水蜜桃鲜果装" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6feq8HgKJmEKZPcR_C3K6ZjyrQrgmN7x2PzWkq9SnR6Ck9YTKbAL3ml0jpoDSpxSLiXJTeNwPE0djsNwWHYKpooyDlpi3N9hdN3UAHQ3zqg4Ifa_WwlyTqQbH5l4G2U2o8lUkmmnWS5vVyQfbRZC7ZGoDvtavgHtaVWn_oLWIhRzukpldJ5pf6UJE5RPAALEOaTv56Qnc81xaL1XsFAKAZFqK3oUQA8ZpOcqauNwlopR5Dtieo22G">
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between h-20 py-0.5">
+<div>
+<h4 class="text-[16px] font-bold text-neutral-title leading-snug truncate">时令水蜜桃鲜果装</h4>
+<p class="text-[13px] text-neutral-body mt-1">规格：精品特大果 4只/盒</p>
+</div>
+<div class="flex items-baseline justify-between">
+<span class="text-accent font-bold text-[18px]">¥24.00</span>
+<span class="text-[14px] text-neutral-body font-medium">× 1</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 金额明细 -->
+<div class="mt-2 pt-3 border-t border-neutral-border/60 space-y-2 text-[14px]">
+<div class="flex justify-between text-neutral-body">
+<span class="">商品总金额</span>
+<span class="text-neutral-title font-medium">¥49.80</span>
+</div>
+<div class="flex justify-between text-neutral-body">
+<span class="">配送费</span>
+<span class="text-success font-medium">¥0.00</span>
+</div>
+<div class="pt-2 flex justify-between items-baseline border-t border-dashed border-neutral-border/80">
+<span class="text-[15px] font-bold text-neutral-title">实付金额</span>
+<div class="flex items-baseline space-x-1">
+<span class="text-xs text-neutral-body">已支付</span>
+<span class="text-accent font-bold text-2xl">¥49.80</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 五、售后服务保障入口 (克制清晰，符合一期业务闭环) -->
+<div class="bg-white rounded-2xl p-4 border border-neutral-border shadow-card flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-emerald-50 text-success flex items-center justify-center text-base">
+<i class="fa-solid fa-headset"></i>
+</div>
+<div>
+<h4 class="text-[15px] font-bold text-neutral-title">售后与服务保障</h4>
+<p class="text-xs text-neutral-body mt-0.5">生鲜商品收货后如有磕碰损坏，支持快捷协商售后</p>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-xl border border-neutral-border text-neutral-title text-xs font-semibold hover:bg-neutral-page active:bg-neutral-group transition">
+        申请售后
+      </button>
+</div>
+<!-- 六、订单编号与交易信息卡片 (放低优先级，支持复制) -->
+<div class="bg-white rounded-2xl p-4 border border-neutral-border shadow-card text-[13px] text-neutral-body space-y-2.5">
+<div class="flex items-center justify-between pb-2 border-b border-neutral-border/50">
+<span class="font-bold text-neutral-title text-[14px]">订单详细信息</span>
+<span class="text-[12px] text-neutral-disabled">商城订单</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="">订单编号</span>
+<div class="flex items-center space-x-1.5 text-neutral-title font-mono text-xs">
+<span class="">DGL202609040001</span>
+<button class="text-primary hover:underline ml-1 font-sans text-xs px-1.5 py-0.5 rounded bg-primary-light">复制</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="">下单时间</span>
+<span class="text-neutral-title">2026-09-04 09:30:15</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="">支付时间</span>
+<span class="text-neutral-title">2026-09-04 09:30:28</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="">履约方式</span>
+<span class="text-neutral-title font-medium">商户配送（大光路店专送）</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="">支付方式</span>
+<span class="text-neutral-title">在线支付</span>
+</div>
+</div>
+<!-- 适老便民关怀提示底栏 -->
+<div class="text-center py-2 text-xs text-neutral-disabled flex items-center justify-center space-x-1.5">
+<i class="fa-solid fa-phone-volume text-primary/70"></i>
+<span class="">如需助老送货协助或咨询，可拨打大光路便民服务热线</span>
+</div>
+</main>
+<!-- 七、底部固定操作栏 (Bottom Action Bar) - 针对“商户备货中”状态 -->
+<footer class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-border px-4 py-2.5 shadow-lg flex items-center justify-between max-w-[390px] mx-auto">
+<!-- 左侧状态提示 -->
+<div class="flex flex-col">
+<span class="text-xs text-neutral-body">当前状态</span>
+<span class="text-sm font-bold text-primary flex items-center space-x-1">
+<i class="fa-solid fa-clock text-xs"></i>
+<span class="">备货中 · 待专送</span>
+</span>
+</div>
+<!-- 右侧行动按键 (适老防误触，大按钮设计) -->
+<div class="flex items-center space-x-2.5">
+<!-- 次要操作：联系商户 -->
+<button class="h-11 px-4 rounded-xl border border-primary text-primary font-semibold text-[15px] flex items-center space-x-1.5 bg-white active:bg-primary-light transition">
+<i class="fa-solid fa-phone text-xs"></i>
+<span class="">联系商户</span>
+</button>
+<!-- 主要操作：查看配送进度 / 催单 -->
+<button class="h-11 px-5 rounded-xl bg-primary hover:bg-primary-dark active:bg-[#143B40] text-white font-semibold text-[15px] shadow-sm flex items-center space-x-1.5 transition">
+<i class="fa-solid fa-route text-xs"></i>
+<span class="">查看配送进度</span>
+</button>
+</div>
+</footer>
+
+
+
+
+</body></html>

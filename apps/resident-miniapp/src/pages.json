@@ -1,0 +1,15 @@
+{
+  "pages": [
+    { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/service/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "大光路智慧社区",
+    "navigationBarBackgroundColor": "#F8F9FC",
+    "backgroundColor": "#F8F9FC",
+    "backgroundTextStyle": "dark"
+  }
+}

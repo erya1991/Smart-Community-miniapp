@@ -1,0 +1,271 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>大光路智慧社区住户小程序 - 商品详情</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal: {
+              DEFAULT: '#1B4D53',
+              50: '#F0F6F7',
+              100: '#DDECEE',
+              200: '#BCD8DB',
+              600: '#1B4D53',
+              700: '#143C41',
+              800: '#0F2C30'
+            },
+            surface: {
+              base: '#F8F9FC',
+              card: '#FFFFFF',
+              border: '#E8ECF0'
+            }
+          },
+          fontFamily: {
+            serif: ['Source Serif 4', 'Songti SC', 'SimSun', 'serif'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-layout">
+    /* iOS Safe Area Support */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 20px);
+    }
+    /* Hide scrollbars for clean UI */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#F8F9FC] text-slate-800 font-sans antialiased min-h-screen flex justify-center">
+<!-- Mobile Screen Shell (390px logic width viewport simulation) -->
+<div class="w-full max-w-[420px] min-h-screen bg-[#F8F9FC] flex flex-col relative pb-28 shadow-xl">
+<!-- BEGIN: MiniProgramHeader -->
+<!-- Mini-program standard top navigation bar -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 pt-safe" data-purpose="navigation-bar">
+<div class="h-12 px-3 flex items-center justify-between">
+<!-- Back Button -->
+<button aria-label="返回" class="w-9 h-9 flex items-center justify-center rounded-full active:bg-slate-100 transition-colors" type="button">
+<svg class="w-6 h-6 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
+</svg>
+</button>
+<!-- Page Title -->
+<h1 class="text-base font-medium tracking-wide text-slate-800">商品详情</h1>
+<!-- WeChat Mini Program Capsule Mockup -->
+<div class="flex items-center space-x-2 bg-white/80 border border-slate-200/80 rounded-full px-2.5 py-1 shadow-xs">
+<!-- Capsule dots -->
+<button aria-label="更多操作" class="flex items-center justify-center p-0.5" type="button">
+<span class="inline-block w-1 h-1 rounded-full bg-slate-700 mx-0.5"></span>
+<span class="inline-block w-1 h-1 rounded-full bg-slate-700 mx-0.5"></span>
+<span class="inline-block w-1 h-1 rounded-full bg-slate-700 mx-0.5"></span>
+</button>
+<span class="w-[1px] h-3 bg-slate-300"></span>
+<!-- Capsule close circle -->
+<button aria-label="关闭小程序" class="flex items-center justify-center p-0.5" type="button">
+<span class="w-3.5 h-3.5 rounded-full border border-slate-700 flex items-center justify-center">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+</span>
+</button>
+</div>
+</div>
+</header>
+<!-- END: MiniProgramHeader -->
+<!-- BEGIN: MainContent -->
+<main class="flex-1 overflow-y-auto space-y-3 pb-6">
+<!-- BEGIN: HeroImageSection -->
+<section class="relative bg-white" data-purpose="product-hero-image">
+<!-- Product photo with balanced 4:3 aspect ratio -->
+<div class="relative w-full aspect-[4/3] overflow-hidden bg-slate-100">
+<img alt="当日新鲜蔬菜组合：青菜、黄瓜、番茄等新鲜时蔬" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEst4OE_0qo8ejf_ifSZsoybdPvlYe06vBuXmWpcEM8_5VQkSu48-1CzwlqbF-bN791boe5ow2ElLOva7ADijvWAz0ZISq72qXu8pBLLmY3G0ZJ41n1YgyXqVrjLgxE0G7eEyY28IztyyZSeZRptkqQT7wU1eplSXNEKr0odhFZ7a33zzUrxVJUA8qeVs6W3pqGYDFgIREk3QzQMGue34CC189RrEqJH2LQ_DZOTZxzYrGvrbarQGt">
+<!-- Tag chips on top of image -->
+
+<!-- Carousel indicator badge -->
+<div class="absolute bottom-3 right-3 bg-black/55 backdrop-blur-xs text-white text-xs px-2.5 py-0.5 rounded-full font-mono">
+            1 / 4
+          </div>
+</div>
+</section>
+<!-- END: HeroImageSection -->
+<!-- BEGIN: CorePriceTitleCard -->
+<section class="mx-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100" data-purpose="pricing-and-title"><!-- Price Display with brick-red accent -->
+<div class="flex items-baseline space-x-2">
+  <span class="text-[#a23e18] text-lg font-bold">¥</span>
+  <span class="text-[#a23e18] text-3xl font-extrabold tracking-tight font-sans">19.90</span>
+  <span class="text-xs text-slate-500 font-normal">/ 份</span>
+  <span class="text-xs text-slate-400 line-through ml-1">¥24.80</span>
+</div>
+<!-- Product Title -->
+<h2 class="mt-2.5 text-lg font-bold text-slate-900 leading-snug">
+  当日新鲜蔬菜组合
+</h2>
+<!-- Essential Description -->
+<p class="mt-1.5 text-xs text-slate-600 leading-relaxed">
+  当令新鲜青菜、番茄与脆黄瓜搭配，日常家庭装
+</p></section>
+<!-- END: CorePriceTitleCard -->
+<!-- BEGIN: FulfillmentCard -->
+<!-- Important community business feature: Delivery or Pick-up options -->
+<section class="mx-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100" data-purpose="fulfillment-method"><div class="flex items-center justify-between mb-3">
+  <h3 class="text-sm font-bold text-slate-900 flex items-center">
+    <span class="w-1.5 h-4 bg-[#1B4D53] rounded-full mr-2"></span>
+    履约配送方式
+  </h3>
+  <span class="text-xs text-slate-400">下单时可选择履约方式</span>
+</div>
+<div class="space-y-2.5">
+  <!-- Option 1: Merchant Home Delivery -->
+  <div class="bg-[#F0F6F7] border border-[#BCD8DB] rounded-xl p-3 flex items-start space-x-3">
+    <span class="bg-[#1B4D53] text-white text-[11px] font-medium px-2 py-0.5 rounded shrink-0 mt-0.5">
+      商户配送
+    </span>
+    <div class="text-xs space-y-0.5">
+      <p class="font-semibold text-slate-800">预计今日送达</p>
+      <p class="text-slate-500">由商户专人送货上门，支持无接触配送</p>
+    </div>
+  </div>
+  <!-- Option 2: Community Self-pickup Point -->
+  <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-start space-x-3">
+    <span class="bg-slate-700 text-white text-[11px] font-medium px-2 py-0.5 rounded shrink-0 mt-0.5">
+      社区自提
+    </span>
+    <div class="text-xs space-y-0.5">
+      <p class="font-semibold text-slate-800">大光路社区服务点自提</p>
+      <p class="text-slate-500">开放时间 08:30—20:00 · 到货后凭提货码自提</p>
+    </div>
+  </div>
+</div></section>
+<!-- END: FulfillmentCard -->
+<!-- BEGIN: SkuSelectorCard -->
+<!-- Specification and stock states selector -->
+<section class="mx-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100" data-purpose="sku-selection"><div class="flex items-center justify-between pb-3 border-b border-slate-100">
+  <div class="text-xs text-slate-500">
+    已选规格：<span class="font-semibold text-slate-800">家庭装 (约2.5kg)</span>
+  </div>
+  <button class="text-xs text-slate-400 flex items-center hover:text-slate-600" type="button">
+    选择规格
+    <svg class="w-4 h-4 ml-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+    </svg>
+  </button>
+</div>
+<div class="mt-3">
+  <label class="block text-xs font-medium text-slate-500 mb-2">规格分类：</label>
+  <div class="flex flex-wrap gap-2">
+    <button class="px-3 py-2 text-xs rounded-xl font-medium border-2 border-[#1B4D53] bg-[#F0F6F7] text-[#1B4D53] flex items-center space-x-1" type="button">
+      <span class="">家庭装 (约2.5kg)</span>
+    </button>
+    <button class="px-3 py-2 text-xs rounded-xl font-medium border border-slate-200 bg-white text-slate-700 hover:border-slate-300" type="button">
+      双人尝鲜装 (约1.2kg)
+    </button>
+  </div>
+</div></section>
+<!-- END: SkuSelectorCard -->
+<!-- BEGIN: MerchantCard -->
+<!-- Direct partner merchant info -->
+<section class="mx-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100" data-purpose="merchant-info"><div class="flex items-center justify-between">
+  <div class="flex items-center space-x-3">
+    <div class="w-11 h-11 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-[#1B4D53]">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="flex items-center space-x-1.5">
+        <h4 class="font-bold text-slate-800 text-sm">邻里生鲜（大光路店）</h4>
+      </div>
+      <p class="text-xs text-slate-500 mt-0.5">秦淮区大光路138号邻里集市1楼</p>
+    </div>
+  </div>
+  <!-- Contact Phone Action -->
+  <a aria-label="联系商户" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200" href="tel:025-84620000">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+    </svg>
+  </a>
+</div>
+<div class="mt-2.5 pt-2.5 border-t border-slate-50 flex items-center justify-between text-[11px] text-slate-400">
+  <span class="">营业时间：07:00 — 20:30</span>
+</div></section>
+<!-- END: MerchantCard -->
+<!-- BEGIN: ProductDetailsAndNotes -->
+<section class="mx-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100" data-purpose="product-specifications"><!-- Section Header -->
+<div class="flex items-center space-x-6 border-b border-slate-100 pb-2.5 mb-3 text-sm font-medium">
+  <span class="text-[#1B4D53] border-b-2 border-[#1B4D53] pb-2 font-bold">商品参数与须知</span>
+</div>
+<!-- Clean Specifications Table -->
+<dl class="space-y-2.5 text-xs">
+  <div class="flex justify-between py-1 border-b border-slate-50">
+    <dt class="text-slate-400">商品规格</dt>
+    <dd class="text-slate-800 font-medium">家庭装（约2.5kg）/ 份</dd>
+  </div>
+  <div class="flex justify-between py-1 border-b border-slate-50">
+    <dt class="text-slate-400">组合明细</dt>
+    <dd class="text-slate-800 font-medium">青菜 + 红番茄 + 脆黄瓜 + 时令配菜</dd>
+  </div>
+  <div class="flex justify-between py-1 border-b border-slate-50">
+    <dt class="text-slate-400">贮存方式</dt>
+    <dd class="text-slate-800 font-medium">建议冷藏保鲜，3-5天内食用最佳</dd>
+  </div>
+  <div class="flex justify-between py-1">
+    <dt class="text-slate-400">验货提示</dt>
+    <dd class="text-slate-600">生鲜时蔬请签收后及时开箱验货</dd>
+  </div>
+</dl></section>
+<!-- END: ProductDetailsAndNotes -->
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: FixedBottomActionBar -->
+<!-- Accessible bottom purchase bar adhering to natural elder-friendly standards -->
+<nav class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 pb-safe z-50 flex items-center justify-between" data-purpose="bottom-purchase-bar">
+<!-- Auxiliary Left Icons -->
+<div class="flex items-center space-x-3 mr-2 shrink-0">
+<!-- Community Grid Officer / Customer Support -->
+<button class="flex flex-col items-center justify-center text-slate-600 hover:text-[#1B4D53] w-10" type="button"><svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+</svg>
+<span class="text-[10px] mt-0.5 font-medium">客服咨询</span></button>
+<!-- Cart with badge -->
+<button class="flex flex-col items-center justify-center text-slate-600 hover:text-[#1B4D53] relative w-10" type="button">
+<div class="relative">
+<svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+</svg>
+<span class="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full ring-2 ring-white">
+              2
+            </span>
+</div>
+<span class="text-[10px] mt-0.5 font-medium">购物车</span>
+</button>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center space-x-2 flex-1">
+<!-- Secondary Button: Add to Cart -->
+<button class="flex-1 h-11 bg-[#F0F6F7] text-[#1B4D53] font-bold text-sm rounded-xl active:bg-teal-100 transition-colors flex items-center justify-center border border-[#BCD8DB]" type="button">
+          加入购物车
+        </button>
+<!-- Primary CTA: Buy Now -->
+<button class="flex-1 h-11 bg-[#1B4D53] text-white font-bold text-sm rounded-xl shadow-md active:bg-[#143C41] transition-colors flex items-center justify-center" type="button">
+          立即购买
+        </button>
+</div>
+</nav>
+<!-- END: FixedBottomActionBar -->
+</div>
+
+
+
+
+</body></html>

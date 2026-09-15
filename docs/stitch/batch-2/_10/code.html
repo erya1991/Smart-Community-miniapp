@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>大光路智慧社区住户小程序 - 我的</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#1B4D53',
+              dark: '#143B40',
+              light: '#EAF2F3',
+            },
+            accent: {
+              DEFAULT: '#C85A32',
+              light: '#FAEEE9',
+            },
+            surface: {
+              DEFAULT: '#F8F9FC',
+              card: '#FFFFFF',
+              group: '#F2F4F6',
+              warm: '#FAF8F5',
+            },
+            text: {
+              main: '#191C1E',
+              sub: '#5F6769',
+              muted: '#8B9294',
+            },
+            line: '#E1E4E6'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      background-color: #F8F9FC;
+      color: #191C1E;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .safe-bottom {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom, 20px) + 20px);
+    }
+  </style>
+</head>
+<body class="bg-surface relative min-h-screen text-text-main flex flex-col antialiased">
+<!-- 微信小程序原生顶部状态栏与胶囊导航 (居中标题规范) -->
+<header class="sticky top-0 z-30 bg-[#F8F9FC]/95 backdrop-blur-md px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line/40">
+<div class="flex items-center w-20">
+<button aria-label="返回" class="text-text-main text-base p-1 hover:opacity-75 focus:outline-none">
+<i class="fa-solid fa-chevron-left text-sm text-text-sub"></i>
+</button>
+</div>
+<!-- 居中标题 -->
+<h1 class="text-[17px] font-bold tracking-tight text-text-main text-center flex-1">个人中心</h1>
+<!-- 微信小程序标准胶囊按钮 (固定右侧) -->
+<div class="flex items-center justify-end w-20">
+<div class="flex items-center bg-white/90 border border-line rounded-full px-2.5 py-1 space-x-2.5 shadow-sm">
+<button aria-label="小程序选项" class="text-text-main text-xs hover:opacity-75 focus:outline-none">
+<i class="fa-solid fa-ellipsis"></i>
+</button>
+<div class="w-[1px] h-3 bg-line"></div>
+<button aria-label="关闭小程序" class="text-text-main text-xs hover:opacity-75 focus:outline-none">
+<i class="fa-regular fa-circle-dot"></i>
+</button>
+</div>
+</div>
+</header>
+<!-- 主滚动区域 (全宽自然贴合边距 16px) -->
+<main class="flex-1 px-4 pt-3.5 space-y-3.5 safe-bottom">
+<!-- 一、顶部个人身份卡片 -->
+<section class="bg-surface-card rounded-[14px] p-4 border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)] relative overflow-hidden">
+<!-- 黛青生活底纹装饰 -->
+<div class="absolute -right-8 -top-8 w-28 h-28 bg-primary/5 rounded-full pointer-events-none"></div>
+<div class="flex items-center justify-between relative z-10">
+<div class="flex items-center space-x-3.5">
+<!-- 用户头像 -->
+<div class="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary flex-shrink-0 text-2xl shadow-inner">
+<i class="fa-solid fa-user"></i>
+</div>
+<!-- 身份与社区信息 -->
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<h2 class="text-[19px] font-bold text-text-main leading-snug">王阿姨</h2>
+<span class="text-[12px] bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">居民用户</span>
+</div>
+<p class="text-[14px] text-text-sub flex items-center font-medium">
+<i class="fa-solid fa-phone text-[12px] mr-1.5 text-primary/70"></i>138****5821
+            </p>
+<div class="inline-flex items-center text-[13px] text-primary bg-primary-light px-2.5 py-0.5 rounded-md font-medium">
+<i class="fa-solid fa-location-dot text-[11px] mr-1"></i>大光路智慧社区
+            </div>
+</div>
+</div>
+<!-- 个人资料入口 -->
+<button aria-label="查看个人资料" class="w-9 h-9 rounded-full bg-surface-group text-text-sub hover:text-primary flex items-center justify-center transition-colors flex-shrink-0">
+<i class="fa-solid fa-chevron-right text-[14px]"></i>
+</button>
+</div>
+</section>
+<!-- 二、我的商城订单卡片 -->
+<section class="bg-surface-card rounded-[14px] p-4 border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)]">
+<!-- 模块标题栏 -->
+<div class="flex items-center justify-between pb-3 border-b border-line/60">
+<div class="flex items-center space-x-2">
+<span class="w-1 h-3.5 bg-primary rounded-full"></span>
+<h3 class="text-[16px] font-bold text-text-main">我的订单</h3>
+</div>
+<button class="text-[13px] text-text-sub hover:text-primary flex items-center space-x-1 font-medium py-1 px-1">
+<span>全部订单</span>
+<i class="fa-solid fa-chevron-right text-[11px]"></i>
+</button>
+</div>
+<!-- 5个常用业务状态入口 -->
+<div class="grid grid-cols-5 gap-1 pt-3.5 text-center">
+<!-- 待支付 -->
+<button class="flex flex-col items-center justify-center py-1 group focus:outline-none">
+<div class="w-11 h-11 rounded-xl bg-surface-group text-primary flex items-center justify-center text-[18px] mb-1.5 transition-colors group-hover:bg-primary/10">
+<i class="fa-regular fa-credit-card"></i>
+</div>
+<span class="text-[12px] font-medium text-text-main group-hover:text-primary">待支付</span>
+</button>
+<!-- 待履约 -->
+<button class="flex flex-col items-center justify-center py-1 group focus:outline-none relative">
+<div class="w-11 h-11 rounded-xl bg-surface-group text-primary flex items-center justify-center text-[18px] mb-1.5 transition-colors group-hover:bg-primary/10 relative">
+<i class="fa-solid fa-truck-fast"></i>
+<span class="absolute -top-1 -right-1 w-4 h-4 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">1</span>
+</div>
+<span class="text-[12px] font-medium text-text-main group-hover:text-primary">待履约</span>
+</button>
+<!-- 待自提 -->
+<button class="flex flex-col items-center justify-center py-1 group focus:outline-none">
+<div class="w-11 h-11 rounded-xl bg-surface-group text-primary flex items-center justify-center text-[18px] mb-1.5 transition-colors group-hover:bg-primary/10">
+<i class="fa-solid fa-box-open"></i>
+</div>
+<span class="text-[12px] font-medium text-text-main group-hover:text-primary">待自提</span>
+</button>
+<!-- 待评价 -->
+<button class="flex flex-col items-center justify-center py-1 group focus:outline-none">
+<div class="w-11 h-11 rounded-xl bg-surface-group text-primary flex items-center justify-center text-[18px] mb-1.5 transition-colors group-hover:bg-primary/10">
+<i class="fa-regular fa-comment-dots"></i>
+</div>
+<span class="text-[12px] font-medium text-text-main group-hover:text-primary">待评价</span>
+</button>
+<!-- 退款/售后 -->
+<button class="flex flex-col items-center justify-center py-1 group focus:outline-none">
+<div class="w-11 h-11 rounded-xl bg-surface-group text-primary flex items-center justify-center text-[18px] mb-1.5 transition-colors group-hover:bg-primary/10">
+<i class="fa-solid fa-arrow-rotate-left"></i>
+</div>
+<span class="text-[12px] font-medium text-text-main group-hover:text-primary">售后</span>
+</button>
+</div>
+</section>
+<!-- 三、我的服务 -->
+<section class="bg-surface-card rounded-[14px] p-4 border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)]">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3.5">
+<div class="w-11 h-11 rounded-xl bg-primary-light text-primary flex items-center justify-center text-xl flex-shrink-0">
+<i class="fa-solid fa-clipboard-check"></i>
+</div>
+<div>
+<h3 class="text-[16px] font-bold text-text-main">我的服务</h3>
+<p class="text-[13px] text-text-sub mt-0.5">查看预约与服务进度</p>
+</div>
+</div>
+<button class="flex items-center space-x-1 text-primary text-[13px] font-medium bg-primary-light/60 px-3 py-1.5 rounded-lg hover:bg-primary-light transition-colors">
+<span>查看进度</span>
+<i class="fa-solid fa-chevron-right text-[11px]"></i>
+</button>
+</div>
+</section>
+<!-- 四、我的社区（2×2 卡片，突出房屋与缴费） -->
+<section class="bg-surface-card rounded-[14px] p-4 border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)]">
+<div class="flex items-center space-x-2 pb-3 border-b border-line/60">
+<span class="w-1 h-3.5 bg-primary rounded-full"></span>
+<h3 class="text-[16px] font-bold text-text-main">我的社区</h3>
+</div>
+<div class="grid grid-cols-2 gap-2.5 pt-3.5">
+<!-- 我的房屋 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-primary flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0 group-hover:text-primary-dark">
+<i class="fa-solid fa-house"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">我的房屋</div>
+<div class="text-[12px] text-text-sub truncate">已绑定 1 处...</div>
+</div>
+</button>
+<!-- 物业缴费 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-primary flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0 group-hover:text-primary-dark">
+<i class="fa-regular fa-file-lines"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">物业缴费</div>
+<div class="text-[12px] text-text-sub truncate">在线查缴与...</div>
+</div>
+</button>
+<!-- 我的车辆 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-primary flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0 group-hover:text-primary-dark">
+<i class="fa-solid fa-car-side"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">我的车辆</div>
+<div class="text-[12px] text-text-sub truncate">苏A·12345</div>
+</div>
+</button>
+<!-- 停车缴费 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-primary flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0 group-hover:text-primary-dark">
+<i class="fa-solid fa-square-parking"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">停车缴费</div>
+<div class="text-[12px] text-text-sub truncate">月卡/临停结算</div>
+</div>
+</button>
+</div>
+</section>
+<!-- 五、邻里生活（闲置与互助） -->
+<section class="bg-surface-card rounded-[14px] p-4 border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)]">
+<div class="flex items-center space-x-2 pb-3 border-b border-line/60">
+<span class="w-1 h-3.5 bg-primary rounded-full"></span>
+<h3 class="text-[16px] font-bold text-text-main">邻里生活</h3>
+</div>
+<div class="grid grid-cols-2 gap-2.5 pt-3.5">
+<!-- 我的闲置 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-accent flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0">
+<i class="fa-solid fa-arrows-rotate"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">我的闲置</div>
+<div class="text-[12px] text-text-sub truncate">发布与流转记录</div>
+</div>
+</button>
+<!-- 我的互助 -->
+<button class="flex items-center p-3 rounded-xl bg-surface-group hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20 text-left group">
+<div class="w-10 h-10 rounded-lg bg-white text-accent flex items-center justify-center text-lg mr-2.5 shadow-sm flex-shrink-0">
+<i class="fa-regular fa-face-smile"></i>
+</div>
+<div class="overflow-hidden">
+<div class="text-[14px] font-semibold text-text-main group-hover:text-primary">我的互助</div>
+<div class="text-[12px] text-text-sub truncate">互助求助与响应</div>
+</div>
+</button>
+</div>
+</section>
+<!-- 六、快捷列表（我的积分、收货地址、消息中心、意见反馈、设置） -->
+<section class="bg-surface-card rounded-[14px] border border-line shadow-[0_2px_8px_rgba(27,77,83,0.04)] divide-y divide-line/60 overflow-hidden">
+<!-- 我的积分 -->
+<button class="w-full flex items-center justify-between p-3.5 hover:bg-surface-group/60 transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[15px]">
+<i class="fa-solid fa-coins"></i>
+</div>
+<span class="text-[15px] font-medium text-text-main group-hover:text-primary">我的积分</span>
+</div>
+<div class="flex items-center space-x-2 text-text-sub">
+<span class="text-[14px] font-semibold text-primary">120 分</span>
+<i class="fa-solid fa-chevron-right text-[11px]"></i>
+</div>
+</button>
+<!-- 收货地址 -->
+<button class="w-full flex items-center justify-between p-3.5 hover:bg-surface-group/60 transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[15px]">
+<i class="fa-solid fa-map-location-dot"></i>
+</div>
+<span class="text-[15px] font-medium text-text-main group-hover:text-primary">收货地址</span>
+</div>
+<div class="flex items-center space-x-2 text-text-sub">
+<span class="text-[13px] text-text-sub truncate max-w-[150px]">大光新村 12幢...</span>
+<i class="fa-solid fa-chevron-right text-[11px]"></i>
+</div>
+</button>
+<!-- 消息中心 -->
+<button class="w-full flex items-center justify-between p-3.5 hover:bg-surface-group/60 transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[15px]">
+<i class="fa-regular fa-bell"></i>
+</div>
+<span class="text-[15px] font-medium text-text-main group-hover:text-primary">消息中心</span>
+</div>
+<div class="flex items-center space-x-2 text-text-sub">
+<span class="w-2 h-2 rounded-full bg-accent"></span>
+<i class="fa-solid fa-chevron-right text-[11px]"></i>
+</div>
+</button>
+<!-- 意见反馈 -->
+<button class="w-full flex items-center justify-between p-3.5 hover:bg-surface-group/60 transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[15px]">
+<i class="fa-regular fa-envelope"></i>
+</div>
+<span class="text-[15px] font-medium text-text-main group-hover:text-primary">意见反馈</span>
+</div>
+<i class="fa-solid fa-chevron-right text-[11px] text-text-sub"></i>
+</button>
+<!-- 设置 -->
+<button class="w-full flex items-center justify-between p-3.5 hover:bg-surface-group/60 transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-group text-text-sub flex items-center justify-center text-[15px]">
+<i class="fa-solid fa-gear"></i>
+</div>
+<span class="text-[15px] font-medium text-text-main group-hover:text-primary">设置</span>
+</div>
+<i class="fa-solid fa-chevron-right text-[11px] text-text-sub"></i>
+</button>
+</section>
+<!-- 底部落款 -->
+<div class="py-2.5 text-center">
+<p class="text-[12px] text-text-muted">大光路智慧社区便民服务</p>
+</div>
+</main>
+<!-- 底部固定一级 Tab Bar (原生铺满屏幕宽度，高亮“我的”) -->
+<nav class="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md border-t border-line z-40 flex items-center justify-around h-[56px] pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-2px_8px_rgba(0,0,0,0.03)]">
+<!-- 首页 -->
+<button class="flex flex-col items-center justify-center flex-1 py-1 text-text-sub hover:text-primary focus:outline-none">
+<i class="fa-solid fa-house text-[18px] mb-0.5"></i>
+<span class="text-[11px] font-medium">首页</span>
+</button>
+<!-- 服务 -->
+<button class="flex flex-col items-center justify-center flex-1 py-1 text-text-sub hover:text-primary focus:outline-none">
+<i class="fa-solid fa-shapes text-[18px] mb-0.5"></i>
+<span class="text-[11px] font-medium">服务</span>
+</button>
+<!-- 商城 -->
+<button class="flex flex-col items-center justify-center flex-1 py-1 text-text-sub hover:text-primary focus:outline-none">
+<i class="fa-solid fa-shop text-[18px] mb-0.5"></i>
+<span class="text-[11px] font-medium">商城</span>
+</button>
+<!-- 我的 (当前激活态) -->
+<button class="flex flex-col items-center justify-center flex-1 py-1 text-primary focus:outline-none relative">
+<i class="fa-solid fa-user text-[18px] mb-0.5"></i>
+<span class="text-[11px] font-bold">我的</span>
+<span class="w-1.5 h-1.5 bg-primary rounded-full absolute bottom-0.5"></span>
+</button>
+</nav>
+</body></html>

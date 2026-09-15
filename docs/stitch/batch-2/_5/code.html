@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>申请售后 - 大光路智慧社区</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: "#1B4D53",
+            "brand-dark": "#133B40",
+            "brand-light": "#EAF2F3",
+            brick: "#C85A32",
+            surface: "#F8F9FC",
+            "card-border": "#E1E4E6",
+            "text-main": "#1F2329",
+            "text-muted": "#646A73",
+            "text-sub": "#8F959E",
+          },
+          fontFamily: {
+            sans: ["-apple-system", "BlinkMacSystemFont", "'PingFang SC'", "'Hiragino Sans GB'", "'Microsoft YaHei'", "sans-serif"],
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #F8F9FC;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #1F2329;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-surface text-text-main flex flex-col min-h-screen antialiased selection:bg-brand/20">
+<!-- 微信小程序标准顶部（状态栏 + 自定义导航栏） -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-[#F8F9FC]/95 backdrop-blur-md border-b border-card-border/60">
+<!-- 顶部状态栏 -->
+<div class="w-full h-11 pt-safe px-6 flex items-center justify-between text-xs font-semibold text-text-main">
+<span>09:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] leading-none">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[16px] leading-none">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none">battery_full</span>
+</div>
+</div>
+<!-- 小程序导航栏 (44px) -->
+<div class="h-11 px-3 flex items-center justify-between relative">
+<!-- 返回按钮（可点击热区 ≥ 44px） -->
+<button aria-label="返回上一页" class="w-11 h-11 flex items-center justify-center -ml-1 text-text-main active:opacity-60 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<!-- 居中标题 -->
+<h1 class="font-medium text-[17px] text-text-main tracking-tight absolute left-1/2 -translate-x-1/2 pointer-events-none">
+        申请售后
+      </h1>
+<!-- 微信官方胶囊按钮 -->
+<div class="flex items-center h-8 bg-white/90 border border-card-border/80 rounded-full px-2.5 shadow-sm">
+<button aria-label="小程序更多选项" class="w-6 h-full flex items-center justify-center text-text-main" type="button">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+<div class="w-[1px] h-3.5 bg-card-border mx-1"></div>
+<button aria-label="关闭小程序" class="w-6 h-full flex items-center justify-center text-text-main" type="button">
+<span class="material-symbols-outlined text-[15px]">radio_button_checked</span>
+</button>
+</div>
+</div>
+</header>
+<!-- 页面主体内容（距顶部导航留足高度，底部留足操作栏高度） -->
+<main class="flex-1 w-full max-w-[430px] mx-auto px-4 pt-24 pb-36 space-y-3.5">
+<!-- 一、顶部温和提示卡片 (便民保障) -->
+<section class="bg-brand-light border border-[#D5E5E7] rounded-[14px] p-3.5 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<div class="text-[13px] leading-[20px] text-brand">
+<span class="font-semibold">社区便民保障：</span>提交售后申请后将由商户直接跟进处理，如遇协商分歧可申请平台处理。
+      </div>
+</section>
+<!-- 二、申请售后针对的商品卡片 -->
+<section class="bg-white rounded-[14px] border border-card-border p-4 shadow-sm">
+<!-- 所属商户标识 -->
+<div class="flex items-center justify-between pb-3 mb-3 border-b border-[#F0F2F5]">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-brand text-[18px]">storefront</span>
+<span class="text-[14px] font-semibold text-text-main truncate">邻里生鲜（大光路店）</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-brand-light text-brand shrink-0">社区直供</span>
+</div>
+<span class="text-[12px] text-text-muted shrink-0">生鲜蔬果</span>
+</div>
+<!-- 商品图与核心规格信息 -->
+<div class="flex gap-3 items-start">
+<div class="w-20 h-20 rounded-[10px] overflow-hidden bg-[#F2F4F6] shrink-0 border border-card-border/50">
+<img alt="当日新鲜蔬菜组合" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1U0jmOO77PO2SShipyvZ7yoNqKdDfwFItQzCCkh40_rsinEPQkMZpsOGfInqN2wsKqoCbt93RUulpI0bQ5S2xy-f34yH1Kz5w5qj2RrpTrNNcr5PKGFOo-OAf_R-PsYDzzBpmv0dPGLJxTKdBJGbC97qhbf5pkxvCeiyp2JqB1rfpXjUdVvPrSBspB43N7lTdNBxE6pHkU5NvLDWLU-9JF1pdubA9-pLCJhoau_lfJ5hZBQkLRCeCM1LRk"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-between min-h-[80px]">
+<div>
+<h2 class="text-[15px] font-semibold text-text-main leading-snug truncate">当日新鲜蔬菜组合</h2>
+<p class="text-[13px] text-text-muted mt-1 truncate">规格：家庭装约2.5kg</p>
+</div>
+<div class="flex items-baseline justify-between mt-2">
+<span class="text-[13px] text-text-muted">共购买 2 件</span>
+<div class="text-right">
+<span class="text-[12px] text-text-muted">购买单价 ¥19.90</span>
+<span class="text-[13px] font-medium text-text-main ml-1.5">小计 ¥39.80</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 关联原订单标签提示 -->
+<div class="mt-3 pt-2.5 border-t border-[#F5F6F8] flex items-center justify-between text-[12px] text-text-muted">
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-text-sub">receipt_long</span>
+          关联原订单：M202609040001
+        </span>
+<span class="text-text-sub">已送达</span>
+</div>
+</section>
+<!-- 三、售后类型选择 (单选卡片样式) -->
+<section class="bg-white rounded-[14px] border border-card-border p-4 shadow-sm">
+<div class="text-[15px] font-semibold text-text-main mb-3">售后类型</div>
+<div class="space-y-2.5" id="refund-type-group">
+<!-- 1. 【仅退款】(当前选中状态，高亮黛青边框与对勾徽标) -->
+<label class="refund-card relative flex items-center justify-between p-3.5 rounded-[12px] border-2 border-brand bg-brand-light/30 cursor-pointer transition-all active:scale-[0.99]" data-type="only-refund">
+<input checked="" class="sr-only" name="refund_type" type="radio" value="only-refund"/>
+<div class="flex items-start gap-3 min-w-0 pr-2">
+<div class="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0 mt-0.5 text-brand shadow-xs">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">currency_yen</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="text-[15px] font-semibold text-brand">仅退款</div>
+<div class="text-[12px] text-text-muted mt-0.5 leading-snug">未收到货、或已收到货但无需退货协商退款</div>
+</div>
+</div>
+<div class="w-5 h-5 rounded-full flex items-center justify-center bg-brand text-white shrink-0 radio-indicator">
+<span class="material-symbols-outlined text-[14px] font-bold">check</span>
+</div>
+</label>
+<!-- 2. 【退货退款】(未选中状态) -->
+<label class="refund-card relative flex items-center justify-between p-3.5 rounded-[12px] border border-card-border bg-[#F8F9FC] cursor-pointer transition-all active:scale-[0.99]" data-type="return-refund">
+<input class="sr-only" name="refund_type" type="radio" value="return-refund"/>
+<div class="flex items-start gap-3 min-w-0 pr-2">
+<div class="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0 mt-0.5 text-text-muted shadow-xs">
+<span class="material-symbols-outlined text-[20px]">keyboard_return</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="text-[15px] font-semibold text-text-main">退货退款</div>
+<div class="text-[12px] text-text-muted mt-0.5 leading-snug">与商户协商一致后寄回或送回商品</div>
+</div>
+</div>
+<div class="w-5 h-5 rounded-full border border-card-border bg-white shrink-0 radio-indicator"></div>
+</label>
+</div>
+</section>
+<!-- 四、申请数量与退款金额 -->
+<section class="bg-white rounded-[14px] border border-card-border p-4 shadow-sm space-y-4">
+<!-- 申请数量步进器 -->
+<div class="flex items-center justify-between min-h-[44px]">
+<div>
+<span class="text-[15px] font-medium text-text-main">申请数量</span>
+<p class="text-[12px] text-text-muted mt-0.5">最多可申请 2 件</p>
+</div>
+<div class="flex items-center bg-[#F2F4F6] rounded-[8px] p-1">
+<button aria-label="减少退款数量" class="w-9 h-9 rounded-[6px] bg-white flex items-center justify-center text-text-main shadow-xs disabled:opacity-40 disabled:cursor-not-allowed active:bg-gray-100 transition-colors" id="btn-minus" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-10 text-center font-semibold text-[16px] text-text-main select-none" id="quantity-display">1</span>
+<button aria-label="增加退款数量" class="w-9 h-9 rounded-[6px] bg-white flex items-center justify-center text-text-main shadow-xs active:bg-gray-100 transition-colors" id="btn-plus" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+<!-- 预计退款金额 -->
+<div class="pt-3 border-t border-[#F2F4F6] flex items-baseline justify-between">
+<span class="text-[15px] font-medium text-text-main">预计退款金额</span>
+<div class="text-right">
+<span class="text-[14px] text-brick font-semibold">¥</span>
+<span class="text-[22px] font-bold text-brick tracking-tight ml-0.5" id="refund-amount">19.90</span>
+</div>
+</div>
+<div class="text-[12px] text-text-muted leading-relaxed bg-[#F8F9FC] px-3 py-2.5 rounded-[8px] border border-[#ECEFF2]">
+        退款金额由系统依据实付比例自动核算，不可手动修改超出实付金额。
+      </div>
+</section>
+<!-- 五、申请原因选择器卡片 -->
+<section class="bg-white rounded-[14px] border border-card-border p-4 shadow-sm">
+<div class="flex items-center justify-between cursor-pointer active:opacity-70 select-none min-h-[36px]" id="reason-picker-btn">
+<div class="text-[15px] font-medium text-text-main">
+          申请原因 <span class="text-brick font-bold">*</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-[14px] text-brand font-medium" id="selected-reason-text">商品质量问题（腐烂/变质/压损）</span>
+<span class="material-symbols-outlined text-text-sub text-[20px]">chevron_right</span>
+</div>
+</div>
+<div class="mt-2 text-[11px] text-text-sub">可选项：商品问题、配送问题、买错 / 不需要、其他</div>
+</section>
+<!-- 六、问题说明 & 七、上传凭证 -->
+<section class="bg-white rounded-[14px] border border-card-border p-4 shadow-sm space-y-4">
+<!-- 六、问题说明 -->
+<div>
+<div class="text-[15px] font-medium text-text-main mb-2">问题说明</div>
+<div class="relative w-full bg-[#F8F9FC] rounded-[12px] border border-card-border p-3">
+<textarea class="w-full bg-transparent text-[14px] text-text-main placeholder:text-text-sub resize-none focus:outline-none leading-relaxed" id="desc-input" maxlength="500" placeholder="请补充具体问题说明，以便商户快速为您核实处理..." rows="3"></textarea>
+<div class="text-right text-[12px] text-text-sub select-none mt-1">
+<span id="char-count">0</span> / 500
+          </div>
+</div>
+</div>
+<!-- 七、上传凭证（严格最多9张与9宫格规范） -->
+<div class="pt-1">
+<div class="flex items-center justify-between mb-2.5">
+<span class="text-[15px] font-medium text-text-main">上传凭证</span>
+<span class="text-[12px] text-text-muted">最多9张</span>
+</div>
+<!-- 9 宫格网格 -->
+<div class="grid grid-cols-3 gap-2.5">
+<!-- 第1张：已添加的示例凭证图（生鲜蔬菜受损特写带关闭按钮） -->
+<div class="aspect-square rounded-[10px] bg-slate-100 overflow-hidden relative border border-card-border/80">
+<img alt="凭证照片" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1U0jmOO77PO2SShipyvZ7yoNqKdDfwFItQzCCkh40_rsinEPQkMZpsOGfInqN2wsKqoCbt93RUulpI0bQ5S2xy-f34yH1Kz5w5qj2RrpTrNNcr5PKGFOo-OAf_R-PsYDzzBpmv0dPGLJxTKdBJGbC97qhbf5pkxvCeiyp2JqB1rfpXjUdVvPrSBspB43N7lTdNBxE6pHkU5NvLDWLU-9JF1pdubA9-pLCJhoau_lfJ5hZBQkLRCeCM1LRk"/>
+<button aria-label="删除凭证照片" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</button>
+</div>
+<!-- 第2个：大号相机添加占位方块 -->
+<div class="aspect-square rounded-[10px] border-2 border-dashed border-[#C0C8C9] bg-[#F8F9FC] flex flex-col items-center justify-center cursor-pointer active:bg-brand-light/40 transition-colors select-none">
+<span class="material-symbols-outlined text-[26px] text-brand">photo_camera</span>
+<span class="text-[12px] text-brand font-medium mt-1">拍照/相册</span>
+<span class="text-[10px] text-text-sub">添加凭证</span>
+</div>
+<!-- 预留9宫格空位展示 (示例占位) -->
+<div class="aspect-square rounded-[10px] border border-dashed border-[#DFE2E6] bg-[#FAFAFA] flex items-center justify-center text-text-sub/40">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 九、异常说明与规则展示（友好解释规范） -->
+<section class="bg-white/70 border border-card-border/80 rounded-[12px] p-3 flex items-start gap-2">
+<span class="material-symbols-outlined text-text-sub text-[18px] shrink-0 mt-0.5">help_outline</span>
+<div class="text-[12px] leading-relaxed text-text-muted">
+<span class="font-medium text-text-main">售后规则说明：</span>若订单商品超出受理期限，系统将提示“当前订单已超过售后申请期限，暂不支持申请售后”。如有特殊疑问可直接联系便民店商户。
+      </div>
+</section>
+</main>
+<!-- 八、住户端标准固定底部操作栏 (Bottom Action Bar) -->
+<footer class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-card-border px-4 pt-2.5 pb-safe shadow-[0_-4px_16px_rgba(27,77,83,0.06)]">
+<div class="max-w-[430px] mx-auto flex flex-col items-center">
+<!-- 提交前提示 -->
+<div class="text-[12px] text-text-muted mb-2 text-center select-none flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-brand">info</span>
+<span>提交后由商户进行处理，必要时可申请平台处理。</span>
+</div>
+<!-- 满宽 48px 主 CTA 按钮，圆角12px，品牌黛青 #1B4D53 -->
+<button class="w-full h-12 rounded-[12px] bg-brand text-white text-[16px] font-semibold tracking-wide flex items-center justify-center active:bg-brand-dark transition-colors shadow-sm cursor-pointer" id="submit-btn" type="button">
+        提交申请
+      </button>
+</div>
+</footer>
+<!-- 申请原因选择弹出层 (Bottom Sheet) -->
+<div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden flex-col justify-end transition-opacity" id="reason-sheet">
+<div class="w-full max-w-[430px] mx-auto bg-white rounded-t-[20px] p-5 pb-safe animate-in slide-in-from-bottom duration-200">
+<div class="flex items-center justify-between pb-3 border-b border-[#F0F2F5] mb-2">
+<h3 class="text-[16px] font-semibold text-text-main">选择申请原因</h3>
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-text-muted hover:bg-[#F2F4F6]" id="close-sheet-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="space-y-1.5 py-1" id="reason-options">
+<button class="reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] font-medium text-brand bg-brand-light flex items-center justify-between" type="button">
+<span>商品质量问题（腐烂/变质/压损）</span>
+<span class="material-symbols-outlined text-[18px]">check</span>
+</button>
+<button class="reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] text-text-main hover:bg-[#F8F9FC] flex items-center justify-between" type="button">
+<span>商品缺少 / 发错商品</span>
+</button>
+<button class="reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] text-text-main hover:bg-[#F8F9FC] flex items-center justify-between" type="button">
+<span>配送超时 / 包装严重破漏</span>
+</button>
+<button class="reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] text-text-main hover:bg-[#F8F9FC] flex items-center justify-between" type="button">
+<span>买错 / 不需要</span>
+</button>
+<button class="reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] text-text-main hover:bg-[#F8F9FC] flex items-center justify-between" type="button">
+<span>其他</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+    // 1. 问题说明字数统计 (0 / 500)
+    const descInput = document.getElementById('desc-input');
+    const charCount = document.getElementById('char-count');
+    if (descInput && charCount) {
+      descInput.addEventListener('input', (e) => {
+        charCount.textContent = e.target.value.length;
+      });
+    }
+
+    // 2. 数量步进器与金额计算 (单价 ¥19.90, 最大 2 件)
+    const UNIT_PRICE = 19.90;
+    const MAX_QUANTITY = 2;
+    let currentQty = 1;
+
+    const btnMinus = document.getElementById('btn-minus');
+    const btnPlus = document.getElementById('btn-plus');
+    const qtyDisplay = document.getElementById('quantity-display');
+    const refundAmount = document.getElementById('refund-amount');
+
+    function updateQuantityState() {
+      qtyDisplay.textContent = currentQty;
+      refundAmount.textContent = (currentQty * UNIT_PRICE).toFixed(2);
+      btnMinus.disabled = currentQty <= 1;
+      btnPlus.disabled = currentQty >= MAX_QUANTITY;
+    }
+
+    if (btnMinus && btnPlus) {
+      btnMinus.addEventListener('click', () => {
+        if (currentQty > 1) {
+          currentQty--;
+          updateQuantityState();
+        }
+      });
+      btnPlus.addEventListener('click', () => {
+        if (currentQty < MAX_QUANTITY) {
+          currentQty++;
+          updateQuantityState();
+        }
+      });
+      updateQuantityState();
+    }
+
+    // 3. 售后类型单选切换动效
+    const typeCards = document.querySelectorAll('.refund-card');
+    typeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        typeCards.forEach(c => {
+          c.className = 'refund-card relative flex items-center justify-between p-3.5 rounded-[12px] border border-card-border bg-[#F8F9FC] cursor-pointer transition-all active:scale-[0.99]';
+          const title = c.querySelector('.text-[15px]');
+          if (title) title.className = 'text-[15px] font-semibold text-text-main';
+          const indicator = c.querySelector('.radio-indicator');
+          if (indicator) {
+            indicator.className = 'w-5 h-5 rounded-full border border-card-border bg-white shrink-0 radio-indicator';
+            indicator.innerHTML = '';
+          }
+        });
+        card.className = 'refund-card relative flex items-center justify-between p-3.5 rounded-[12px] border-2 border-brand bg-brand-light/30 cursor-pointer transition-all active:scale-[0.99]';
+        const activeTitle = card.querySelector('.text-[15px]');
+        if (activeTitle) activeTitle.className = 'text-[15px] font-semibold text-brand';
+        const activeIndicator = card.querySelector('.radio-indicator');
+        if (activeIndicator) {
+          activeIndicator.className = 'w-5 h-5 rounded-full flex items-center justify-center bg-brand text-white shrink-0 radio-indicator';
+          activeIndicator.innerHTML = '<span class="material-symbols-outlined text-[14px] font-bold">check</span>';
+        }
+      });
+    });
+
+    // 4. 申请原因 Bottom Sheet
+    const reasonBtn = document.getElementById('reason-picker-btn');
+    const reasonSheet = document.getElementById('reason-sheet');
+    const closeSheetBtn = document.getElementById('close-sheet-btn');
+    const selectedReasonText = document.getElementById('selected-reason-text');
+    const reasonOptionBtns = document.querySelectorAll('.reason-opt');
+
+    if (reasonBtn && reasonSheet && closeSheetBtn) {
+      reasonBtn.addEventListener('click', () => {
+        reasonSheet.classList.remove('hidden');
+        reasonSheet.classList.add('flex');
+      });
+
+      const closeSheet = () => {
+        reasonSheet.classList.add('hidden');
+        reasonSheet.classList.remove('flex');
+      };
+
+      closeSheetBtn.addEventListener('click', closeSheet);
+      reasonSheet.addEventListener('click', (e) => {
+        if (e.target === reasonSheet) closeSheet();
+      });
+
+      reasonOptionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          reasonOptionBtns.forEach(b => {
+            b.className = 'reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] text-text-main hover:bg-[#F8F9FC] flex items-center justify-between';
+            const oldCheck = b.querySelector('.material-symbols-outlined');
+            if (oldCheck) oldCheck.remove();
+          });
+          btn.className = 'reason-opt w-full text-left py-3 px-3.5 rounded-[10px] text-[15px] font-medium text-brand bg-brand-light flex items-center justify-between';
+          btn.innerHTML = `<span>${btn.innerText.trim()}</span><span class="material-symbols-outlined text-[18px]">check</span>`;
+          selectedReasonText.textContent = btn.innerText.trim();
+          closeSheet();
+        });
+      });
+    }
+
+    // 5. 提交申请微动效
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-1 text-[20px]">progress_activity</span> 正在提交...';
+        setTimeout(() => {
+          submitBtn.innerHTML = '<span class="material-symbols-outlined mr-1 text-[20px]">check_circle</span> 申请已提交';
+          setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }, 1800);
+        }, 600);
+      });
+    }
+  </script>
+</body></html>
