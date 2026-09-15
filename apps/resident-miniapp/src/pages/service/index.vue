@@ -8,6 +8,7 @@ import BaseCard from '@/components/BaseCard.vue'
 import QuickEntryGrid from '@/components/QuickEntryGrid.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import { appAdapter } from '@/adapters/mock'
 import { usePageResource } from '@/composables/usePageResource'
 import { residentTabItems } from '@/config/navigation'
@@ -40,6 +41,7 @@ onLoad(load)
         <QuickEntryGrid v-if="group.items.length" :items="group.items" :columns="4" compact />
         <text v-else class="group-empty">没有匹配的入口</text>
       </BaseCard>
+      <view class="service-footer"><view class="service-footer__rule" /><AppIcon name="home" :size="16" /><view class="service-footer__rule" /><text>大光路智慧社区便民服务</text></view>
     </view>
     <template #tabbar><AppTabbar :items="residentTabItems" active-path="/pages/service/index" /></template>
   </AppPage>
@@ -48,8 +50,12 @@ onLoad(load)
 <style scoped lang="scss">
 .service-page { gap: $space-3; }
 .service-heading { padding: $space-1 2px $space-2; }
-.service-heading__title { display: block; font-size: 24px; line-height: 34px; font-weight: 800; letter-spacing: -0.5px; }
+.service-heading__title { display: block; font-size: 24px; line-height: 34px; font-weight: 700; letter-spacing: -0.5px; }
 .service-heading__subtitle { display: block; margin-top: 2px; color: $color-text-secondary; font-size: 14px; }
 .service-group { margin-top: $space-1; }
+:deep(.service-group .section-header__title) { font-size: 17px; font-weight: 600; }
+:deep(.service-group .entry) { min-height: 82px; }
 .group-empty { display: block; padding: $space-4 0; color: $color-text-secondary; font-size: 14px; text-align: center; }
+.service-footer { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: $space-2; padding: $space-2 0 $space-6; color: $color-text-disabled; font-size: 13px; }
+.service-footer__rule { width: 32px; height: 1px; background: $color-border; }
 </style>

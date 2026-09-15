@@ -1,28 +1,41 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { ServiceSummary } from '../../common/types/app'
 import { openPage } from '../../common/utils/navigation'
 import IconContainer from './IconContainer.vue'
+import FeatureUnavailable from './FeatureUnavailable.vue'
+import BaseCard from './BaseCard.vue'
 
-defineProps<{ service: ServiceSummary }>()
+const props = defineProps<{ service: ServiceSummary }>()
+const showUnavailable = ref(false)
+
+const handleClick = () => {
+  if (!props.service.available || !props.service.path) {
+    showUnavailable.value = true
+    return
+  }
+  openPage(props.service.path)
+}
 </script>
 
 <template>
   <BaseCard class="service-card-shell" :padded="false">
-    <view class="service-card" hover-class="service-card--pressed" @click="openPage(undefined, service.available)">
-      <image v-if="service.image" class="service-card__image" :src="service.image" mode="aspectFill" />
-      <IconContainer v-else :icon="service.icon || 'services'" size="lg" />
+    <view class="service-card" hover-class="service-card--pressed" @click="handleClick">
+      <image v-if="props.service.image" class="service-card__image" :src="props.service.image" mode="aspectFill" />
+      <IconContainer v-else :icon="props.service.icon || 'services'" size="lg" />
       <view class="service-card__copy">
         <view class="service-card__headline">
-          <text class="service-card__name">{{ service.name }}</text>
-          <text v-if="service.tag" class="service-card__tag">{{ service.tag }}</text>
+          <text class="service-card__name">{{ props.service.name }}</text>
+          <text v-if="props.service.tag" class="service-card__tag">{{ props.service.tag }}</text>
         </view>
-        <text class="service-card__description">{{ service.description }}</text>
+        <text class="service-card__description">{{ props.service.description }}</text>
         <view class="service-card__foot">
-          <text class="service-card__price">{{ service.priceLabel || '可预约' }}</text>
+          <text class="service-card__price">{{ props.service.priceLabel || '可预约' }}</text>
         </view>
       </view>
     </view>
   </BaseCard>
+  <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
 </template>
 
 <style scoped lang="scss">

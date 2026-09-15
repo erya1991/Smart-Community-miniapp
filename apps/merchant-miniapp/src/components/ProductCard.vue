@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import FeatureUnavailable from './FeatureUnavailable.vue'
 import type { ProductSummary } from '../../common/types/app'
 import AppIcon from './AppIcon.vue'
 
 const props = withDefaults(defineProps<{ product: ProductSummary; variant?: 'default' | 'home' }>(), { variant: 'default' })
+const emit = defineEmits<{ add: [product: ProductSummary] }>()
+const showUnavailable = ref(false)
+const handleAdd = () => {
+  showUnavailable.value = true
+  emit('add', props.product)
+}
 const imageSource = computed(() => props.variant === 'home' ? props.product.homeImage || props.product.image : props.product.image)
 const displayName = computed(() => props.variant === 'home' ? props.product.homeName || props.product.name : props.product.name)
 const displayMerchant = computed(() => props.variant === 'home' ? props.product.homeMerchantName || props.product.merchantName : props.product.merchantName)
@@ -25,15 +32,16 @@ const displayPrice = computed(() => props.variant === 'home' ? props.product.hom
       </template>
       <view class="product-card__bottom">
         <text class="price"><text class="product-card__currency">¥</text>{{ displayPrice.toFixed(2) }}</text>
-        <view class="product-card__add" :class="{ 'product-card__add--disabled': props.product.soldOut }"><AppIcon name="plus" :size="20" /></view>
+        <view class="product-card__add" :class="{ 'product-card__add--disabled': props.product.soldOut }" @click.stop="handleAdd"><AppIcon name="plus" :size="20" /></view>
       </view>
     </view>
+    <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
   </view>
 </template>
 
 <style scoped lang="scss">
-.product-card { overflow: hidden; border: 1px solid $color-border; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px rgba(27, 77, 83, 0.05); }
-.product-card__image { display: flex; height: 138px; align-items: center; justify-content: center; overflow: hidden; }
+.product-card { overflow: hidden; border: 1px solid rgba(225, 228, 230, 0.72); border-radius: $radius-card; background: $color-card-bg; box-shadow: 0 2px 8px rgba(27, 77, 83, 0.04); }
+.product-card__image { display: flex; height: 164px; align-items: center; justify-content: center; overflow: hidden; }
 .product-card__image image { width: 100%; height: 100%; }
 .product-card__body { padding: $space-3; }
 .product-card__merchant { display: flex; align-items: center; gap: 4px; overflow: hidden; color: $color-text-secondary; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }

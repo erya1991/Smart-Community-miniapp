@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 
 withDefaults(defineProps<{
@@ -6,81 +7,68 @@ withDefaults(defineProps<{
   subtitle?: string
   showBrand?: boolean
   centered?: boolean
-}>(), {
-  subtitle: '',
-  showBrand: false,
-  centered: false,
-})
+  brandIcon?: string
+  showBack?: boolean
+  large?: boolean
+  showUser?: boolean
+}>(), { subtitle: '', showBrand: false, centered: false, brandIcon: 'brand-building', showBack: false, large: false, showUser: false })
+
+// H5 has no official capsule. WeChat reserves the real system menu bounds.
+let statusBarHeight = 0
+let navigationHeight = 56
+let menuInset = 16
+let menuBottom = 0
+// #ifdef MP-WEIXIN
+const windowInfo = uni.getWindowInfo()
+const menu = uni.getMenuButtonBoundingClientRect()
+statusBarHeight = windowInfo.statusBarHeight || 0
+if (menu.width > 0 && menu.top >= statusBarHeight) {
+  navigationHeight = Math.max(44, menu.height + (menu.top - statusBarHeight) * 2)
+  menuInset = windowInfo.windowWidth - menu.left + 8
+  menuBottom = menu.bottom
+} else {
+  // Invalid menu metrics: put all custom content below the system menu.
+  menuBottom = statusBarHeight + 48
+}
+// #endif
+const navbarStyle = {
+  paddingTop: `${Math.max(statusBarHeight, menuBottom && menuInset === 16 ? menuBottom : 0)}px`,
+  '--navigation-height': `${navigationHeight}px`,
+  '--menu-inset': `${menuInset}px`,
+}
+const canGoBack = computed(() => getCurrentPages().length > 1)
+const goBack = () => {
+  if (canGoBack.value) uni.navigateBack({ delta: 1 })
+}
 </script>
 
 <template>
-  <view class="navbar">
-    <view class="navbar__inner" :class="{ 'navbar__inner--centered': centered }">
-      <view v-if="showBrand" class="navbar__mark"><AppIcon name="brand-building" :size="22" /></view>
+  <view class="navbar" :style="navbarStyle">
+    <view class="navbar__inner" :class="{ 'navbar__inner--centered': centered, 'navbar__inner--large': large }">
+      <view v-if="showBack && canGoBack" class="navbar__back" aria-label="返回" @click="goBack"><AppIcon name="chevron-right" :size="20" /></view>
+      <view v-else-if="showBrand" class="navbar__mark"><AppIcon :name="brandIcon" :size="22" /></view>
+      <view v-else-if="large" class="navbar__accent" />
       <view class="navbar__copy">
         <text class="navbar__title">{{ title }}</text>
         <text v-if="subtitle" class="navbar__subtitle">{{ subtitle }}</text>
       </view>
-      <view class="navbar__capsule">•••　◉</view>
     </view>
   </view>
 </template>
 
 <style scoped lang="scss">
-.navbar {
-  padding-top: var(--status-bar-height, 24px);
-  background: rgba(248, 249, 252, 0.96);
-  border-bottom: 1px solid rgba(225, 228, 230, 0.6);
-}
-
-.navbar__inner {
-  display: flex;
-  min-height: 56px;
-  align-items: center;
-  gap: $space-2;
-  padding: 0 $page-gutter;
-}
-
-.navbar__mark {
-  display: flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: $color-primary-light;
-}
-
-.navbar__copy {
-  flex: 1;
-  min-width: 0;
-}
-
+.navbar { background: rgba(248, 249, 252, 0.96); border-bottom: 1px solid rgba(225, 228, 230, 0.6); }
+.navbar__inner { position: relative; display: flex; min-height: var(--navigation-height); align-items: center; gap: $space-2; padding: 0 var(--menu-inset) 0 $page-gutter; }
+.navbar__mark { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; border-radius: 10px; background: $color-primary-light; }
+.navbar__back { display: flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center; border-radius: 50%; }
+.navbar__back :deep(image) { transform: rotate(180deg); }
+.navbar__copy { flex: 1; min-width: 0; }
+.navbar__accent { width: 6px; height: 20px; flex: none; border-radius: 999px; background: $color-primary; }
+.navbar__inner--centered { padding-left: max(60px, var(--menu-inset)); padding-right: max(60px, var(--menu-inset)); }
 .navbar__inner--centered .navbar__copy { text-align: center; }
-.navbar__inner--centered::before { width: 84px; content: ''; }
-
-.navbar__title,
-.navbar__subtitle {
-  display: block;
-}
-
-.navbar__title {
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.navbar__subtitle {
-  color: $color-text-secondary;
-  font-size: 13px;
-}
-
-.navbar__capsule {
-  min-width: 84px;
-  padding: 5px 10px;
-  border: 1px solid rgba(95, 103, 105, 0.22);
-  border-radius: 999px;
-  color: $color-text-secondary;
-  font-size: 13px;
-  text-align: right;
-}
+.navbar__inner--centered .navbar__back { position: absolute; left: $page-gutter; }
+.navbar__title, .navbar__subtitle { display: block; }
+.navbar__title { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.navbar__inner--large .navbar__title { font-size: 22px; line-height: 32px; font-weight: 700; }
+.navbar__subtitle { color: $color-text-secondary; font-size: 13px; }
 </style>

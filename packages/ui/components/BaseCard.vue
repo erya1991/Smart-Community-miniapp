@@ -9,11 +9,11 @@ withDefaults(defineProps<{ padded?: boolean }>(), { padded: true })
 <style scoped lang="scss">
 .base-card {
   overflow: hidden;
-  border: 1px solid $color-border;
-  border-radius: 18px;
+  border: 1px solid rgba(225, 228, 230, 0.72);
+  border-radius: $radius-card;
   background: $color-card-bg;
-  box-shadow: 0 4px 16px rgba(27, 77, 83, 0.055);
+  box-shadow: 0 2px 8px rgba(27, 77, 83, 0.04);
 }
 
-.base-card--padded { padding: $space-4 $space-5; }
+.base-card--padded { padding: $space-4; }
 </style>

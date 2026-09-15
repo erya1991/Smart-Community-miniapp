@@ -1,17 +1,29 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { QuickEntry } from '../../common/types/app'
 import { openPage } from '../../common/utils/navigation'
 import IconContainer from './IconContainer.vue'
+import FeatureUnavailable from './FeatureUnavailable.vue'
 
-defineProps<{ items: QuickEntry[]; columns?: number; compact?: boolean }>()
+const props = defineProps<{ items: QuickEntry[]; columns?: number; compact?: boolean }>()
+const showUnavailable = ref(false)
+
+const handleClick = (item: QuickEntry) => {
+  if (!item.available || !item.path) {
+    showUnavailable.value = true
+    return
+  }
+  openPage(item.path)
+}
 </script>
 
 <template>
   <view class="entry-grid" :class="{ 'entry-grid--compact': compact }" :style="{ gridTemplateColumns: `repeat(${columns || 4}, minmax(0, 1fr))` }">
-    <view v-for="item in items" :key="item.id" class="entry" hover-class="entry--pressed" @click="openPage(item.path, item.available)">
-      <IconContainer :icon="item.icon" :tone="item.tone || 'teal'" :disabled="!item.available" />
+    <view v-for="item in props.items" :key="item.id" class="entry" hover-class="entry--pressed" @click="handleClick(item)">
+      <IconContainer :icon="item.icon" :tone="item.tone || 'teal'" />
       <text class="entry__label">{{ item.label }}</text>
     </view>
+    <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
   </view>
 </template>
 
