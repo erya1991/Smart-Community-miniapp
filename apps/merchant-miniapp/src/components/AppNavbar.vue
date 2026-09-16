@@ -11,7 +11,8 @@ withDefaults(defineProps<{
   showBack?: boolean
   large?: boolean
   showUser?: boolean
-}>(), { subtitle: '', showBrand: false, centered: false, brandIcon: 'brand-building', showBack: false, large: false, showUser: false })
+  compact?: boolean
+}>(), { subtitle: '', showBrand: false, centered: false, brandIcon: 'brand-building', showBack: false, large: false, showUser: false, compact: false })
 
 // H5 has no official capsule. WeChat reserves the real system menu bounds.
 let statusBarHeight = 0
@@ -47,7 +48,7 @@ const goUser = () => {
 
 <template>
   <view class="navbar" :style="navbarStyle">
-    <view class="navbar__inner" :class="{ 'navbar__inner--centered': centered, 'navbar__inner--large': large }">
+    <view class="navbar__inner" :class="{ 'navbar__inner--centered': centered, 'navbar__inner--large': large, 'navbar__inner--compact': compact }">
       <view v-if="showBack && canGoBack" class="navbar__back" aria-label="返回" @click="goBack"><AppIcon name="chevron-right" :size="20" /></view>
       <view v-else-if="showBrand" class="navbar__mark"><AppIcon :name="brandIcon" :size="22" /></view>
       <view v-else-if="large" class="navbar__accent" />
@@ -55,7 +56,7 @@ const goUser = () => {
         <text class="navbar__title">{{ title }}</text>
         <text v-if="subtitle" class="navbar__subtitle">{{ subtitle }}</text>
       </view>
-      <view v-if="showUser" class="navbar__user" aria-label="我的" @click="goUser"><AppIcon name="user" :size="20" /></view>
+      <view v-if="showUser" class="navbar__user-hit" aria-label="我的" @click="goUser"><view class="navbar__user"><AppIcon name="user" :size="20" /></view></view>
     </view>
   </view>
 </template>
@@ -68,7 +69,8 @@ const goUser = () => {
 .navbar__back :deep(image) { transform: rotate(180deg); }
 .navbar__copy { flex: 1; min-width: 0; }
 .navbar__accent { width: 6px; height: 20px; flex: none; border-radius: 999px; background: $color-primary; }
-.navbar__user { display: flex; width: 48px; height: 48px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: $color-primary; }
+.navbar__user-hit { display: flex; width: 48px; height: 48px; flex: none; align-items: center; justify-content: center; }
+.navbar__user { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 50%; background: $color-primary; }
 .navbar__user :deep(image) { filter: brightness(0) invert(1); }
 .navbar__inner--centered { padding-left: max(60px, var(--menu-inset)); padding-right: max(60px, var(--menu-inset)); }
 .navbar__inner--centered .navbar__copy { text-align: center; }
@@ -76,5 +78,8 @@ const goUser = () => {
 .navbar__title, .navbar__subtitle { display: block; }
 .navbar__title { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
 .navbar__inner--large .navbar__title { font-size: 22px; line-height: 32px; font-weight: 700; }
+.navbar__inner--compact .navbar__title { font-size: 18px; line-height: 26px; font-weight: 600; }
+.navbar__inner--compact .navbar__user-hit { width: $touch-target-min; height: $touch-target-min; }
+.navbar__inner--compact .navbar__user { width: 32px; height: 32px; }
 .navbar__subtitle { color: $color-text-secondary; font-size: 13px; }
 </style>
