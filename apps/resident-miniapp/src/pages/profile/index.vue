@@ -32,7 +32,7 @@ onLoad(load)
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
-    <template #navbar><AppNavbar title="个人中心" centered show-back /></template>
+    <template #navbar><AppNavbar title="我的" centered /></template>
     <view class="stack profile-stack">
       <BaseCard class="profile-identity" @click="showUnavailable = true">
         <view class="profile-identity__decor" />

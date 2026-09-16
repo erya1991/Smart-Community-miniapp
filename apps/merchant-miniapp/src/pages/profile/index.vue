@@ -22,7 +22,7 @@ onLoad(load)
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
-    <template #navbar><AppNavbar title="我的" centered show-back /></template>
+    <template #navbar><AppNavbar title="我的" centered /></template>
     <view class="stack merchant-profile-stack">
       <BaseCard class="merchant-identity" hover-class="merchant-card--pressed" @click="unavailable">
         <view class="merchant-identity__main"><IconContainer icon="shop" size="lg" /><view class="merchant-identity__copy"><view class="merchant-identity__title"><text class="merchant-identity__name">{{ data!.merchant.name }}</text><StatusTag tone="success">经营正常</StatusTag></view><text class="merchant-identity__store">{{ data!.merchant.storeName }} · {{ data!.merchant.role }}</text><view class="merchant-identity__project"><AppIcon name="location" :size="13" />{{ data!.merchant.projectName }}</view></view><view class="merchant-identity__arrow"><AppIcon name="chevron-right" :size="16" /></view></view>

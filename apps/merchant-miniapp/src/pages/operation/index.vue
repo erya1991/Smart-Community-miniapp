@@ -39,9 +39,9 @@ onLoad(load)
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="经营" large show-user /></template>
     <view class="stack operation-stack">
-      <view class="operation-head"><view class="operation-tabs"><text class="operation-tab operation-tab--active">商品</text><view class="operation-tab operation-tab--muted">服务 <StatusTag tone="disabled">后续开放</StatusTag></view></view><AppButton class="operation-add" @click="unavailable"><view class="operation-add__copy"><AppIcon name="plus" :size="18" /><text>新增商品</text></view></AppButton></view>
+      <view class="operation-head"><view class="operation-tabs"><text class="operation-tab operation-tab--active">商品</text><view class="operation-tab operation-tab--muted">服务 <StatusTag tone="disabled">后续开放</StatusTag></view></view><view class="operation-add-hit" @click="unavailable"><AppButton class="operation-add"><view class="operation-add__copy"><AppIcon name="plus" :size="18" /><text>新增商品</text></view></AppButton></view></view>
       <SearchBar v-model="keyword" placeholder="搜索商品名称" />
-      <scroll-view scroll-x :show-scrollbar="false" class="filter-scroll"><view class="filter-list"><text v-for="filter in data!.filters" :key="filter.label" class="filter-chip" :class="{ 'filter-chip--active': filter.label === activeFilter, 'filter-chip--danger': filter.label === '已驳回' }" @click="activeFilter = filter.label">{{ filter.label }} ({{ filter.count }})</text></view></scroll-view>
+      <scroll-view scroll-x :show-scrollbar="false" class="filter-scroll"><view class="filter-list"><view v-for="filter in data!.filters" :key="filter.label" class="filter-chip-hit" hover-class="filter-chip-hit--pressed" @click="activeFilter = filter.label"><text class="filter-chip" :class="{ 'filter-chip--active': filter.label === activeFilter, 'filter-chip--danger': filter.label === '已驳回' }">{{ filter.label }} ({{ filter.count }})</text></view></view></scroll-view>
 
       <view class="product-list">
         <BaseCard v-for="product in products" :key="product.id" class="product-card">
@@ -52,7 +52,7 @@ onLoad(load)
 
           <view v-if="product.auditStatus === '待审核'" class="product-notice"><AppIcon name="bell" :size="16" /><text>平台审核中，请留意审核结果</text><view class="product-notice__action" @click="unavailable">查看</view></view>
           <view v-else-if="product.auditStatus === '已驳回'" class="product-rejection"><AppIcon name="verified" :size="18" /><view><text class="product-rejection__title">平台审核未通过：</text><text>{{ product.rejectionReason }}</text></view></view>
-          <view class="product-actions"><view class="quiet-action" hover-class="quiet-action--pressed" @click="unavailable"><AppIcon name="edit" :size="17" /><text>{{ product.auditStatus === '已驳回' ? '查看原因' : '编辑' }}</text></view><view v-if="product.auditStatus === '已驳回'" class="primary-action primary-action--accent" hover-class="primary-action--pressed" @click="unavailable"><AppIcon name="recycle" :size="17" /><text>修改后重提</text></view><view v-else-if="product.saleStatus === '销售中'" class="primary-action primary-action--danger" hover-class="primary-action--pressed" @click="unavailable"><AppIcon name="recycle" :size="17" /><text>下架</text></view><view v-else-if="product.saleStatus === '已下架'" class="primary-action" hover-class="primary-action--pressed" @click="unavailable"><AppIcon name="plus" :size="17" /><text>重新上架</text></view></view>
+          <view class="product-actions"><view class="action-hit" hover-class="action-hit--pressed" @click="unavailable"><view class="quiet-action"><AppIcon name="edit" :size="17" /><text>{{ product.auditStatus === '已驳回' ? '查看原因' : '编辑' }}</text></view></view><view v-if="product.auditStatus === '已驳回'" class="action-hit" hover-class="action-hit--pressed" @click="unavailable"><view class="primary-action primary-action--accent"><AppIcon name="recycle" :size="17" /><text>修改后重提</text></view></view><view v-else-if="product.saleStatus === '销售中'" class="action-hit" hover-class="action-hit--pressed" @click="unavailable"><view class="primary-action primary-action--danger"><AppIcon name="recycle" :size="17" /><text>下架</text></view></view><view v-else-if="product.saleStatus === '已下架'" class="action-hit" hover-class="action-hit--pressed" @click="unavailable"><view class="primary-action"><AppIcon name="plus" :size="17" /><text>重新上架</text></view></view></view>
         </BaseCard>
       </view>
       <view v-if="!products.length" class="operation-empty">暂无匹配商品</view>
@@ -67,7 +67,8 @@ onLoad(load)
 .operation-stack { gap: $space-3; }
 .operation-head { display: flex; min-height: 48px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: $space-2; }
 .operation-tabs { display: flex; min-height: $touch-target-min; align-items: center; gap: $space-4; }
-.operation-add { width: 124px; flex: none; }
+.operation-add-hit { display: flex; min-height: $touch-target-min; align-items: center; flex: none; }
+.operation-add { width: auto !important; height: 40px !important; min-height: 40px; flex: none; padding: 0 $space-3; }
 .operation-add__copy { display: flex; align-items: center; justify-content: center; gap: $space-1; }
 .operation-tab { color: $color-text-secondary; font-size: 20px; }
 .operation-tab--active { position: relative; padding-bottom: $space-2; color: $color-primary; font-weight: 700; }
@@ -77,7 +78,9 @@ onLoad(load)
 .filter-scroll { width: calc(100% + #{$page-gutter * 2}); margin-left: -$page-gutter; white-space: nowrap; scrollbar-width: none; }
 .filter-scroll::-webkit-scrollbar { display: none; }
 .filter-list { display: flex; gap: $space-3; padding: $space-1 $page-gutter $space-2; }
-.filter-chip { display: inline-flex; min-height: 44px; min-width: 88px; align-items: center; justify-content: center; padding: 0 $space-3; border-radius: 999px; background: $color-card-bg; color: $color-text-secondary; font-size: 14px; font-weight: 600; text-align: center; white-space: nowrap; }
+.filter-chip-hit { display: inline-flex; min-height: $touch-target-min; align-items: center; flex: none; }
+.filter-chip-hit--pressed { opacity: 0.72; }
+.filter-chip { display: inline-flex; height: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 $space-3; border-radius: 999px; background: $color-card-bg; color: $color-text-secondary; font-size: 14px; font-weight: 600; text-align: center; white-space: nowrap; }
 .filter-chip--active { background: $color-primary; color: #fff; }
 .filter-chip--danger { color: $color-accent; }
 .product-list { display: flex; flex-direction: column; gap: $space-3; }
@@ -100,7 +103,9 @@ onLoad(load)
 .product-row__unit { color: $color-text-secondary; font-size: 13px; font-weight: 400; }
 .stock--empty { color: #b42420; font-weight: 600; }
 .product-actions { display: flex; justify-content: flex-end; gap: $space-2; margin-top: $space-3; }
-.quiet-action, .primary-action { display: flex; min-width: 96px; min-height: 44px; align-items: center; justify-content: center; gap: $space-1; padding: 0 $space-3; border-radius: $radius-md; font-size: 15px; font-weight: 600; }
+.action-hit { display: inline-flex; min-height: $touch-target-min; align-items: center; flex: none; }
+.action-hit--pressed { opacity: 0.72; }
+.quiet-action, .primary-action { display: flex; height: 36px; min-height: 36px; min-width: 0; align-items: center; justify-content: center; gap: $space-1; padding: 0 $space-3; border-radius: $radius-md; font-size: 15px; font-weight: 600; white-space: nowrap; }
 .quiet-action { background: $color-group-bg; color: $color-text-primary; }
 .quiet-action--pressed, .primary-action--pressed { opacity: 0.72; }
 .primary-action { background: $color-primary; color: #fff; }

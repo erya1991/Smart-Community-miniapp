@@ -32,7 +32,7 @@ const displayPrice = computed(() => props.variant === 'home' ? props.product.hom
       </template>
       <view class="product-card__bottom">
         <text class="price"><text class="product-card__currency">¥</text>{{ displayPrice.toFixed(2) }}</text>
-        <view class="product-card__add" :class="{ 'product-card__add--disabled': props.product.soldOut }" @click.stop="handleAdd"><AppIcon name="plus" :size="20" /></view>
+        <view class="product-card__add-hit" @click.stop="handleAdd"><view class="product-card__add" :class="{ 'product-card__add--disabled': props.product.soldOut }"><AppIcon name="plus" :size="20" /></view></view>
       </view>
     </view>
     <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
@@ -49,6 +49,7 @@ const displayPrice = computed(() => props.variant === 'home' ? props.product.hom
 .product-card__tag { display: inline-block; margin-top: $space-2; padding: 2px $space-2; border-radius: $radius-sm; background: $color-group-bg; color: $color-text-secondary; font-size: 12px; }
 .product-card__bottom { display: flex; align-items: center; justify-content: space-between; margin-top: $space-3; }
 .product-card__currency { font-size: 13px; }
+.product-card__add-hit { display: flex; width: $touch-target-min; height: $touch-target-min; flex: none; align-items: center; justify-content: center; }
 .product-card__add { display: flex; width: $touch-target-min; height: $touch-target-min; align-items: center; justify-content: center; border-radius: 50%; background: $color-primary-light; color: $color-primary; font-size: 22px; }
 .product-card__add--disabled { opacity: 0.45; }
 

@@ -40,6 +40,9 @@ const canGoBack = computed(() => getCurrentPages().length > 1)
 const goBack = () => {
   if (canGoBack.value) uni.navigateBack({ delta: 1 })
 }
+const goUser = () => {
+  uni.redirectTo({ url: '/pages/profile/index' })
+}
 </script>
 
 <template>
@@ -52,6 +55,7 @@ const goBack = () => {
         <text class="navbar__title">{{ title }}</text>
         <text v-if="subtitle" class="navbar__subtitle">{{ subtitle }}</text>
       </view>
+      <view v-if="showUser" class="navbar__user" aria-label="我的" @click="goUser"><AppIcon name="user" :size="20" /></view>
     </view>
   </view>
 </template>
@@ -64,6 +68,8 @@ const goBack = () => {
 .navbar__back :deep(image) { transform: rotate(180deg); }
 .navbar__copy { flex: 1; min-width: 0; }
 .navbar__accent { width: 6px; height: 20px; flex: none; border-radius: 999px; background: $color-primary; }
+.navbar__user { display: flex; width: 48px; height: 48px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: $color-primary; }
+.navbar__user :deep(image) { filter: brightness(0) invert(1); }
 .navbar__inner--centered { padding-left: max(60px, var(--menu-inset)); padding-right: max(60px, var(--menu-inset)); }
 .navbar__inner--centered .navbar__copy { text-align: center; }
 .navbar__inner--centered .navbar__back { position: absolute; left: $page-gutter; }

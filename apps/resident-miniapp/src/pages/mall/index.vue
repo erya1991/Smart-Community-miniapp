@@ -38,7 +38,7 @@ onLoad(load)
       <view class="category-panel"><scroll-view class="category-scroll" scroll-x :show-scrollbar="false"><view class="category-list"><view v-for="category in data!.categories" :key="category" class="category" hover-class="mall-project--pressed" @click="showUnavailable = true"><IconContainer :icon="categoryIcons[category] || 'store'" size="md" /><text>{{ category }}</text></view></view></scroll-view></view>
       <view class="supply-tip"><view class="supply-tip__bar" /><AppIcon name="store" :size="18" /><text>社区周边商户直供 · 新鲜便捷</text></view>
       <view class="mall-products"><SectionHeader title="社区精选" subtitle="周边直供 · 邻里好物" /><view v-if="products.length" class="two-column-grid"><ProductCard v-for="product in products" :key="product.id" :product="product" /></view><view v-else class="mall-empty">暂无匹配商品</view></view>
-      <view class="mall-footer"><view class="mall-footer__brand"><AppIcon name="verified" :size="16" /><text>大光路智慧社区便民服务</text></view><text>社区商户联盟联合保供 · 守护烟火邻里</text></view>
+      <view class="mall-footer"><view class="mall-footer__brand"><AppIcon name="verified" :size="16" /><text>大光路智慧社区便民服务</text></view><text>社区好物 · 方便日常生活</text></view>
     </view>
     <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
     <template #tabbar><AppTabbar :items="residentTabItems" active-path="/pages/mall/index" /></template>

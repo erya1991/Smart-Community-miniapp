@@ -103,7 +103,7 @@ onLoad(load)
 .action-card__description { color: $color-text-secondary; font-size: 12px; font-weight: 600; }
 .action-card--active .action-card__description { color: #b6d9dc; }
 .summary-grid, .fund-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $space-3; }
-.summary-grid > view, .fund-grid { padding: $space-3; border-radius: $radius-card; background: $color-group-bg; text-align: center; }
+.summary-grid > view, .fund-grid > view { padding: $space-3; border-radius: $radius-card; background: $color-group-bg; text-align: center; }
 .summary-label, .summary-number, .fund-number { display: block; }
 .summary-label { color: $color-text-secondary; font-size: 13px; }
 .summary-number { margin-top: $space-2; font-size: 32px; font-weight: 700; }
