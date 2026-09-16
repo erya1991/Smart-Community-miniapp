@@ -69,7 +69,7 @@ onLoad(load)
 .order-filter-hit--pressed { opacity: 0.72; }
 .order-filter { display: inline-flex; height: 36px; align-items: center; justify-content: center; padding: 0 $space-3; border-radius: 999px; background: $color-card-bg; color: $color-text-secondary; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .order-filter--active { background: $color-primary; color: #fff; }
-.order-list { display: flex; flex-direction: column; gap: $space-2; }
+.order-list { display: flex; flex-direction: column; gap: 6px; }
 .order-card { position: relative; overflow: hidden; padding: $space-3; border-left: 3px solid $color-accent; }
 .order-card--complete { border-left-color: $color-success; }
 .order-head { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: $space-2; }

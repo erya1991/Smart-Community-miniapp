@@ -48,11 +48,11 @@ onLoad(load)
         <BaseCard v-for="product in products" :key="product.id" class="product-card" :padded="false" @click="unavailable">
           <view class="product-row">
             <view class="product-row__image"><image :src="product.image" mode="aspectFill" /><text class="product-row__category">{{ product.category }}</text></view>
-            <view class="product-row__main"><text class="product-row__name">{{ product.name }}</text><text class="product-row__description">{{ product.category }} · {{ product.description }}</text><view class="product-row__tags"><StatusTag :tone="auditTone(product.auditStatus)">{{ product.auditStatus }}</StatusTag><StatusTag :tone="saleTone(product.saleStatus)">{{ saleLabel(product.saleStatus, product.auditStatus) }}</StatusTag></view><view class="product-row__meta"><text class="price" :class="{ 'price--muted': product.saleStatus === '已下架' || product.auditStatus === '已驳回' }">¥{{ formatMoneyFromFen(product.price) }}<text class="product-row__unit"> /{{ product.unit }}</text></text><text :class="{ 'stock--empty': product.stock === 0 }">{{ product.stock === 0 ? '库存 0 件' : `库存 ${product.stock} 件` }}</text></view></view>
+            <view class="product-row__main"><text class="product-row__name">{{ product.name }}</text><text class="product-row__description">{{ product.category }} · {{ product.description }}</text><view class="product-row__tags"><StatusTag :tone="auditTone(product.auditStatus)">{{ product.auditStatus }}</StatusTag><StatusTag :tone="saleTone(product.saleStatus)">{{ saleLabel(product.saleStatus, product.auditStatus) }}</StatusTag></view></view>
           </view>
           <text v-if="product.auditStatus === '待审核'" class="product-status-note">平台审核中，请留意审核结果</text>
           <text v-else-if="product.auditStatus === '已驳回'" class="product-status-note product-status-note--error">审核未通过：{{ product.rejectionReason }}</text>
-          <view class="product-actions"><view class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="quiet-action">{{ product.auditStatus === '已驳回' ? '查看原因' : '编辑' }}</view></view><view v-if="product.auditStatus === '已驳回'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action primary-action--accent">修改后重提</view></view><view v-else-if="product.saleStatus === '销售中'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action primary-action--danger">下架</view></view><view v-else-if="product.saleStatus === '已下架'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action">重新上架</view></view></view>
+          <view class="product-footer"><view class="product-row__meta"><text class="price" :class="{ 'price--muted': product.saleStatus === '已下架' || product.auditStatus === '已驳回' }">¥{{ formatMoneyFromFen(product.price) }}<text class="product-row__unit"> /{{ product.unit }}</text></text><text :class="{ 'stock--empty': product.stock === 0 }">{{ product.stock === 0 ? '库存 0 件' : `库存 ${product.stock} 件` }}</text></view><view class="product-actions"><view class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="quiet-action">{{ product.auditStatus === '已驳回' ? '查看原因' : '编辑' }}</view></view><view v-if="product.auditStatus === '已驳回'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action primary-action--accent">修改后重提</view></view><view v-else-if="product.saleStatus === '销售中'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action primary-action--danger">下架</view></view><view v-else-if="product.saleStatus === '已下架'" class="action-hit" hover-class="action-hit--pressed" @click.stop="unavailable"><view class="primary-action">重新上架</view></view></view></view>
         </BaseCard>
       </view>
       <view v-if="!products.length" class="operation-empty">暂无匹配商品</view>
@@ -84,7 +84,7 @@ onLoad(load)
 .filter-chip { display: inline-flex; height: 36px; align-items: center; justify-content: center; padding: 0 $space-3; border-radius: 999px; background: $color-card-bg; color: $color-text-secondary; font-size: 14px; font-weight: 600; text-align: center; white-space: nowrap; }
 .filter-chip--active { background: $color-primary; color: #fff; }
 .filter-chip--danger { color: $color-accent; }
-.product-list { display: flex; flex-direction: column; gap: $space-2; }
+.product-list { display: flex; flex-direction: column; gap: 6px; }
 .product-card { padding: $space-3; }
 .product-row { display: flex; gap: $space-3; }
 .product-row__image { position: relative; display: flex; width: 80px; height: 80px; flex: none; align-items: center; justify-content: center; overflow: hidden; border-radius: $radius-md; background: $color-group-bg; }
@@ -95,17 +95,19 @@ onLoad(load)
 .product-row__description { display: block; overflow: hidden; margin-top: 2px; color: $color-text-secondary; font-size: 13px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
 .product-row__tags { display: flex; flex-wrap: wrap; gap: $space-1; margin-top: $space-1; }
 .product-row__tags :deep(.status-tag) { min-height: 22px; padding: 0 6px; border-radius: 999px; font-size: 12px; }
-.product-row__meta { display: flex; align-items: flex-end; justify-content: space-between; gap: $space-2; margin-top: $space-1; color: $color-text-secondary; font-size: 13px; }
+.product-footer { display: flex; min-width: 0; min-height: $touch-target-min; align-items: center; justify-content: space-between; gap: $space-2; margin-top: $space-1; }
+.product-row__meta { display: flex; min-width: 0; align-items: flex-end; gap: $space-2; color: $color-text-secondary; font-size: 13px; }
+.product-row__meta > text { white-space: nowrap; }
 .price { color: $color-accent; font-size: 18px; font-weight: 700; line-height: 22px; }
 .price--muted { color: $color-text-secondary; }
 .product-row__unit { color: $color-text-secondary; font-size: 12px; font-weight: 400; }
 .stock--empty { color: $color-error; font-weight: 600; }
 .product-status-note { display: block; overflow: hidden; margin-top: $space-2; color: $color-text-secondary; font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
 .product-status-note--error { color: $color-error; }
-.product-actions { display: flex; justify-content: flex-end; gap: $space-2; margin-top: $space-1; }
+.product-actions { display: flex; flex: none; justify-content: flex-end; gap: $space-2; }
 .action-hit { display: inline-flex; min-height: $touch-target-min; align-items: center; flex: none; }
 .action-hit--pressed { opacity: 0.72; }
-.quiet-action, .primary-action { display: flex; height: 36px; align-items: center; justify-content: center; padding: 0 $space-3; border-radius: $radius-md; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.quiet-action, .primary-action { display: flex; height: 36px; align-items: center; justify-content: center; padding: 0 $space-2; border-radius: $radius-md; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .quiet-action { background: $color-group-bg; color: $color-text-primary; }
 .primary-action { background: $color-primary; color: #fff; }
 .primary-action--danger { background: rgba(255, 218, 214, 0.65); color: $color-error; }
