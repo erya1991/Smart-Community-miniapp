@@ -3,7 +3,18 @@
     { "path": "pages/workbench/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/operation/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/order/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
+    { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/onboarding/application/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/onboarding/result/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/basic/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/stores/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/stores/editor/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/staff/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/staff/editor/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/qualifications/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/qualifications/editor/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/cooperation/status/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/qualification/status/index", "style": { "navigationStyle": "custom" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

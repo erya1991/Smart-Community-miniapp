@@ -1,4 +1,4 @@
-export type PageStatus = 'loading' | 'ready' | 'empty' | 'error' | 'unavailable'
+export type PageStatus = 'loading' | 'ready' | 'empty' | 'error' | 'network-error' | 'no-permission' | 'disabled' | 'business-unavailable' | 'unavailable'
 
 export interface ProjectSummary {
   id: string

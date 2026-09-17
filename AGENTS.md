@@ -98,7 +98,16 @@ Stitch 最终母版目录：
 - PRD 永远高于 Stitch；
 - Stitch 不得创造业务规则；
 - 但存在已冻结 Stitch 母版时，Codex 不得自由重新设计页面；
-- screen.png 是页面视觉验收基准；
+- Stitch 页面必须同时读取：
+- Stitch Level：L1 / L2 / L3
+- Visual Mode：R / O
+
+R 模式：
+screen.png 是主要视觉验收基准。
+
+O 模式：
+screen.png 是视觉语言与信息层级参考，
+业务效率、必要字段完整性和移动端信息密度优先于像素级几何还原。
 - code.html：可选。
 -仅当 Stitch 原生提供对应代码时使用。
 -不得由 Codex 根据截图反向伪造。

@@ -13,10 +13,10 @@ const emit = defineEmits<{ retry: [] }>()
   <view class="page-state">
     <view class="page-state__icon">{{ status === 'loading' ? '…' : status === 'error' ? '!' : '○' }}</view>
     <text class="page-state__title">
-      {{ status === 'loading' ? '正在加载' : status === 'empty' ? '暂无内容' : status === 'error' ? '加载失败' : '暂不可用' }}
+      {{ status === 'loading' ? '正在加载' : status === 'empty' ? '暂无内容' : ['error', 'network-error'].includes(status) ? '加载失败' : status === 'no-permission' ? '暂无权限' : status === 'disabled' ? '当前已停用' : '暂不可用' }}
     </text>
     <text class="page-state__message">{{ message || (status === 'unavailable' ? '相关能力正在建设中' : '请稍后再试') }}</text>
-    <button v-if="status === 'error'" class="page-state__retry" @click="emit('retry')">重新加载</button>
+    <button v-if="['error', 'network-error'].includes(status)" class="page-state__retry" @click="emit('retry')">重新加载</button>
   </view>
 </template>
 

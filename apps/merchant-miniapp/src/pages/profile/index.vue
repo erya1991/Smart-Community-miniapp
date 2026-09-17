@@ -13,10 +13,15 @@ import { usePageResource } from '@/composables/usePageResource'
 import AppIcon from '@/components/AppIcon.vue'
 import IconContainer from '@/components/IconContainer.vue'
 import { merchantTabItems } from '@/config/navigation'
+import { openSubPage } from '@/utils/navigation'
+import type { ProfileItemSummary } from '@/types/app'
 
 const { status, data, errorMessage, load } = usePageResource(appAdapter.getMerchantProfile)
 const showUnavailable = ref(false)
 const unavailable = () => { showUnavailable.value = true }
+const openEntry = (item: ProfileItemSummary) => {
+  if (!openSubPage(item.path, item.available !== false)) unavailable()
+}
 onLoad(load)
 </script>
 
@@ -24,19 +29,19 @@ onLoad(load)
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="我的" centered /></template>
     <view class="stack merchant-profile-stack">
-      <BaseCard class="merchant-identity" hover-class="merchant-card--pressed" @click="unavailable">
+      <BaseCard class="merchant-identity" hover-class="merchant-card--pressed" @click="openSubPage('/pages/profile/basic/index')">
         <view class="merchant-identity__main"><IconContainer icon="shop" size="lg" /><view class="merchant-identity__copy"><view class="merchant-identity__title"><text class="merchant-identity__name">{{ data!.merchant.name }}</text><StatusTag tone="success">经营正常</StatusTag></view><text class="merchant-identity__store">{{ data!.merchant.storeName }} · {{ data!.merchant.role }}</text><view class="merchant-identity__project"><AppIcon name="location" :size="13" />{{ data!.merchant.projectName }}</view></view><view class="merchant-identity__arrow"><AppIcon name="chevron-right" :size="16" /></view></view>
       </BaseCard>
 
-      <BaseCard class="qualification-card" hover-class="merchant-card--pressed" @click="unavailable">
-        <SectionHeader title="经营资格" action-text="查看详情" @action="unavailable" />
+      <BaseCard class="qualification-card" hover-class="merchant-card--pressed" @click="openSubPage('/pages/qualification/status/index')">
+        <SectionHeader title="经营资格" action-text="查看详情" @action="openSubPage('/pages/qualification/status/index')" />
         <view class="qualification-summary"><text>业务经营资格</text><StatusTag tone="success">{{ data!.qualification.businessStatus }}</StatusTag></view>
         <view class="qualification-summary"><text>正式交易资格</text><StatusTag tone="pending">{{ data!.qualification.transactionStatus }}</StatusTag></view>
       </BaseCard>
 
       <BaseCard v-for="group in data!.groups" :key="group.title" class="merchant-group">
         <SectionHeader :title="group.title" />
-        <view v-for="item in group.items" :key="item.label" class="merchant-entry" hover-class="merchant-entry--pressed" @click="unavailable"><IconContainer :icon="item.icon" :tone="item.tone || 'teal'" size="sm" /><view class="merchant-entry__copy"><text class="merchant-entry__label">{{ item.label }}</text><text class="merchant-entry__description">{{ item.description }}</text></view><AppIcon name="chevron-right" :size="16" /></view>
+        <view v-for="item in group.items" :key="item.label" class="merchant-entry" hover-class="merchant-entry--pressed" @click="openEntry(item)"><IconContainer :icon="item.icon" :tone="item.tone || 'teal'" size="sm" /><view class="merchant-entry__copy"><text class="merchant-entry__label">{{ item.label }}</text><text class="merchant-entry__description">{{ item.description }}</text></view><AppIcon name="chevron-right" :size="16" /></view>
       </BaseCard>
 
       <view class="merchant-profile-footer">大光路智慧社区商户服务</view>

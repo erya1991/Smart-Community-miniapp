@@ -60,17 +60,19 @@ export const merchantMockAdapter = {
       {
         title: '商户管理',
         items: [
-          { label: '基本资料', icon: 'user', description: '负责人及主体信息' },
-          { label: '门店', icon: 'store', description: '门店信息与营业时间' },
-          { label: '人员', icon: 'neighbor', description: '协作成员与权限' },
-          { label: '资质', icon: 'verified', description: '资质证照与经营类目' },
+          { label: '入驻申请', icon: 'shop', description: '查看申请材料', path: '/pages/onboarding/application/index', available: true },
+          { label: '审核结果', icon: 'bell', description: '查看提交与审核记录', path: '/pages/onboarding/result/index', available: true },
+          { label: '基本资料', icon: 'user', description: '负责人及主体信息', path: '/pages/profile/basic/index', available: true },
+          { label: '门店', icon: 'store', description: '门店信息与营业时间', path: '/pages/stores/index', available: true },
+          { label: '人员', icon: 'neighbor', description: '协作成员与权限', path: '/pages/staff/index', available: true },
+          { label: '资质', icon: 'verified', description: '资质证照与经营类目', path: '/pages/qualifications/index', available: true },
         ],
       },
       {
         title: '经营与资质',
         items: [
-          { label: '合作状态', icon: 'services', description: '项目合作关系' },
-          { label: '经营资格', icon: 'verified', description: '双资格认定状态' },
+          { label: '合作状态', icon: 'services', description: '协议、合作与授权', path: '/pages/cooperation/status/index', available: true },
+          { label: '经营资格', icon: 'verified', description: '业务、资金与交易资格', path: '/pages/qualification/status/index', available: true },
         ],
       },
       {

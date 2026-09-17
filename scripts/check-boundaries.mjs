@@ -15,6 +15,17 @@ const merchantPages = [
   '/pages/operation/index',
   '/pages/order/index',
   '/pages/profile/index',
+  '/pages/onboarding/application/index',
+  '/pages/onboarding/result/index',
+  '/pages/profile/basic/index',
+  '/pages/stores/index',
+  '/pages/stores/editor/index',
+  '/pages/staff/index',
+  '/pages/staff/editor/index',
+  '/pages/qualifications/index',
+  '/pages/qualifications/editor/index',
+  '/pages/cooperation/status/index',
+  '/pages/qualification/status/index',
 ]
 
 const residentNavigation = read('apps/resident-miniapp/src/config/navigation.ts')
@@ -27,7 +38,7 @@ const legacySingleAppExists = existsSync(new URL('../src/pages.json', import.met
 
 const assertions = [
   [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册四个住户一级页面'],
-  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册四个商户一级页面'],
+  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册四个一级页面与阶段 02 商户合作页面'],
   [residentNavigation.includes("label: '首页'") && residentNavigation.includes("label: '服务'") && residentNavigation.includes("label: '商城'") && residentNavigation.includes("label: '我的'") && !residentNavigation.includes('merchant'), '住户导航固定且无商户入口'],
   [merchantNavigation.includes("label: '工作台'") && merchantNavigation.includes("label: '经营'") && merchantNavigation.includes("label: '订单'") && merchantNavigation.includes("label: '我的'") && !merchantNavigation.includes('resident'), '商户导航固定且无住户入口'],
   [sharedTabbar.includes('items: NavItem[]') && !sharedTabbar.includes('AppProfile') && !sharedTabbar.includes('navigationByProfile'), 'Tabbar 仅渲染端级传入导航，不依赖角色切换'],

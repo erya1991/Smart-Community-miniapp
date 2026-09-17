@@ -11,7 +11,7 @@
 
 - 唯一 Theme、UI、类型、工具和通用 Mock 契约位于 `packages/`，不得复制第二套组件或 Token。
 - Resident 上下文：`currentProject`、`currentMember`。
-- Merchant 上下文：`currentProject`、`currentOperator`、`currentStore`、`currentMerchantStaff`。
+- Merchant 上下文：`currentProject`、`currentOperatorApplication`、`currentOperator`、`currentStore`、`currentMerchantStaff`。`currentOperatorApplication` 只表示审核前申请；`currentOperator` 只表示审核通过后的正式经营主体。
 - Project 不等于 Tenant；当前默认大光路项目只是 Mock 初始化值。
 - Mock 必须走端级 Adapter；P2–P5 未定义业务仍只提供统一不可用反馈。
 
@@ -37,3 +37,15 @@
 - 商户高频小按钮/筛选芯片视觉高度为 36px，外层点击区域至少 `$touch-target-min`（44px）；不得改动全局 `AppButton` 48px 主 CTA。
 - 工作台优先展示待办、快捷操作和合并后的经营概览；经营页商品卡保留图片、名称、类目/说明、双状态、价格、库存和当前操作；订单卡保留订单号、状态、商品摘要、客户、数量、履约方式、下单时间、承诺时间和金额。未实现操作仍进入 `FeatureUnavailable`。
 - 阶段 02 的真实商品、订单、履约、支付和接口能力仍未开发；当前均为端级 Mock 展示与正式页面壳层。
+
+## 阶段 02 商户入驻与合作关系
+
+- 商户端新增 11 个二级页面：入驻申请、审核结果、基本资料、门店列表/新增编辑、人员列表/邀请编辑、资质列表/新增更新、合作状态、经营资格。二级页面不显示一级 Tab，统一使用返回导航和必要的安全区 Bottom Action。
+- “我的”是正式入口：入驻申请和审核结果读取 `OperatorApplication`；基本资料、门店、人员和资质读取正式 `Operator` 范围；合作状态和经营资格为商户侧只读结果。
+- 对象关系必须保持：`Project != Tenant`、`OperatorApplication != Operator`、`Store` 不独立取得主体/项目合作/正式交易资格。被业务引用的数据只允许停用、失效、到期或新版本，不物理删除。
+- 权限前端至少区分负责人和普通工作人员。负责人可新增、编辑、停用和转交；普通工作人员只读。最后一名有效负责人停用由 Adapter 拒绝；真实接入后必须由后端再次校验。
+- 资质状态为待确认、有效、即将到期、已过期、无效；商户提交或更新后统一回到待确认，只有平台确认结果可参与业务资格判断。
+- 合作状态分别展示协议、项目合作、经营授权，商户端无编辑入口。业务经营资格、资金接入状态、正式交易资格必须独立展示；业务资格有效且资金配置中时，可维护经营内容但不可正式收款。
+- 阶段 02 页面依赖 `apps/merchant-miniapp/src/services/merchant-cooperation.ts` 的稳定契约，当前实现为 `packages/business-common/mock/merchant-cooperation.ts` 内存 Mock。页面不得直接新增散落 Mock；真实 API 接入时替换 Adapter 并保留页面契约。
+- R 页面使用正常移动端密度、字段原位校验和固定 Bottom Action；O 页面一个列表卡对应一个对象，首屏直接显示状态和高频操作。视觉按钮可紧凑，实际热区不得低于 44px。
+- 当前验证：商户/住户 type-check、双端 mp-weixin 构建、边界检查通过；阶段 02 全部页面、商户四个一级页与住户首页完成 390×844 H5 运行检查。微信开发者工具、真机、大字体、键盘避让、拍照上传和真实权限/API 尚未验证。
