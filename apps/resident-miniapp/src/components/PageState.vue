@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PageStatus } from '../../common/types/app'
+import AppButton from './AppButton.vue'
 
 defineProps<{
   status: Exclude<PageStatus, 'ready'>
@@ -16,7 +17,7 @@ const emit = defineEmits<{ retry: [] }>()
       {{ status === 'loading' ? '正在加载' : status === 'empty' ? '暂无内容' : ['error', 'network-error'].includes(status) ? '加载失败' : status === 'no-permission' ? '暂无权限' : status === 'disabled' ? '当前已停用' : '暂不可用' }}
     </text>
     <text class="page-state__message">{{ message || (status === 'unavailable' ? '相关能力正在建设中' : '请稍后再试') }}</text>
-    <button v-if="['error', 'network-error'].includes(status)" class="page-state__retry" @click="emit('retry')">重新加载</button>
+    <AppButton v-if="['error', 'network-error'].includes(status)" class="page-state__retry" @click="emit('retry')">重新加载</AppButton>
   </view>
 </template>
 
@@ -57,12 +58,7 @@ const emit = defineEmits<{ retry: [] }>()
 }
 
 .page-state__retry {
-  min-width: 120px;
-  height: $button-height;
+  width: 160px;
   margin-top: $space-5;
-  border-radius: $radius-md;
-  background: $color-primary;
-  color: #fff;
-  font-size: 16px;
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue'
+import AppButton from './AppButton.vue'
 
 withDefaults(defineProps<{ title?: string; description?: string }>(), { title: '功能暂不可用', description: '该服务将在开放后提供，当前可以继续浏览其他功能。' })
 const emit = defineEmits<{ close: [] }>()
@@ -11,7 +12,7 @@ const emit = defineEmits<{ close: [] }>()
       <view class="feature-unavailable__mark"><AppIcon name="services" :size="22" /></view>
       <text class="feature-unavailable__title">{{ title }}</text>
       <text class="feature-unavailable__description">{{ description }}</text>
-      <button class="feature-unavailable__close" @click="emit('close')">知道了</button>
+      <AppButton class="feature-unavailable__close" @click="emit('close')">知道了</AppButton>
     </view>
   </view>
 </template>
@@ -23,5 +24,5 @@ const emit = defineEmits<{ close: [] }>()
 .feature-unavailable__title, .feature-unavailable__description { display: block; }
 .feature-unavailable__title { margin-top: $space-3; font-size: 17px; font-weight: 600; }
 .feature-unavailable__description { margin-top: $space-1; color: $color-text-secondary; font-size: 14px; line-height: 22px; }
-.feature-unavailable__close { width: 100%; height: $button-height; margin-top: $space-5; border-radius: $radius-md; background: $color-primary; color: #fff; font-size: 16px; font-weight: 600; }
+.feature-unavailable__close { margin-top: $space-5; }
 </style>

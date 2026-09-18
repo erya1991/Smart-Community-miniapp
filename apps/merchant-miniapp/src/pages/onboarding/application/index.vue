@@ -138,7 +138,7 @@ onLoad(load)
 
     <BottomActionBar v-if="form">
       <AppButton v-if="!editable" @click="openSubPage('/pages/onboarding/result/index')">查看审核结果</AppButton>
-      <template v-else><AppButton v-if="form.currentStep > 1" variant="secondary" @click="previous">上一步</AppButton><AppButton v-else variant="secondary" :disabled="submitting" @click="save">保存草稿</AppButton><AppButton v-if="form.currentStep < 4" @click="next">下一步</AppButton><AppButton v-else :disabled="submitting" @click="submit">{{ submitting ? '提交中…' : '提交审核' }}</AppButton></template>
+      <template v-else><AppButton v-if="form.currentStep > 1" variant="secondary" @click="previous">上一步</AppButton><AppButton v-else variant="secondary" :loading="submitting" @click="save">保存草稿</AppButton><AppButton v-if="form.currentStep < 4" @click="next">下一步</AppButton><AppButton v-else :loading="submitting" @click="submit">提交审核</AppButton></template>
     </BottomActionBar>
   </AppPage>
 </template>

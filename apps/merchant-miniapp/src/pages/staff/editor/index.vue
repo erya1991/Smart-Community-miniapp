@@ -40,7 +40,7 @@ onLoad((options) => load(options?.id))
   <AppPage :status="status" :state-message="stateMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar :title="isEdit ? '编辑人员' : '邀请人员'" centered show-back /></template>
     <view class="stack"><FormSection title="人员身份" description="邀请需由用户登录确认，前端权限不替代后端校验"><FormField label="所属主体" readonly><input :value="currentOperator?.name || '未选择主体'" disabled /></FormField><FormField label="人员姓名" required><input v-model="form.memberName" maxlength="30" /></FormField><FormField label="手机号" required :readonly="isEdit"><input v-model="form.mobile" type="number" maxlength="11" :disabled="isEdit" /></FormField><FormField label="人员角色" required><view class="role-options"><view v-for="option in roleOptions" :key="option.value" class="role-option" :class="{ 'role-option--active': form.role === option.value }" @click="form.role = option.value">{{ option.label }}</view></view></FormField></FormSection><FormSection title="门店范围" description="不选择具体门店表示主体下全部有效门店"><view class="scope-option" :class="{ 'scope-option--active': allStores }" @click="form.storeIds = []">全部有效门店</view><view v-for="store in stores" :key="store.id" class="scope-option" :class="{ 'scope-option--active': form.storeIds.includes(store.id) }" @click="toggleStore(store.id)">{{ store.name }}</view></FormSection></view>
-    <BottomActionBar><AppButton variant="secondary" @click="goBack">取消</AppButton><AppButton :disabled="saving" @click="save">{{ saving ? '保存中…' : isEdit ? '保存' : '发送邀请' }}</AppButton></BottomActionBar>
+    <BottomActionBar><AppButton variant="secondary" @click="goBack">取消</AppButton><AppButton :loading="saving" @click="save">{{ isEdit ? '保存' : '发送邀请' }}</AppButton></BottomActionBar>
   </AppPage>
 </template>
 

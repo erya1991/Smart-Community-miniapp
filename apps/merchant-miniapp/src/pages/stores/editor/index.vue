@@ -45,7 +45,7 @@ onLoad((options) => load(options?.id))
       </FormSection>
       <view class="business-note">停用门店不会影响主体资格，也不会删除历史订单中的门店快照。</view>
     </view>
-    <BottomActionBar><AppButton variant="secondary" @click="goBack">取消</AppButton><AppButton :disabled="saving" @click="save">{{ saving ? '保存中…' : '保存' }}</AppButton></BottomActionBar>
+    <BottomActionBar><AppButton variant="secondary" @click="goBack">取消</AppButton><AppButton :loading="saving" @click="save">保存</AppButton></BottomActionBar>
   </AppPage>
 </template>
 

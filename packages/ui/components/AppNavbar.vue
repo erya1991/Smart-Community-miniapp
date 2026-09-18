@@ -62,7 +62,7 @@ const goUser = () => {
 </template>
 
 <style scoped lang="scss">
-.navbar { background: rgba(248, 249, 252, 0.96); border-bottom: 1px solid rgba(225, 228, 230, 0.6); }
+.navbar { position: sticky; z-index: 90; top: 0; width: 100%; background: rgba(248, 249, 252, 0.98); border-bottom: 1px solid rgba(225, 228, 230, 0.6); }
 .navbar__inner { position: relative; display: flex; min-height: var(--navigation-height); align-items: center; gap: $space-2; padding: 0 var(--menu-inset) 0 $page-gutter; }
 .navbar__mark { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; border-radius: 10px; background: $color-primary-light; }
 .navbar__back { display: flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center; border-radius: 50%; }

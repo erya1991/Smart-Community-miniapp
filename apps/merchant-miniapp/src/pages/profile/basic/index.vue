@@ -50,7 +50,7 @@ onLoad(load)
         <FormField label="注册地址" :readonly="!canEdit"><textarea v-model="profile.registeredAddress" :disabled="!canEdit" maxlength="200" auto-height /></FormField>
       </FormSection>
     </view>
-    <BottomActionBar v-if="canEdit"><AppButton :disabled="saving" @click="save">{{ saving ? '保存中…' : '保存资料' }}</AppButton></BottomActionBar>
+    <BottomActionBar v-if="canEdit"><AppButton :loading="saving" @click="save">保存资料</AppButton></BottomActionBar>
   </AppPage>
 </template>
 
