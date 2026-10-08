@@ -3,6 +3,16 @@
     { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/service/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/list/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/cart/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/member/address/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/member/address-edit/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/confirm/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/pay/result/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/order-list/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/order-detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/checkout-placeholder/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
   ],
   "globalStyle": {

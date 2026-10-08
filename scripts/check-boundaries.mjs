@@ -8,6 +8,16 @@ const residentPages = [
   '/pages/home/index',
   '/pages/service/index',
   '/pages/mall/index',
+  '/pages/mall/list/index',
+  '/pages/mall/detail/index',
+  '/pages/mall/cart/index',
+  '/pages/mall/checkout-placeholder/index',
+  '/pages/member/address/index',
+  '/pages/member/address-edit/index',
+  '/pages/mall/confirm/index',
+  '/pages/pay/result/index',
+  '/pages/mall/order-list/index',
+  '/pages/mall/order-detail/index',
   '/pages/profile/index',
 ]
 const merchantPages = [
@@ -26,6 +36,9 @@ const merchantPages = [
   '/pages/qualifications/editor/index',
   '/pages/cooperation/status/index',
   '/pages/qualification/status/index',
+  '/pages/product/editor/index',
+  '/pages/order/detail/index',
+  '/pages/verification/index',
 ]
 
 const residentNavigation = read('apps/resident-miniapp/src/config/navigation.ts')
@@ -37,8 +50,8 @@ const merchantAdapter = read('apps/merchant-miniapp/src/adapters/mock.ts')
 const legacySingleAppExists = existsSync(new URL('../src/pages.json', import.meta.url))
 
 const assertions = [
-  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册四个住户一级页面'],
-  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册四个一级页面与阶段 02 商户合作页面'],
+  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册冻结一级页、阶段 03 商城页与阶段 04 交易履约页'],
+  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册冻结一级页、阶段 02/03 页面与阶段 04 交易履约页'],
   [residentNavigation.includes("label: '首页'") && residentNavigation.includes("label: '服务'") && residentNavigation.includes("label: '商城'") && residentNavigation.includes("label: '我的'") && !residentNavigation.includes('merchant'), '住户导航固定且无商户入口'],
   [merchantNavigation.includes("label: '工作台'") && merchantNavigation.includes("label: '经营'") && merchantNavigation.includes("label: '订单'") && merchantNavigation.includes("label: '我的'") && !merchantNavigation.includes('resident'), '商户导航固定且无住户入口'],
   [sharedTabbar.includes('items: NavItem[]') && !sharedTabbar.includes('AppProfile') && !sharedTabbar.includes('navigationByProfile'), 'Tabbar 仅渲染端级传入导航，不依赖角色切换'],

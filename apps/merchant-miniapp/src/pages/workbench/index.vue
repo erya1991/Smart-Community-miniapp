@@ -1,43 +1,42 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
 import BaseCard from '@/components/BaseCard.vue'
 import FeatureUnavailable from '@/components/FeatureUnavailable.vue'
-import MerchantInfoCard from '@/components/MerchantInfoCard.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
-import { appAdapter } from '@/adapters/mock'
 import { usePageResource } from '@/composables/usePageResource'
-import { useProjectStore } from '@/stores/project'
-import { formatMoneyFromFen } from '@/utils/navigation'
+import { merchantSupplyDashboard } from '@/services/supply'
+import { formatMoneyFromFen, openSubPage } from '@/utils/navigation'
 import { merchantTabItems } from '@/config/navigation'
 
-const projectStore = useProjectStore()
-const { status, data, errorMessage, load } = usePageResource(appAdapter.getMerchantWorkbench)
-const projectName = computed(() => projectStore.currentProject.value?.name || '请选择项目')
+const { status, data, errorMessage, load, refresh } = usePageResource(merchantSupplyDashboard.getWorkbench)
 const showUnavailable = ref(false)
 const quickActions = [
-  { label: '发布商品', icon: 'plus' },
-  { label: '扫码核销', icon: 'qr', active: true },
-  { label: '查看订单', icon: 'order' },
+  { label: '新增商品', icon: 'plus', path: '/pages/product/editor/index' },
+  { label: '商品管理', icon: 'store', active: true, path: '/pages/operation/index' },
+  { label: '经营资格', icon: 'verified', path: '/pages/qualification/status/index' },
 ]
 const unavailable = () => { showUnavailable.value = true }
+const openTodo = (label: string) => label === '待审核商品' ? openSubPage('/pages/operation/index?filter=pending') : unavailable()
 onLoad(load)
+onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="工作台" compact show-user /></template>
     <view class="stack workbench-stack">
-      <MerchantInfoCard compact :name="data!.merchant.name" :store-name="data!.merchant.storeName" :project-name="projectName" :status="data!.merchant.operationStatus" :business-hours="data!.merchant.businessHours" @click="unavailable" />
+      <BaseCard class="store-brief" :padded="false" @click="openSubPage('/pages/qualification/status/index')"><view class="store-brief__icon"><AppIcon name="shop" :size="26" /></view><view class="store-brief__copy"><text>{{ data!.qualification.storeName }}</text><text>{{ data!.qualification.tradeReady ? '可正式交易' : data!.qualification.baseBusinessReady ? '可维护商品 · 正式交易待完善' : '经营基础资格待完善' }}</text></view><text class="store-brief__arrow">›</text></BaseCard>
+      <view v-if="!data!.qualification.tradeReady" class="qualification-alert" @click="openSubPage('/pages/qualification/status/index')"><view><text>正式交易暂不可用</text><text>{{ data!.qualification.tradeReasons.join('；') }}</text></view><text>查看原因 ›</text></view>
 
       <BaseCard class="todo-section" :padded="false">
-        <view class="section-row"><SectionHeader title="待办事项" /><view class="todo-heading"><text>{{ data!.todoTotal }}件待处理</text><view class="section-action" @click="unavailable">全部待办 ›</view></view></view>
+        <view class="section-row"><SectionHeader title="待办事项" /><view class="todo-heading"><text>{{ data!.todoTotal }}件待处理</text><view class="section-action" @click="openSubPage('/pages/operation/index')">商品管理 ›</view></view></view>
         <view class="todo-grid">
-          <view v-for="todo in data!.todos" :key="todo.label" class="todo-card" :class="{ 'todo-card--urgent': todo.label === '待备货' }" hover-class="todo-card--pressed" @click="unavailable">
+          <view v-for="todo in data!.todos" :key="todo.label" class="todo-card" :class="{ 'todo-card--urgent': todo.label === '待备货' }" hover-class="todo-card--pressed" @click="openTodo(todo.label)">
             <view class="todo-card__top"><text class="todo-card__label">{{ todo.label }}</text><text v-if="todo.label === '待备货'" class="todo-card__urgent">加急</text><view v-else class="todo-card__dot" /></view>
             <view class="todo-card__bottom"><text class="todo-card__value">{{ todo.value }}</text><text class="todo-card__description">{{ todo.description }}</text></view>
           </view>
@@ -51,14 +50,14 @@ onLoad(load)
 
       <view class="workbench-actions">
         <view class="section-row section-row--plain"><SectionHeader title="快捷操作" /><text class="section-note">常用高频</text></view>
-        <view class="action-grid"><view v-for="action in quickActions" :key="action.label" class="action-card" :class="{ 'action-card--active': action.active }" hover-class="action-card--pressed" @click="unavailable"><view class="action-card__icon"><AppIcon :name="action.icon" :size="28" /></view><text class="action-card__label">{{ action.label }}</text></view></view>
+        <view class="action-grid"><view v-for="action in quickActions" :key="action.label" class="action-card" :class="{ 'action-card--active': action.active }" hover-class="action-card--pressed" @click="openSubPage(action.path)"><view class="action-card__icon"><AppIcon :name="action.icon" :size="28" /></view><text class="action-card__label">{{ action.label }}</text></view></view>
       </view>
 
       <BaseCard class="overview-section" :padded="false">
-        <view class="section-row"><SectionHeader title="经营概览" /><view class="overview-tools"><text class="section-note">截至 17:30</text><view class="section-action" @click="unavailable">资金明细 ›</view></view></view>
+        <view class="section-row"><SectionHeader title="经营概览" /><view class="overview-tools"><text class="section-note">今日汇总</text></view></view>
         <view class="overview-grid">
-          <view class="overview-item"><text class="overview-label">今日订单</text><text class="overview-value">{{ data!.today.orderCount }}<text class="overview-unit"> 单</text></text></view>
-          <view class="overview-item"><text class="overview-label">今日成交</text><text class="overview-value overview-value--primary">¥{{ formatMoneyFromFen(data!.today.amount) }}</text></view>
+          <view class="overview-item"><text class="overview-label">今日订单数</text><text class="overview-value">{{ data!.today.orderCount }}<text class="overview-unit"> 单</text></text></view>
+          <view class="overview-item"><text class="overview-label">今日成交额</text><text class="overview-value overview-value--primary">¥{{ formatMoneyFromFen(data!.today.amount) }}</text></view>
           <view class="overview-item"><text class="overview-label">待分账</text><text class="overview-value">¥{{ formatMoneyFromFen(data!.funds.pending) }}</text></view>
           <view class="overview-item"><text class="overview-label">已分账</text><text class="overview-value overview-value--primary">¥{{ formatMoneyFromFen(data!.funds.completed) }}</text></view>
         </view>
@@ -71,6 +70,18 @@ onLoad(load)
 
 <style scoped lang="scss">
 .workbench-stack { gap: $space-3; }
+.store-brief { display:flex; min-height:72px; align-items:center; gap:$space-3; padding:$space-3; }
+.store-brief__icon { display:flex; width:44px; height:44px; align-items:center; justify-content:center; flex:none; border-radius:$radius-md; background:$color-primary-light; }
+.store-brief__copy { flex:1; min-width:0; }
+.store-brief__copy > text { display:block; }
+.store-brief__copy > text:first-child { font-size:16px; font-weight:600; }
+.store-brief__copy > text:last-child { margin-top:$space-1; font-size:12px; color:$color-text-secondary; }
+.store-brief__arrow { color:$color-primary; font-size:22px; }
+.qualification-alert { display:flex; min-height:52px; align-items:center; justify-content:space-between; gap:$space-2; padding:$space-3; border-radius:$radius-md; background:$color-warning-light; color:$color-warning; font-size:13px; }
+.qualification-alert > view { flex:1; min-width:0; }
+.qualification-alert > view > text { display:block; }
+.qualification-alert > view > text:first-child { font-size:15px; font-weight:600; }
+.qualification-alert > text { flex:none; color:$color-primary; }
 .section-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: $space-2; }
 .section-row :deep(.section-header) { min-height: 36px; }
 .section-row :deep(.section-header__title) { font-size: 17px; line-height: 24px; }

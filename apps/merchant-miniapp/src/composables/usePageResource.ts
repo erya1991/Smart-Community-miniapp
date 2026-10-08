@@ -6,8 +6,8 @@ export function usePageResource<T>(loader: () => Promise<T>) {
   const data = shallowRef<T | null>(null)
   const errorMessage = ref('')
 
-  const load = async () => {
-    status.value = 'loading'
+  const runLoad = async (preserveContent = false) => {
+    if (!preserveContent) status.value = 'loading'
     errorMessage.value = ''
     try {
       const result = await loader()
@@ -19,5 +19,8 @@ export function usePageResource<T>(loader: () => Promise<T>) {
     }
   }
 
-  return { status, data, errorMessage, load }
+  const load = () => runLoad()
+  // Keep native scroll/swiper nodes mounted during a secondary page's return refresh.
+  const refresh = () => runLoad(data.value !== null)
+  return { status, data, errorMessage, load, refresh }
 }

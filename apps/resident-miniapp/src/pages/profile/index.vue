@@ -49,7 +49,7 @@ onLoad(load)
 
       <template v-for="group in data!.groups" :key="group.title">
         <BaseCard v-if="group.type === 'orders'" class="profile-orders">
-          <SectionHeader title="我的订单" action-text="全部订单" @action="showUnavailable = true" />
+          <SectionHeader title="我的订单" action-text="全部订单" @action="openPage('/pages/mall/order-list/index')" />
           <view class="profile-order-grid">
             <view v-for="item in group.items" :key="item.label" class="profile-order-entry" hover-class="profile-entry--pressed" @click="handleEntry(item)">
               <view class="profile-order-icon-wrap"><IconContainer :icon="item.icon" size="sm" /><text v-if="item.badge" class="profile-order-badge">{{ item.badge }}</text></view>

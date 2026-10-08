@@ -28,10 +28,10 @@ const residentServiceEntries: QuickEntry[] = [
 ]
 
 const products: ProductSummary[] = [
-  { id: 'p-001', name: '当日新鲜蔬菜组合', merchantName: '邻里生鲜', price: 19.9, fulfillment: '社区自提', imageTone: '#d9e8d7', image: '/static/images/product-vegetables.svg', homeImage: '/static/images/home/product-vegetables.png' },
-  { id: 'p-002', name: '正宗五常大米 5kg', merchantName: '大光路生活超市', price: 49.9, fulfillment: '商户配送', imageTone: '#eadfcf', image: '/static/images/product-rice.svg', homeImage: '/static/images/home/product-rice.png' },
-  { id: 'p-003', name: '时令水蜜桃家庭装', merchantName: '邻里生鲜', price: 29.9, fulfillment: '社区自提', imageTone: '#f1d9d1', image: '/static/images/product-peach.svg', homeImage: '/static/images/home/product-tissue.png', homeName: '家庭装竹浆抽纸', homeMerchantName: '大光路百货便利店', homePrice: 19.9 },
-  { id: 'p-004', name: '社区暖心早餐包组合', merchantName: '大光路社区食堂', price: 15.8, fulfillment: '社区自提', imageTone: '#eee1ca', image: '/static/images/product-breakfast.svg', homeImage: '/static/images/home/product-peach.png', homeName: '时令水蜜桃家庭装', homeMerchantName: '邻里生鲜', homePrice: 29.9 },
+  { id: 'product-vegetables', name: '当日新鲜蔬菜组合', merchantName: '邻里生鲜', price: 19.9, fulfillment: '社区自提', imageTone: '#d9e8d7', image: '/static/images/product-vegetables.svg', homeImage: '/static/images/home/product-vegetables.png' },
+  { id: 'product-rice', name: '正宗五常大米 5kg', merchantName: '大光路生活超市', price: 49.9, fulfillment: '商户配送', imageTone: '#eadfcf', image: '/static/images/product-rice.svg', homeImage: '/static/images/home/product-rice.png' },
+  { id: 'product-tissue', name: '时令水蜜桃家庭装', merchantName: '邻里生鲜', price: 29.9, fulfillment: '社区自提', imageTone: '#f1d9d1', image: '/static/images/product-peach.svg', homeImage: '/static/images/home/product-tissue.png', homeName: '家庭装竹浆抽纸', homeMerchantName: '大光路百货便利店', homePrice: 19.9 },
+  { id: 'product-breakfast', name: '社区暖心早餐包组合', merchantName: '大光路社区食堂', price: 15.8, fulfillment: '社区自提', imageTone: '#eee1ca', image: '/static/images/product-breakfast.svg', homeImage: '/static/images/home/product-peach.png', homeName: '时令水蜜桃家庭装', homeMerchantName: '邻里生鲜', homePrice: 29.9 },
 ]
 
 const mallProducts: ProductSummary[] = [
@@ -57,11 +57,11 @@ export const residentMockAdapter = {
         title: '我的订单',
         type: 'orders',
         items: [
-          { label: '待支付', icon: 'bill' },
-          { label: '待履约', icon: 'car', badge: '1' },
-          { label: '待自提', icon: 'bag' },
-          { label: '待评价', icon: 'message' },
-          { label: '售后', icon: 'recycle' },
+          { label: '待支付', icon: 'bill', path: '/pages/mall/order-list/index', available: true },
+          { label: '待履约', icon: 'car', badge: '1', path: '/pages/mall/order-list/index', available: true },
+          { label: '待自提', icon: 'bag', path: '/pages/mall/order-list/index', available: true },
+          { label: '待评价', icon: 'message', path: '/pages/mall/order-list/index', available: true },
+          { label: '售后', icon: 'recycle', path: '/pages/mall/order-list/index', available: true },
         ],
       },
       {
@@ -92,7 +92,7 @@ export const residentMockAdapter = {
         type: 'list',
         items: [
           { label: '我的积分', icon: 'points', value: '120 分' },
-          { label: '收货地址', icon: 'location', value: '大光新村 12幢...' },
+          { label: '收货地址', icon: 'location', value: '大光新村 12幢...', path: '/pages/member/address/index', available: true },
           { label: '消息中心', icon: 'bell', badge: 'dot' },
           { label: '意见反馈', icon: 'message' },
           { label: '设置', icon: 'settings', tone: 'gray' },

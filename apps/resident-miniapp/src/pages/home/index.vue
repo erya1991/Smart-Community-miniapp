@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
@@ -9,40 +9,44 @@ import ProductCard from '@/components/ProductCard.vue'
 import QuickEntryGrid from '@/components/QuickEntryGrid.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
-import { appAdapter } from '@/adapters/mock'
+import FeatureUnavailable from '@/components/FeatureUnavailable.vue'
 import { usePageResource } from '@/composables/usePageResource'
-import { useProjectStore } from '@/stores/project'
-import { openPage } from '@/utils/navigation'
+import { residentMallService } from '@/services/mall'
+import { useCatalogCart } from '@/features/mall/useCatalogCart'
+import CatalogActionFeedback from '@/features/mall/CatalogActionFeedback.vue'
+import { openPage, openSubPage } from '@/utils/navigation'
 import AppIcon from '@/components/AppIcon.vue'
 import { residentTabItems } from '@/config/navigation'
 
-const projectStore = useProjectStore()
-const { status, data, errorMessage, load } = usePageResource(appAdapter.getResidentHome)
-const projectName = computed(() => projectStore.currentProject.value?.name || '请选择社区')
+const { status, data, errorMessage, load, refresh } = usePageResource(residentMallService.getCommunityHome)
+const { actionMessage, addCart } = useCatalogCart()
+const showNoticeUnavailable = ref(false)
 
 onLoad(load)
+onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="智慧社区平台" show-brand /></template>
     <view class="stack">
-      <view class="project-row"><AppIcon name="location" :size="19" /><text class="project-row__name">{{ projectName }}</text><text class="project-row__chevron">⌄</text><view class="project-row__notice"><AppIcon name="bell" :size="20" /></view></view>
+      <view class="community-row"><AppIcon name="location" :size="19" /><text class="community-row__name">{{ data!.communityName }}</text><view class="community-row__notice" aria-label="消息通知" @click="showNoticeUnavailable = true"><AppIcon name="bell" :size="20" /></view></view>
       <view class="hero"><image class="hero__image" src="/static/images/home/hero-community-life.png" mode="aspectFill" /><view class="hero__shade" /><view class="hero__copy"><text class="hero__title">家门口的社区生活服务</text><text class="hero__subtitle">购物与便民入口，一站找到</text></view></view>
       <BaseCard class="home-entry-card"><QuickEntryGrid class="home-entry-grid" :items="data!.entries" /></BaseCard>
       <view><SectionHeader title="便民服务" action-text="更多" @action="openPage('/pages/service/index')" /><view class="stack"><ServiceCard v-for="service in data!.services" :key="service.id" :service="service" /></view></view>
-      <view><SectionHeader title="社区好物" action-text="进入商城" @action="openPage('/pages/mall/index')" /><view class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" variant="home" :product="product" /></view></view>
+      <view><SectionHeader title="社区好物" action-text="进入商城" @action="openPage('/pages/mall/index')" /><CatalogActionFeedback :message="actionMessage" @retry="actionMessage = ''; load()" /><view v-if="data!.products.length" class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" variant="home" :product="product" @open="openSubPage(`/pages/mall/detail/index?id=${encodeURIComponent(product.id)}`)" @add="addCart" /></view><view v-else class="home-empty">暂无推荐商品，可进入商城查看全部商品。</view></view>
       <text class="page-footer">大光路智慧社区便民服务</text>
     </view>
     <template #tabbar><AppTabbar :items="residentTabItems" active-path="/pages/home/index" /></template>
+    <FeatureUnavailable v-if="showNoticeUnavailable" title="消息通知暂未开放" @close="showNoticeUnavailable = false" />
   </AppPage>
 </template>
 
 <style scoped lang="scss">
-.project-row { display: flex; min-height: 48px; align-items: center; gap: $space-2; }
-.project-row__name { flex: 1; color: $color-text-primary; font-size: 16px; font-weight: 600; line-height: 22px; }
-.project-row__chevron { color: $color-text-secondary; }
-.project-row__notice { display: flex; min-width: $touch-target-min; min-height: $touch-target-min; align-items: center; justify-content: center; border-radius: 50%; background: rgba(242, 244, 246, 0.76); color: $color-text-secondary; font-size: 12px; opacity: 0.9; }
+.community-row { display: flex; min-height: 48px; align-items: center; gap: $space-2; }
+.community-row__name { flex: 1; color: $color-text-primary; font-size: 16px; font-weight: 600; line-height: 22px; }
+.community-row__notice { display: flex; min-width: $touch-target-min; min-height: $touch-target-min; align-items: center; justify-content: center; border-radius: 50%; background: rgba(242, 244, 246, 0.76); color: $color-text-secondary; }
+.home-empty { padding: $space-4; border-radius: $radius-card; background: $color-card-bg; color: $color-text-secondary; font-size: 15px; line-height: 24px; }
 .hero { position: relative; display: flex; height: 146px; justify-content: flex-end; flex-direction: column; overflow: hidden; border-radius: $radius-lg; color: #fff; box-shadow: 0 2px 8px rgba(27, 77, 83, 0.04); }
 .hero__image, .hero__shade { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero__image { object-position: center 55%; }

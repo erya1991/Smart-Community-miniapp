@@ -1,24 +1,38 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import BaseCard from '@/components/BaseCard.vue'
-import QualificationStatusCard from '@/components/QualificationStatusCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
+import AppButton from '@/components/AppButton.vue'
 import { usePageResource } from '@/composables/usePageResource'
-import { merchantCooperationService } from '@/services/merchant-cooperation'
+import { merchantSupplyService } from '@/services/supply'
 
-const { status, data, errorMessage, load } = usePageResource(merchantCooperationService.getCooperationStatus)
+const { status, data, errorMessage, load, refresh } = usePageResource(merchantSupplyService.getQualification)
+const preview = () => uni.showModal({ title:'协议附件（Mock）', content:'当前附件为原型示例，展示协议摘要；真实协议文件需在接口接入时由平台提供。', showCancel:false })
 onLoad(load)
+onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
-    <template #navbar><AppNavbar title="合作状态" centered show-back /></template>
-    <view v-if="data" class="stack cooperation-page"><view class="project-summary"><text>当前项目</text><text>{{ data.project.name }}</text><StatusTag tone="success">{{ data.project.status }}</StatusTag></view><QualificationStatusCard title="合作协议" :status="data.agreement.status" tone="success" description="商户端仅可查看，不可修改协议"><view class="detail-list"><view><text>协议名称</text><text>{{ data.agreement.name }}</text></view><view><text>协议编号</text><text>{{ data.agreement.no }}</text></view><view><text>有效期</text><text>{{ data.agreement.period }}</text></view><view><text>合作范围</text><text>{{ data.agreement.scope }}</text></view></view></QualificationStatusCard><QualificationStatusCard title="项目合作" :status="data.cooperation.status" tone="success" description="项目合作与其他项目相互独立"><view class="detail-list"><view><text>合作期限</text><text>{{ data.cooperation.period }}</text></view><view v-if="data.cooperation.reason"><text>状态原因</text><text>{{ data.cooperation.reason }}</text></view></view></QualificationStatusCard><BaseCard><view class="authorization-title"><text>经营授权</text><text>按业务分别授权</text></view><view v-for="authorization in data.authorizations" :key="authorization.id" class="authorization-item"><view class="authorization-item__heading"><text>{{ authorization.businessType }}</text><StatusTag :tone="authorization.status === '有效' ? 'success' : 'pending'">{{ authorization.status }}</StatusTag></view><text>授权类目：{{ authorization.categories.join('、') }}</text><text>门店范围：{{ authorization.storeScope }}</text><text>授权期限：{{ authorization.period }}</text></view></BaseCard><view class="readonly-note">协议、项目合作与经营授权由平台维护；如状态或范围有疑问，请联系平台运营人员。</view></view>
+    <template #navbar><AppNavbar title="合作协议详情" centered show-back /></template>
+    <view v-if="data" class="stack agreement-page">
+      <BaseCard><text class="agreement-title">{{ data.agreement.name }}</text><text class="agreement-store">{{ data.storeName }}</text><StatusTag :tone="data.agreement.status === 'active' ? 'success' : 'pending'">{{ { active:'有效', missing:'未建立', expired:'已失效', terminated:'已终止' }[data.agreement.status] }}</StatusTag></BaseCard>
+      <BaseCard><view class="agreement-row"><text>协议编号</text><text>{{ data.agreement.status === 'missing' ? '—' : data.agreement.no }}</text></view><view class="agreement-row"><text>协议版本</text><text>{{ data.agreement.version }}</text></view><view class="agreement-row"><text>生效时间</text><text>{{ data.agreement.startsAt || '—' }}</text></view><view class="agreement-row"><text>失效时间</text><text>{{ data.agreement.endsAt || '—' }}</text></view><view class="agreement-row"><text>经营范围</text><text>{{ data.agreement.scope }}</text></view></BaseCard>
+      <BaseCard><text class="agreement-heading">合作约定摘要</text><text class="agreement-copy">{{ data.agreement.commissionSummary }}</text><text class="agreement-copy">{{ data.agreement.afterSaleSummary }}</text><text class="agreement-copy">本页只读；协议变更由平台维护。</text></BaseCard>
+      <BaseCard><text class="agreement-heading">协议附件</text><text class="agreement-copy">{{ data.agreement.attachment || '暂无附件，请联系平台' }}</text><AppButton v-if="data.agreement.attachment" variant="quiet" @click="preview">查看附件说明</AppButton></BaseCard>
+    </view>
   </AppPage>
 </template>
 
 <style scoped lang="scss">
-.cooperation-page{gap:$space-3}.project-summary{display:flex;align-items:center;flex-wrap:wrap;gap:$space-2;padding:$space-4;border-radius:$radius-card;background:$color-primary-light}.project-summary text:first-child{color:$color-text-secondary;font-size:13px}.project-summary text:nth-child(2){flex:1;color:$color-primary;font-size:17px;font-weight:700}.detail-list>view{display:flex;min-height:44px;align-items:flex-start;justify-content:space-between;gap:$space-3;border-bottom:1px solid rgba(225,228,230,.72)}.detail-list>view:last-child{border:0}.detail-list text{padding:$space-2 0}.detail-list text:first-child{flex:none;color:$color-text-secondary}.detail-list text:last-child{text-align:right}.authorization-title{display:flex;align-items:center;justify-content:space-between;font-size:18px;font-weight:700}.authorization-title text:last-child{color:$color-text-secondary;font-size:12px;font-weight:400}.authorization-item{margin-top:$space-3;padding:$space-3;border-radius:$radius-md;background:$color-group-bg}.authorization-item__heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:$space-2;font-weight:700}.authorization-item>text{display:block;margin-top:2px;color:$color-text-secondary;font-size:13px}.readonly-note{padding:$space-3;border-radius:$radius-md;background:$color-warning-light;color:$color-warning;font-size:13px}
+.agreement-page { gap:$space-3; }
+.agreement-title { display:block; font-size:19px; font-weight:700; }
+.agreement-store { display:block; margin:$space-2 0; color:$color-text-secondary; font-size:14px; }
+.agreement-row { display:flex; min-height:48px; align-items:center; justify-content:space-between; gap:$space-3; padding:$space-2 0; border-bottom:1px solid $color-border; font-size:14px; }
+.agreement-row text:first-child { flex:none; color:$color-text-secondary; }
+.agreement-row text:last-child { text-align:right; overflow-wrap:anywhere; }
+.agreement-heading { display:block; font-size:17px; font-weight:600; }
+.agreement-copy { display:block; margin:$space-3 0; font-size:14px; line-height:22px; color:$color-text-secondary; }
 </style>
