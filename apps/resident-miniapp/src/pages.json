@@ -12,7 +12,6 @@
     { "path": "pages/pay/result/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/order-list/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/order-detail/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/mall/checkout-placeholder/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
   ],
   "globalStyle": {

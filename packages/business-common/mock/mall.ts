@@ -84,6 +84,8 @@ interface MallMockOptions {
   productOverrides?: Record<string, Partial<MallProduct>>
   categoryOverrides?: Record<string, Partial<MallCategory>>
   storeOverrides?: Record<string, Partial<MallStoreAvailability>>
+  tradeOverrides?: Partial<TradeQualificationCheck>
+  fulfillmentDemoSeeds?: boolean
 }
 
 export function createMallMockAdapter(options: MallMockOptions = {}) {
@@ -128,6 +130,11 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
   ]
 
   const findProduct = (id: string) => products.find((item) => item.id === id)
+  if (options.fulfillmentDemoSeeds) {
+    // Additional physical-goods scenario for the resident → merchant logistics demo.
+    const rice = findProduct('product-rice')
+    if (rice && !rice.fulfillmentMethods.includes('普通物流')) rice.fulfillmentMethods.push('普通物流')
+  }
   const findSku = (productId: string, skuId: string) => findProduct(productId)?.skus.find((item) => item.id === skuId)
   const publicVersion = (product: MallProduct) => product.auditStatus === '已通过' ? product : product.publishedSnapshot
   const residentProducts = (query: MallProductQuery = {}) => selectMallProducts(products
@@ -143,16 +150,23 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
   const defaultSku = (product: MallProduct) => product.skus.find((item) => item.isMain) || product.skus[0]
   const tradeQualification = (): TradeQualificationCheck => ({
     businessAllowed: true,
-    formalTradeAllowed: false,
+    formalTradeAllowed: true,
     mockPayAllowed: true,
-    message: '当前为开发测试环境：商城业务经营资格有效，可使用 Mock Pay；正式交易资格尚未接入真实支付。',
+    message: '当前仅模拟经营及正式交易条件；未连接真实支付。',
+    ...options.tradeOverrides,
   })
   const trade = createMallTradeMockAdapter({
     projectId: PROJECT_ID,
     operatorId: OPERATOR_ID,
     findProduct,
     findSku,
-    getCartItems: (ids) => cartItems.filter((item) => item.status === 'normal' && (!ids?.length || ids.includes(item.id))).map(clone),
+    getCartItems: (ids) => cartItems.filter((item) => !ids?.length || ids.includes(item.id)).map(clone),
+    getStoreEligibility: purchaseEligibility,
+    fulfillmentDemoSeeds: options.fulfillmentDemoSeeds,
+    demoStores: () => [...new Set(products.map((product) => product.storeId || product.operatorId))].map((storeId) => {
+      const product = products.find((entry) => (entry.storeId || entry.operatorId) === storeId)!
+      return { storeId, operatorId: product.operatorId, storeName: `${product.merchantName}（${product.storeName}）`, operatorName: '演示店长' }
+    }),
     removeCartItems: (ids) => { cartItems = cartItems.filter((item) => !ids.includes(item.id)) },
     updateStock: (productId, skuId, quantity, action) => {
       const sku = findSku(productId, skuId)
@@ -169,8 +183,23 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
     getQualification: tradeQualification,
   })
 
+  const resolveCartItem = (item: CartItem) => {
+    const product = findProduct(item.productId)!
+    const existingSku = findSku(item.productId, item.skuId)
+    const sku = existingSku || { id: item.skuId, name: '规格已失效', code: '', price: item.latestPrice, availableStock: 0, reservedStock: 0, warningStock: 0, valid: false }
+    const eligibility = purchaseEligibility(product)
+    const status: CartItem['status'] = product.saleStatus !== '销售中' || product.auditStatus !== '已通过' ? 'off-shelf' : !existingSku || sku.valid === false ? 'sku-invalid' : !eligibility.allowed ? 'store-unavailable' : sku.availableStock < item.quantity ? 'stock-insufficient' : 'normal'
+    const invalidReason = status === 'off-shelf' ? '商品尚未审核上架' : status === 'sku-invalid' ? '商品规格已失效' : status === 'store-unavailable' ? eligibility.reason : status === 'stock-insufficient' ? `库存不足，当前仅剩 ${sku.availableStock} 件` : ''
+    return { ...clone(item), selected: status === 'normal' && item.selected, status, invalidReason, latestPrice: sku.price, product: clone(product), sku: clone(sku) }
+  }
+
   return {
     ...trade,
+    getMockSnapshot: () => clone({ version: 1 as const, products, cartItems, trade: trade.getMockTradeSnapshot() }),
+    restoreMockSnapshot: (snapshot: { version: number; products: MallProduct[]; cartItems: CartItem[]; trade: ReturnType<typeof trade.getMockTradeSnapshot> }) => {
+      if (snapshot.version !== 1) throw new Error('Mock 共享数据版本不兼容。')
+      products = clone(snapshot.products); cartItems = clone(snapshot.cartItems); trade.restoreMockTradeSnapshot(snapshot.trade)
+    },
     getMallHome: async () => waitForMock({ categories: mallCategories.filter((category) => category.enabled).map(clone), products: residentProducts(), cartCount: cartItems.filter((item) => item.status === 'normal').reduce((sum, item) => sum + item.quantity, 0) }),
     getResidentProducts: async (query: MallProductQuery = {}) => waitForMock(residentProducts(query)),
     getProductDetail: async (id: string): Promise<MallProductDetail> => {
@@ -180,18 +209,14 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
       return waitForMock({ ...clone(publicProduct), currentSkuId: toResidentSummary(publicProduct).soldOut ? defaultSku(publicProduct).id : (publicProduct.skus.find((sku) => sku.isMain && isSellableSku(sku)) || publicProduct.skus.find(isSellableSku))!.id, purchaseEligibility: purchaseEligibility(publicProduct) })
     },
     getCart: async (): Promise<CartSummary> => {
-      const resolved = cartItems.map((item) => {
-        const product = findProduct(item.productId)!
-        const sku = findSku(item.productId, item.skuId)!
-        const status = product.saleStatus !== '销售中' ? 'off-shelf' : !sku.valid ? 'sku-invalid' : sku.availableStock < item.quantity ? 'stock-insufficient' : item.status
-        return { ...clone(item), status, product: clone(product), sku: clone(sku) }
-      })
+      const resolved = cartItems.map(resolveCartItem)
       const normal = resolved.filter((item) => item.status === 'normal')
       const invalidItems = resolved.filter((item) => item.status !== 'normal')
       const groups = normal.reduce<CartSummary['groups']>((result, item) => {
-        let group = result.find((entry) => entry.merchantName === item.product.merchantName)
+        const storeId = item.product.storeId || item.product.operatorId
+        let group = result.find((entry) => entry.storeId === storeId)
         if (!group) {
-          group = { merchantName: item.product.merchantName, storeName: item.product.storeName, fulfillment: item.product.fulfillmentMethods[0], items: [] }
+          group = { storeId, merchantName: item.product.merchantName, storeName: item.product.storeName, fulfillment: item.product.fulfillmentMethods[0], items: [] }
           result.push(group)
         }
         group.items.push(item)
@@ -220,12 +245,14 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
       const item = cartItems.find((entry) => entry.id === cartId)
       if (!item) throw new Error('购物车商品已不存在，请刷新后重试。')
       const sku = findSku(item.productId, item.skuId)
-      item.quantity = Math.max(1, Math.min(quantity, sku?.availableStock || 1))
+      if (!Number.isSafeInteger(quantity) || quantity < 1) throw new Error('购买数量必须为正整数。')
+      if (!sku || sku.valid === false || quantity > sku.availableStock) throw new Error(`当前规格库存不足，仅剩 ${sku?.availableStock || 0} 件。`)
+      item.quantity = quantity
       return waitForMock(undefined)
     },
     toggleCartItem: async (cartId: string, selected: boolean) => {
       const item = cartItems.find((entry) => entry.id === cartId)
-      if (item) item.selected = selected
+      if (item) item.selected = selected && resolveCartItem(item).status === 'normal'
       return waitForMock(undefined)
     },
     removeCartItem: async (cartId: string) => {
@@ -233,7 +260,7 @@ export function createMallMockAdapter(options: MallMockOptions = {}) {
       return waitForMock(undefined)
     },
     clearInvalidCart: async () => {
-      cartItems = cartItems.filter((item) => item.status === 'normal')
+      cartItems = cartItems.filter((item) => resolveCartItem(item).status === 'normal')
       return waitForMock(undefined)
     },
     getMerchantProducts: async () => waitForMock(products.filter((item) => item.operatorId === OPERATOR_ID).map(clone)),

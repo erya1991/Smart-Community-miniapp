@@ -1,74 +1,124 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import AppButton from '@/components/AppButton.vue'
-import AppIcon from '@/components/AppIcon.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import BaseCard from '@/components/BaseCard.vue'
+import AppButton from '@/components/AppButton.vue'
 import BottomActionBar from '@/components/BottomActionBar.vue'
+import FormSection from '@/components/FormSection.vue'
+import FormField from '@/components/FormField.vue'
 import { usePageResource } from '@/composables/usePageResource'
 import { residentMallService } from '@/services/mall'
+import { checkoutAddressSelection } from '@/features/checkoutAddress'
 import { openSubPage } from '@/utils/navigation'
-import type { CheckoutRequest, FulfillmentMethod } from '../../../../../../packages/common/types/mall'
+import type { CheckoutGroupChoice, CheckoutRequest, MemberAddress } from '../../../../../../packages/common/types/mall'
 
 const request = reactive<CheckoutRequest>({})
-const selectedFulfillment = ref<FulfillmentMethod>('商户配送')
+const choices = ref<CheckoutGroupChoice[]>([])
 const selectedAddressId = ref('')
+const selectedAddress = ref<MemberAddress>()
 const contact = reactive({ name: '', mobile: '' })
-const buyerRemark = ref('')
 const submitting = ref(false)
-const idempotencyKey = `mall-trade-${Date.now()}`
+const submittedTradeId = ref('')
+const actionError = ref('')
+const contactErrors = reactive({ name: '', mobile: '' })
+const addressError = ref('')
+const idempotencyKey = 'checkout-' + Date.now() + '-' + Math.random().toString(36).slice(2)
+const money = (value: number) => (value / 100).toFixed(2)
 const { status, data, errorMessage, load } = usePageResource(async () => {
   const context = await residentMallService.getCheckout(request)
-  if (!context.fulfillmentMethods.includes(selectedFulfillment.value)) selectedFulfillment.value = context.defaultFulfillment
-  if (!selectedAddressId.value) selectedAddressId.value = context.defaultAddress?.id || ''
-  if (!contact.name) Object.assign(contact, context.contact)
+  // Keep this session's choices and remarks while refreshing its quote.
+  choices.value = context.merchantGroups.map((group) => {
+    const old = choices.value.find((entry) => entry.storeId === group.storeId)
+    return old || { storeId: group.storeId, fulfillmentMethod: group.defaultFulfillment, pickupPointId: group.pickupPoints[0]?.id, buyerRemark: '' }
+  })
+  const selection = checkoutAddressSelection.get(idempotencyKey)
+  selectedAddressId.value = selection || selectedAddressId.value || context.defaultAddress?.id || ''
+  selectedAddress.value = selectedAddressId.value ? await residentMallService.getAddress(selectedAddressId.value) : undefined
+  if (!contact.name && !contact.mobile) Object.assign(contact, context.contact)
   return context
 })
-const money = (value: number) => (value / 100).toFixed(2)
-const currentAddress = computed(() => data.value?.defaultAddress?.id === selectedAddressId.value ? data.value.defaultAddress : undefined)
-const fulfillmentHint = (method: FulfillmentMethod) => method === '商户配送' ? '商户安排社区内配送，需使用收货地址。' : method === '社区自提' ? '备货后凭核销码到大光路社区服务点取货。' : '支付成功后生成核销码，到门店人工核对后核销。'
-const switchFulfillment = (method: FulfillmentMethod) => { selectedFulfillment.value = method }
-const chooseAddress = () => openSubPage('/pages/member/address/index?select=1')
+const needsAddress = computed(() => choices.value.some((choice) => ['商户配送', '普通物流'].includes(choice.fulfillmentMethod)))
+const itemCount = computed(() => data.value?.merchantGroups.reduce((sum, group) => sum + group.items.reduce((count, item) => count + item.quantity, 0), 0) || 0)
+const chooseAddress = () => openSubPage('/pages/member/address/index?select=1&checkoutKey=' + encodeURIComponent(idempotencyKey))
+const refresh = () => load()
 const submit = async () => {
-  if (!data.value || submitting.value) return
-  if (selectedFulfillment.value === '商户配送' && !selectedAddressId.value) { uni.showToast({ title: '商户配送请先选择收货地址', icon: 'none' }); return }
-  submitting.value = true
+  if (submitting.value || submittedTradeId.value || !data.value) return
+  contactErrors.name = contact.name.trim() ? '' : '请填写联系人'
+  contactErrors.mobile = /^1\d{10}$/.test(contact.mobile.trim()) ? '' : '请输入正确的 11 位手机号'
+  addressError.value = needsAddress.value && !selectedAddress.value ? '请选择完整收货地址' : ''
+  if (contactErrors.name || contactErrors.mobile || addressError.value) { actionError.value = '请先完善收货信息。'; return }
+  submitting.value = true; actionError.value = ''
   try {
-    const order = await residentMallService.createOrder({ ...request, fulfillmentMethod: selectedFulfillment.value, addressId: selectedAddressId.value || undefined, contact: { ...contact }, buyerRemark: buyerRemark.value, idempotencyKey })
-    openSubPage(`/pages/pay/result/index?orderId=${order.id}`)
-  } catch (error) { uni.showToast({ title: error instanceof Error ? error.message : '订单提交失败', icon: 'none' }); load() } finally { submitting.value = false }
+    const trade = await residentMallService.createTrade({
+      ...request, merchantGroups: choices.value.map((choice) => ({ ...choice })),
+      addressId: selectedAddressId.value || undefined, contact: { ...contact },
+      expectedItems: data.value.merchantGroups.flatMap((group) => group.items),
+      expectedPayableAmount: data.value.payableAmount, idempotencyKey,
+    })
+    submittedTradeId.value = trade.tradeId
+    checkoutAddressSelection.clear(idempotencyKey)
+    uni.redirectTo({ url: '/pages/pay/result/index?tradeId=' + encodeURIComponent(trade.tradeId) })
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : '提交失败，请重试。'
+  } finally { submitting.value = false }
 }
+const continuePayment = () => uni.redirectTo({ url: '/pages/pay/result/index?tradeId=' + encodeURIComponent(submittedTradeId.value) })
 onLoad((options) => {
-  request.productId = typeof options?.productId === 'string' ? options.productId : undefined
-  request.skuId = typeof options?.skuId === 'string' ? options.skuId : undefined
-  request.quantity = typeof options?.quantity === 'string' ? Number(options.quantity) : undefined
-  request.cartIds = typeof options?.cartIds === 'string' && options.cartIds ? decodeURIComponent(options.cartIds).split(',').filter(Boolean) : undefined
-  const fulfillment = typeof options?.fulfillment === 'string' ? decodeURIComponent(options.fulfillment) as FulfillmentMethod : undefined
-  if (fulfillment) selectedFulfillment.value = fulfillment
+  request.productId = options?.productId
+  request.skuId = options?.skuId
+  if (options?.quantity !== undefined) request.quantity = Number(options.quantity)
+  if (options?.cartIds) request.cartIds = decodeURIComponent(options.cartIds).split(',').filter(Boolean)
   load()
 })
-onShow(() => { if (data.value) load() })
+onShow(async () => {
+  if (!data.value || submittedTradeId.value) return
+  const selection = checkoutAddressSelection.get(idempotencyKey)
+  selectedAddressId.value = selection || selectedAddressId.value
+  selectedAddress.value = selectedAddressId.value ? await residentMallService.getAddress(selectedAddressId.value) : undefined
+})
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary :with-bottom-action="true" @retry="load">
+  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="确认订单" centered show-back /></template>
     <view v-if="data" class="stack confirm-page">
-      <view class="confirm-tip"><AppIcon name="verified" :size="18" /><text>正在结算 {{ data.merchantName }} 的订单；一次结算只生成一个商户订单。</text></view>
-      <BaseCard><view class="section-title"><AppIcon name="car" :size="20" /><text>选择履约方式</text></view><view class="fulfillment-list"><view v-for="method in data.fulfillmentMethods" :key="method" class="fulfillment-option" :class="{ 'fulfillment-option--active': selectedFulfillment === method }" @click="switchFulfillment(method)"><view><text>{{ method }}</text><text>{{ fulfillmentHint(method) }}</text></view><text class="radio">{{ selectedFulfillment === method ? '✓' : '' }}</text></view></view></BaseCard>
-      <BaseCard v-if="selectedFulfillment === '商户配送'" class="address-summary" @click="chooseAddress"><view class="section-title"><AppIcon name="location" :size="20" /><text>收货地址</text><text class="section-link">{{ currentAddress ? '更换' : '选择' }} ›</text></view><view v-if="currentAddress" class="address-summary__body"><view><text>{{ currentAddress.name }}</text><text>{{ currentAddress.mobile }}</text><text class="default-tag">默认</text></view><text>{{ currentAddress.region }}{{ currentAddress.detail }}</text></view><view v-else class="address-summary__empty">请选择配送收货地址</view></BaseCard>
-      <BaseCard v-else class="pickup-summary"><view class="section-title"><AppIcon name="store" :size="20" /><text>{{ selectedFulfillment === '社区自提' ? '自提点' : '核销门店' }}</text></view><text class="pickup-summary__name">{{ selectedFulfillment === '社区自提' ? '大光路社区服务点（生鲜恒温柜）' : data.storeName }}</text><text>{{ selectedFulfillment === '社区自提' ? '开放时间 08:30—20:00，备货完成后请出示核销码。' : data.storeAddress }}</text></BaseCard>
-      <BaseCard><view class="section-title"><AppIcon name="user" :size="20" /><text>联系人</text><text v-if="selectedFulfillment !== '商户配送'" class="section-hint">自提/核销必填</text></view><view class="contact-row"><input v-model="contact.name" maxlength="20" placeholder="联系人" /><input v-model="contact.mobile" type="number" maxlength="11" placeholder="手机号" /></view></BaseCard>
-      <BaseCard><view class="merchant-heading"><AppIcon name="store" :size="20" /><text>{{ data.merchantName }}（{{ data.storeName }}）</text></view><view v-for="item in data.items" :key="item.skuId" class="order-item"><image :src="item.productImage" mode="aspectFill" /><view><text>{{ item.productName }}</text><text>规格：{{ item.skuName }}</text><text class="order-item__price">¥{{ money(item.unitPrice) }}</text></view><text>× {{ item.quantity }}</text></view><view class="remark-area"><text>买家留言</text><textarea v-model="buyerRemark" maxlength="100" auto-height placeholder="选填，请与商户协商后填写" /></view><view class="after-sale-note"><AppIcon name="verified" :size="16" /><text>售后说明：{{ data.afterSaleNote }}</text></view></BaseCard>
-      <BaseCard class="amount-card"><view class="section-title"><AppIcon name="bill" :size="20" /><text>金额明细</text></view><view class="amount-row"><text>商品金额</text><text>¥{{ money(data.goodsAmount) }}</text></view><view class="amount-row"><text>配送费</text><text>¥{{ money(data.deliveryFee) }}</text></view><view v-if="data.discountAmount" class="amount-row"><text>优惠</text><text>-¥{{ money(data.discountAmount) }}</text></view><view class="amount-total"><text>应付金额</text><text>¥{{ money(data.payableAmount) }}</text></view></BaseCard>
-      <view class="confirm-footer"><AppIcon name="verified" :size="16" /><text>提交前将重新校验商品、SKU、价格、库存、履约条件与交易资格。</text></view>
+      <view class="checkout-tip"><AppIcon name="verified" :size="19" /><text>共 {{ data.merchantGroups.length }} 家商户、{{ itemCount }} 件商品。请逐店确认履约信息，统一提交并支付。</text></view>
+      <BaseCard v-if="actionError" class="error-card"><text>{{ actionError }}</text><AppButton variant="quiet" @click="refresh">刷新商品和价格</AppButton></BaseCard>
+      <BaseCard v-if="needsAddress">
+        <view class="section-head"><AppIcon name="location" :size="20" /><text>收货地址</text><button class="text-action" :disabled="submitting" @click="chooseAddress">{{ selectedAddress ? '更换地址' : '选择地址' }} ›</button></view>
+        <view v-if="selectedAddress" class="address-box"><view><text>{{ selectedAddress.name }} {{ selectedAddress.mobile }}</text><text v-if="selectedAddress.isDefault" class="default-tag">默认</text></view><text>{{ selectedAddress.region }}{{ selectedAddress.detail }}</text></view>
+        <text v-else class="secondary">商户配送和普通物流需选择收货地址。</text>
+        <text v-if="addressError" class="field-error">{{ addressError }}</text>
+      </BaseCard>
+      <FormSection title="联系人">
+        <FormField label="联系人" required><input v-model="contact.name" :disabled="submitting" maxlength="20" placeholder="取货或收货联系人" /><text v-if="contactErrors.name" class="field-error">{{ contactErrors.name }}</text></FormField>
+        <FormField label="手机号" required><input v-model="contact.mobile" :disabled="submitting" type="number" maxlength="11" placeholder="11 位手机号" /><text v-if="contactErrors.mobile" class="field-error">{{ contactErrors.mobile }}</text></FormField>
+      </FormSection>
+      <BaseCard v-for="(group, index) in data.merchantGroups" :key="group.storeId">
+        <view class="section-head"><AppIcon name="store" :size="21" /><text>{{ group.merchantName }}（{{ group.storeName }}）</text></view>
+        <view v-for="item in group.items" :key="item.productId + item.skuId" class="goods-row"><image :src="item.productImage" mode="aspectFill" /><view><text class="goods-name">{{ item.productName }}</text><text class="secondary">规格：{{ item.skuName }}</text><view class="goods-price"><text>¥{{ money(item.unitPrice) }}</text><text>× {{ item.quantity }}</text></view></view></view>
+        <text class="field-label">履约方式</text>
+        <view class="fulfillment-options"><button v-for="method in group.fulfillmentMethods" :key="method" :disabled="submitting" :class="{ selected: choices[index].fulfillmentMethod === method }" @click="choices[index].fulfillmentMethod = method">{{ method }}</button></view>
+        <view v-if="choices[index].fulfillmentMethod === '商户配送'" class="fulfillment-info">{{ group.deliveryNote }}</view>
+        <view v-else-if="choices[index].fulfillmentMethod === '普通物流'" class="fulfillment-info">使用上方收货地址；物流信息将在支付后由商户更新。本次运费 ¥{{ money(group.deliveryFee) }}。</view>
+        <view v-else-if="choices[index].fulfillmentMethod === '社区自提'" class="fulfillment-info"><view v-for="point in group.pickupPoints" :key="point.id"><button class="point-choice" :disabled="submitting" @click="choices[index].pickupPointId = point.id"><text>{{ choices[index].pickupPointId === point.id ? '✓ ' : '' }}{{ point.name }}</text></button><text>{{ point.address }}</text><text>电话：{{ point.mobile }} · {{ point.hours }}</text><text>{{ point.instructions }}</text></view></view>
+        <view v-else class="fulfillment-info"><text>{{ group.verificationStore.name }}</text><text>{{ group.verificationStore.address }}</text><text>电话：{{ group.verificationStore.mobile }} · {{ group.verificationStore.hours }}</text><text>{{ group.verificationStore.instructions }}</text></view>
+        <text class="field-label">给本商户的备注（选填）</text><textarea v-model="choices[index].buyerRemark" :disabled="submitting" maxlength="100" placeholder="如需无接触放置，请与商户协商后填写" auto-height /><text class="remark-count">{{ choices[index].buyerRemark.length }}/100</text>
+        <view class="amount-row"><text>商品金额</text><text>¥{{ money(group.goodsAmount) }}</text></view><view class="amount-row"><text>配送费 / 运费</text><text>¥{{ money(group.deliveryFee) }}</text></view><view v-if="group.discountAmount" class="amount-row"><text>优惠</text><text>−¥{{ money(group.discountAmount) }}</text></view><view class="amount-row subtotal"><text>本商户小计</text><text>¥{{ money(group.payableAmount) }}</text></view>
+      </BaseCard>
+      <BaseCard><text class="field-label">金额明细</text><view class="amount-row"><text>商品金额</text><text>¥{{ money(data.goodsAmount) }}</text></view><view class="amount-row"><text>配送费 / 运费</text><text>¥{{ money(data.deliveryFee) }}</text></view><view class="amount-row"><text>优惠</text><text>−¥{{ money(data.discountAmount) }}</text></view><view class="amount-row subtotal"><text>合计（{{ itemCount }} 件）</text><text>¥{{ money(data.payableAmount) }}</text></view></BaseCard>
+      <text class="checkout-footer">请在提交前核对商品规格与履约信息。</text>
     </view>
-    <BottomActionBar><view class="payable"><text>实付金额</text><text>¥{{ money(data?.payableAmount || 0) }}</text></view><AppButton :loading="submitting" @click="submit">提交订单</AppButton></BottomActionBar>
+    <BottomActionBar v-if="data"><view class="bottom-amount"><text>应付金额</text><text>¥{{ money(data.payableAmount) }}</text></view><AppButton :loading="submitting" :disabled="submitting" @click="submittedTradeId ? continuePayment() : submit()">{{ submittedTradeId ? '前往支付' : '提交订单' }}</AppButton></BottomActionBar>
   </AppPage>
 </template>
 
 <style scoped lang="scss">
-.confirm-page { gap:$space-3; }.confirm-tip { display:flex; align-items:flex-start; gap:$space-2; padding:$space-3; border-radius:$radius-card; background:$color-primary-light; color:$color-text-secondary; font-size:14px; line-height:21px; }.section-title,.merchant-heading { display:flex; min-height:28px; align-items:center; gap:$space-2; padding-bottom:$space-3; border-bottom:1px solid rgba(225,228,230,.72); font-size:17px; font-weight:700; }.section-link { margin-left:auto; color:$color-primary; font-size:14px; font-weight:500; }.section-hint { margin-left:auto; color:$color-text-secondary; font-size:12px; font-weight:400; }.fulfillment-list { display:flex; flex-direction:column; gap:$space-2; padding-top:$space-3; }.fulfillment-option { display:flex; min-height:68px; align-items:center; justify-content:space-between; gap:$space-3; padding:$space-3; border:1px solid $color-border; border-radius:$radius-md; background:$color-group-bg; }.fulfillment-option--active { border-color:$color-primary; background:$color-primary-light; }.fulfillment-option > view { display:flex; min-width:0; flex-direction:column; gap:3px; color:$color-text-secondary; font-size:12px; line-height:18px; }.fulfillment-option > view text:first-child { color:$color-text-primary; font-size:16px; font-weight:700; }.radio { display:flex; width:24px; height:24px; flex:none; align-items:center; justify-content:center; border:1px solid $color-border; border-radius:50%; color:#fff; }.fulfillment-option--active .radio { border-color:$color-primary; background:$color-primary; }.address-summary__body,.pickup-summary { display:flex; flex-direction:column; gap:$space-2; padding-top:$space-3; color:$color-text-secondary; font-size:14px; line-height:21px; }.address-summary__body > view { display:flex; align-items:center; gap:$space-2; color:$color-text-primary; }.address-summary__body > view text:first-child { font-size:17px; font-weight:700; }.default-tag { padding:2px 6px; border-radius:$radius-sm; background:$color-primary-light; color:$color-primary; font-size:11px; }.address-summary__empty { padding-top:$space-3; color:$color-error; font-size:14px; }.pickup-summary__name { color:$color-text-primary; font-size:16px; font-weight:700; }.contact-row { display:grid; grid-template-columns:1fr 1.4fr; gap:$space-2; padding-top:$space-3; }.contact-row input { min-width:0; height:44px; padding:0 $space-3; border:1px solid $color-border; border-radius:$radius-md; background:$color-group-bg; font-size:14px; }.merchant-heading { padding-top:0; }.order-item { display:flex; align-items:center; gap:$space-3; padding:$space-3 0; border-bottom:1px solid rgba(225,228,230,.72); }.order-item image { width:64px; height:64px; flex:none; border-radius:$radius-md; background:$color-group-bg; }.order-item > view { display:flex; min-width:0; flex:1; flex-direction:column; gap:3px; }.order-item > view text:first-child { overflow:hidden; font-size:16px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }.order-item > view text:nth-child(2) { color:$color-text-secondary; font-size:13px; }.order-item > text { color:$color-text-secondary; font-size:14px; }.order-item__price { color:$color-accent !important; font-size:17px !important; font-weight:700; }.remark-area { display:flex; flex-direction:column; gap:$space-2; padding-top:$space-3; font-size:15px; font-weight:600; }.remark-area textarea { min-height:44px; padding:$space-2 $space-3; border-radius:$radius-md; background:$color-group-bg; color:$color-text-primary; font-size:14px; line-height:20px; }.after-sale-note { display:flex; align-items:flex-start; gap:4px; margin-top:$space-3; padding:$space-2; border-radius:$radius-sm; background:$color-primary-light; color:$color-text-secondary; font-size:12px; line-height:18px; }.amount-card { padding-bottom:$space-3; }.amount-row,.amount-total { display:flex; align-items:center; justify-content:space-between; padding-top:$space-3; color:$color-text-secondary; font-size:15px; }.amount-total { margin-top:$space-3; padding-top:$space-3; border-top:1px dashed $color-border; color:$color-text-primary; font-weight:700; }.amount-total text:last-child { color:$color-accent; font-size:24px; }.confirm-footer { display:flex; align-items:flex-start; gap:4px; padding:$space-2 $space-1; color:$color-text-secondary; font-size:12px; line-height:18px; }.payable { display:flex; min-width:118px; align-items:baseline; flex-direction:column; justify-content:center; gap:2px; }.payable text:first-child { color:$color-text-secondary; font-size:12px; }.payable text:last-child { color:$color-accent; font-size:23px; font-weight:700; }.bottom-action :deep(.app-button) { flex:1; }
+.confirm-page { gap:$space-3; }.checkout-tip { display:flex; gap:$space-2; padding:$space-3; border-radius:$radius-card; background:$color-primary-light; color:$color-primary; font-size:15px; line-height:23px; }.section-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }.section-head > text { flex:1; min-width:0; font-size:17px; font-weight:600; line-height:25px; }.text-action { flex:none; color:$color-primary; min-height:44px; }
+button { margin:0; padding:0; background:transparent; font-size:15px; line-height:normal; }button::after { border:none; }.secondary { display:block; color:$color-text-secondary; font-size:14px; line-height:22px; }.address-box { background:$color-primary-light; border-radius:$radius-md; padding:12px; font-size:15px; line-height:24px; }.address-box > view { display:flex; flex-wrap:wrap; gap:8px; }.address-box > text { display:block; }.default-tag { font-size:12px; color:$color-primary; }
+input { min-height:44px; font-size:16px; }textarea { box-sizing:border-box; width:100%; min-height:64px; padding:12px; background:$color-group-bg; border-radius:$radius-md; font-size:15px; line-height:24px; }.goods-row { display:flex; gap:12px; padding:12px 0; }.goods-row image { width:76px; height:76px; flex:none; border-radius:$radius-md; }.goods-row > view { flex:1; min-width:0; }.goods-name { display:block; font-size:16px; font-weight:600; line-height:24px; }.goods-price { display:flex; flex-wrap:wrap; justify-content:space-between; margin-top:6px; }.goods-price text:first-child { color:$color-accent; font-size:18px; font-weight:700; }
+.field-label { display:block; margin:16px 0 8px; font-size:16px; font-weight:600; }.fulfillment-options { display:flex; flex-wrap:wrap; gap:8px; }.fulfillment-options button { padding:10px 12px; min-height:44px; background:$color-group-bg; border-radius:$radius-md; color:$color-text-secondary; }.fulfillment-options button.selected { color:#fff; background:$color-primary; }.fulfillment-info { margin-top:12px; padding:12px; border-radius:$radius-md; background:$color-primary-light; font-size:15px; line-height:24px; overflow-wrap:anywhere; }.fulfillment-info text { display:block; }.point-choice { min-height:44px; text-align:left; color:$color-primary; }.remark-count { display:block; text-align:right; font-size:13px; color:$color-text-secondary; }.amount-row { display:flex; justify-content:space-between; gap:12px; padding-top:10px; font-size:15px; color:$color-text-secondary; }.subtotal { font-weight:600; color:$color-text-primary; }.subtotal text:last-child { color:$color-accent; font-size:20px; }.bottom-amount { display:flex; min-width:0; flex:1; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; }.bottom-amount text:last-child { color:$color-accent; font-size:24px; font-weight:700; }.checkout-footer { text-align:center; color:$color-text-secondary; font-size:13px; padding:12px 0; }.field-error,.error-card { color:$color-error; font-size:14px; line-height:22px; }.field-error { display:block; }
 </style>

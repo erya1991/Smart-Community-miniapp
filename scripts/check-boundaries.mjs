@@ -11,7 +11,6 @@ const residentPages = [
   '/pages/mall/list/index',
   '/pages/mall/detail/index',
   '/pages/mall/cart/index',
-  '/pages/mall/checkout-placeholder/index',
   '/pages/member/address/index',
   '/pages/member/address-edit/index',
   '/pages/mall/confirm/index',

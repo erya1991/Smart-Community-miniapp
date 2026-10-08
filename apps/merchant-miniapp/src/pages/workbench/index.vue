@@ -10,6 +10,7 @@ import SectionHeader from '@/components/SectionHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import { usePageResource } from '@/composables/usePageResource'
 import { merchantSupplyDashboard } from '@/services/supply'
+import MerchantOrderDemoPanel from '@/features/fulfillment/MerchantOrderDemoPanel.vue'
 import { formatMoneyFromFen, openSubPage } from '@/utils/navigation'
 import { merchantTabItems } from '@/config/navigation'
 
@@ -21,15 +22,20 @@ const quickActions = [
   { label: '经营资格', icon: 'verified', path: '/pages/qualification/status/index' },
 ]
 const unavailable = () => { showUnavailable.value = true }
-const openTodo = (label: string) => label === '待审核商品' ? openSubPage('/pages/operation/index?filter=pending') : unavailable()
+const openTodo = (label: string) => {
+  if (label === '待审核商品') return openSubPage('/pages/operation/index?filter=pending')
+  const filters: Record<string, string> = { '待备货': 'preparing', '待配送': 'delivery', '待配送/发货': 'delivery', '待自提/核销': 'verification', '待核销': 'verification' }
+  return filters[label] ? openSubPage(`/pages/order/index?filter=${filters[label]}`) : unavailable()
+}
 onLoad(load)
-onShow(() => { if (data.value) refresh() })
+onShow(() => { if (data.value) return refresh() })
 </script>
 
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="工作台" compact show-user /></template>
     <view class="stack workbench-stack">
+      <MerchantOrderDemoPanel @changed="refresh" />
       <BaseCard class="store-brief" :padded="false" @click="openSubPage('/pages/qualification/status/index')"><view class="store-brief__icon"><AppIcon name="shop" :size="26" /></view><view class="store-brief__copy"><text>{{ data!.qualification.storeName }}</text><text>{{ data!.qualification.tradeReady ? '可正式交易' : data!.qualification.baseBusinessReady ? '可维护商品 · 正式交易待完善' : '经营基础资格待完善' }}</text></view><text class="store-brief__arrow">›</text></BaseCard>
       <view v-if="!data!.qualification.tradeReady" class="qualification-alert" @click="openSubPage('/pages/qualification/status/index')"><view><text>正式交易暂不可用</text><text>{{ data!.qualification.tradeReasons.join('；') }}</text></view><text>查看原因 ›</text></view>
 

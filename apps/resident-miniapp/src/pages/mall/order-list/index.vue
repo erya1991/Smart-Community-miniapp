@@ -15,8 +15,8 @@ const { status, data, errorMessage, load } = usePageResource(residentMallService
 const orders = computed(() => (data.value || []).filter((order) => {
   if (active.value === '全部') return true
   if (active.value === '待支付') return ['未支付', '支付中', '支付失败'].includes(order.paymentStatus)
-  if (active.value === '待履约') return ['待备货', '待配送', '配送中'].includes(order.displayStatus)
-  if (active.value === '待收货/待核销') return ['已送达', '待自提', '待核销'].includes(order.displayStatus)
+  if (active.value === '待履约') return ['待备货', '待配送', '待发货', '配送中'].includes(order.displayStatus)
+  if (active.value === '待收货/待核销') return ['已送达', '已发货', '待自提', '待核销'].includes(order.displayStatus)
   if (active.value === '已完成') return order.tradeStatus === '已完成'
   return order.afterSaleStatus !== '无售后' || order.refundStatus !== '无退款'
 }))

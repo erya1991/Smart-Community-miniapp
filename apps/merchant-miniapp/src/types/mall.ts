@@ -1,6 +1,6 @@
 export type ProductAuditStatus = '草稿' | '待审核' | '已驳回' | '已通过'
 export type ProductSaleStatus = '未上架' | '销售中' | '已下架'
-export type FulfillmentMethod = '商户配送' | '社区自提' | '到店核销'
+export type FulfillmentMethod = '商户配送' | '社区自提' | '到店核销' | '普通物流'
 export type MallProductSort = 'default' | 'sales' | 'price-asc' | 'price-desc'
 
 export interface MallProductQuery {
@@ -43,6 +43,7 @@ export interface ProductSku {
 
 export interface MallProduct {
   id: string
+  storeId?: string
   projectId: string
   operatorId: string
   merchantName: string
@@ -105,11 +106,13 @@ export interface CartItem {
   skuId: string
   quantity: number
   selected: boolean
-  status: 'normal' | 'stock-insufficient' | 'off-shelf' | 'sku-invalid'
+  status: 'normal' | 'stock-insufficient' | 'off-shelf' | 'sku-invalid' | 'store-unavailable'
+  invalidReason?: string
   latestPrice: number
 }
 
 export interface CartMerchantGroup {
+  storeId: string
   merchantName: string
   storeName: string
   fulfillment: FulfillmentMethod
@@ -143,7 +146,7 @@ export interface BusinessQualificationCheck {
 /** Trade dimensions stay independent; UI derives a primary display status from them. */
 export type TradeStatus = '待支付' | '已支付' | '履约中' | '已完成' | '已关闭'
 export type PaymentStatus = '未支付' | '支付中' | '支付成功' | '支付失败' | '已关闭' | 'Mock成功'
-export type FulfillmentStatus = '待备货' | '待配送' | '配送中' | '已送达' | '待自提' | '待核销' | '已核销' | '已完成'
+export type FulfillmentStatus = '待备货' | '待配送' | '配送中' | '已送达' | '待发货' | '已发货' | '待自提' | '待核销' | '已核销' | '已完成'
 export type AfterSaleStatus = '无售后' | '售后处理中'
 export type RefundStatus = '无退款' | '退款处理中' | '退款成功' | '退款失败'
 export type ProfitSharingStatus = '未开始' | '待分账' | '分账中' | '已分账'
@@ -174,9 +177,22 @@ export interface TradeTimelineEvent {
   time: string
   title: string
   description: string
+  operatorName?: string
+  visibility?: 'merchant'
 }
 
 export interface TradeOrder {
+  logisticsCode?: string
+  logisticsName?: string
+  logisticsNo?: string
+  shippedAt?: string
+  shipmentRemark?: string
+  verificationOperatorName?: string
+  tradeId?: string
+  storeId?: string
+  fulfillmentLocation?: FulfillmentLocation
+  /** Store visit is a pickup point subtype; it does not invent another logistics enum. */
+  deliveryMethod?: 'LOCAL_TOWN_DELIVERY' | 'SELF_PICK_UP' | 'LOGISTICS'
   id: string
   no: string
   projectId: string
@@ -221,20 +237,75 @@ export interface CheckoutRequest {
 }
 
 export interface CheckoutContext {
-  merchantName: string
-  storeName: string
-  storeAddress: string
-  operatorId: string
+  merchantGroups: CheckoutMerchantGroup[]
+  /** Flattened quote items for validation; fulfillment and remarks belong to groups. */
   items: TradeOrderItem[]
-  fulfillmentMethods: FulfillmentMethod[]
-  defaultFulfillment: FulfillmentMethod
   defaultAddress?: MemberAddress
   contact: Pick<MemberAddress, 'name' | 'mobile'>
   goodsAmount: number
   deliveryFee: number
   discountAmount: number
   payableAmount: number
-  afterSaleNote: string
+}
+
+export interface FulfillmentLocation {
+  id: string
+  name: string
+  address: string
+  mobile: string
+  hours: string
+  instructions: string
+}
+
+export interface CheckoutMerchantGroup {
+  storeId: string
+  operatorId: string
+  merchantName: string
+  storeName: string
+  storeAddress: string
+  items: TradeOrderItem[]
+  fulfillmentMethods: FulfillmentMethod[]
+  defaultFulfillment: FulfillmentMethod
+  pickupPoints: FulfillmentLocation[]
+  verificationStore: FulfillmentLocation
+  deliveryNote: string
+  goodsAmount: number
+  deliveryFee: number
+  discountAmount: number
+  payableAmount: number
+}
+
+export interface CheckoutGroupChoice {
+  storeId: string
+  fulfillmentMethod: FulfillmentMethod
+  pickupPointId?: string
+  buyerRemark: string
+}
+
+export interface CreateTradeInput extends CheckoutRequest {
+  merchantGroups: CheckoutGroupChoice[]
+  addressId?: string
+  contact: Pick<MemberAddress, 'name' | 'mobile'>
+  expectedItems: Pick<TradeOrderItem, 'productId' | 'skuId' | 'quantity' | 'unitPrice'>[]
+  expectedPayableAmount: number
+  idempotencyKey: string
+}
+
+/** One LiLiShop-style Trade payment covers its Store Orders. All amounts are fen. */
+export interface TradeSummary {
+  tradeId: string
+  tradeSn: string
+  memberId: string
+  goodsAmount: number
+  deliveryFee: number
+  discountAmount: number
+  payableAmount: number
+  paidAmount: number
+  paymentStatus: PaymentStatus
+  createdAt: string
+  expiresAt: number
+  paidAt?: string
+  orders: TradeOrder[]
 }
 
 export interface CreateTradeOrderInput extends CheckoutRequest {
@@ -250,4 +321,24 @@ export interface TradeQualificationCheck {
   formalTradeAllowed: boolean
   mockPayAllowed: boolean
   message: string
+}
+
+export interface MerchantOrderContext {
+  storeId: string
+  operatorId: string
+  storeName: string
+  operatorName: string
+}
+export type MerchantOrderFilter = 'all' | 'preparing' | 'delivery' | 'transit' | 'verification' | 'completed'
+export interface LogisticsShipmentInput {
+  logisticsCode: string
+  logisticsName: string
+  logisticsNo: string
+  shipmentRemark?: string
+}
+export interface VerificationResult {
+  kind: 'ready' | 'already' | 'error'
+  message: string
+  reason?: 'not-found' | 'foreign-store' | 'unpaid' | 'closed' | 'not-verifiable' | 'not-prepared' | 'used' | 'expired' | 'after-sale'
+  order?: TradeOrder
 }

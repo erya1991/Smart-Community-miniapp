@@ -1,5 +1,5 @@
 import { appAdapter } from '@/adapters/mock'
-import type { CheckoutRequest, CreateTradeOrderInput, MallProductDetail, MallProductQuery, MemberAddress } from '../../../../packages/common/types/mall'
+import type { CheckoutRequest, CreateTradeInput, CreateTradeOrderInput, MallProductDetail, MallProductQuery, MemberAddress } from '../../../../packages/common/types/mall'
 
 const assertPurchase = (product: MallProductDetail, skuId: string, quantity: number, expectedPrice?: number) => {
   if (!product.purchaseEligibility.allowed) throw new Error(product.purchaseEligibility.reason)
@@ -63,6 +63,12 @@ export const residentMallService = {
   deleteAddress: (id: string) => appAdapter.deleteAddress(id),
   setDefaultAddress: (id: string) => appAdapter.setDefaultAddress(id),
   getCheckout: (request: CheckoutRequest) => appAdapter.getCheckoutContext(request),
+  createTrade: (input: CreateTradeInput) => appAdapter.createTrade(input),
+  getTrade: (id: string) => appAdapter.getTrade(id),
+  getTradeForOrder: (id: string) => appAdapter.getTradeForOrder(id),
+  payTrade: (id: string, outcome: 'success' | 'failure' | 'unknown') => appAdapter.payTrade(id, outcome),
+  queryTradePayment: (id: string) => appAdapter.queryTradePayment(id),
+  cancelTrade: (id: string) => appAdapter.cancelTrade(id),
   createOrder: (input: CreateTradeOrderInput) => appAdapter.createTradeOrder(input),
   getOrder: (id: string) => appAdapter.getTradeOrder(id),
   getOrders: () => appAdapter.getResidentOrders(),

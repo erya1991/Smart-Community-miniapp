@@ -1,38 +1,86 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import BaseCard from '@/components/BaseCard.vue'
 import AppButton from '@/components/AppButton.vue'
+import BottomActionBar from '@/components/BottomActionBar.vue'
 import { usePageResource } from '@/composables/usePageResource'
 import { residentMallService } from '@/services/mall'
 import { openSubPage } from '@/utils/navigation'
 import type { CartMerchantGroup } from '../../../../../../packages/common/types/mall'
 
 const { status, data, errorMessage, load } = usePageResource(residentMallService.getCart)
+const actionError = ref('')
+const busy = ref(false)
 const money = (value: number) => (value / 100).toFixed(2)
-const groupTotal = (group: CartMerchantGroup) => group.items.filter((item) => item.selected).reduce((sum, item) => sum + item.latestPrice * item.quantity, 0)
-const groupCount = (group: CartMerchantGroup) => group.items.filter((item) => item.selected).reduce((sum, item) => sum + item.quantity, 0)
-const toggle = async (id: string, selected: boolean) => { await residentMallService.toggleCartItem(id, selected); load() }
-const updateQuantity = async (id: string, quantity: number) => { await residentMallService.updateCartQuantity(id, quantity); load() }
-const remove = async (id: string) => { await residentMallService.removeCartItem(id); load() }
-const checkout = (group: CartMerchantGroup) => {
-  if (!groupCount(group)) { uni.showToast({ title: '请先选择本商户商品', icon: 'none' }); return }
-  openSubPage(`/pages/mall/confirm/index?cartIds=${encodeURIComponent(group.items.filter((item) => item.selected).map((item) => item.id).join(','))}`)
+const validItems = computed(() => data.value?.groups.flatMap((group) => group.items) || [])
+const selectedItems = computed(() => validItems.value.filter((item) => item.selected))
+const selectedCount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.quantity, 0))
+const selectedAmount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.latestPrice * item.quantity, 0))
+const allSelected = computed(() => validItems.value.length > 0 && validItems.value.every((item) => item.selected))
+const groupSelected = (group: CartMerchantGroup) => group.items.every((item) => item.selected)
+const act = async (action: () => Promise<unknown>) => {
+  if (busy.value) return
+  busy.value = true; actionError.value = ''
+  try { await action(); await load() }
+  catch (error) { actionError.value = error instanceof Error ? error.message : '操作失败，请重试。' }
+  finally { busy.value = false }
 }
-const empty = computed(() => data.value && !data.value.groups.length && !data.value.invalidItems.length)
-onLoad(load); onShow(load)
+const toggle = (id: string, selected: boolean) => act(() => residentMallService.toggleCartItem(id, selected))
+const toggleGroup = (group: CartMerchantGroup) => act(() => Promise.all(group.items.map((item) => residentMallService.toggleCartItem(item.id, !groupSelected(group)))))
+const toggleAll = () => act(() => Promise.all(validItems.value.map((item) => residentMallService.toggleCartItem(item.id, !allSelected.value))))
+const updateQuantity = (id: string, quantity: number) => act(() => residentMallService.updateCartQuantity(id, quantity))
+const remove = (id: string) => act(() => residentMallService.removeCartItem(id))
+const checkout = () => {
+  if (busy.value || !selectedItems.value.length) return
+  openSubPage('/pages/mall/confirm/index?cartIds=' + encodeURIComponent(selectedItems.value.map((item) => item.id).join(',')))
+}
+const empty = computed(() => data.value && !validItems.value.length && !data.value.invalidItems.length)
+onLoad(load)
+onShow(() => { if (data.value) load() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
+  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="购物车" centered show-back /></template>
-    <view v-if="data" class="stack cart-page"><view class="cart-tip"><AppIcon name="verified" :size="19" /><text><text>社区便民直供：</text>各商户独立配送履约，订单支持分别结算。</text></view><BaseCard v-for="group in data.groups" :key="group.merchantName" class="merchant-group"><view class="merchant-group__head"><AppIcon name="store" :size="21" /><text>{{ group.merchantName }}</text><text>{{ group.fulfillment }}</text></view><view v-for="item in group.items" :key="item.id" class="cart-item"><view class="check" :class="{ 'check--active': item.selected }" @click="toggle(item.id, !item.selected)">{{ item.selected ? '✓' : '' }}</view><image :src="item.sku.image || item.product.mainImage" mode="aspectFill" /><view class="cart-item__main"><text>{{ item.product.name }}</text><text>规格：{{ item.sku.name }}</text><text class="cart-price">¥{{ money(item.latestPrice) }}</text></view><view class="quantity"><text @click="updateQuantity(item.id, item.quantity - 1)">−</text><text>{{ item.quantity }}</text><text @click="updateQuantity(item.id, item.quantity + 1)">+</text></view></view><view class="merchant-group__foot"><view><text>已选 {{ groupCount(group) }} 件商品</text><text>合计 <b>¥{{ money(groupTotal(group)) }}</b></text></view><AppButton size="compact" @click="checkout(group)">去结算</AppButton></view></BaseCard><BaseCard v-if="data.invalidItems.length" class="invalid-group"><view class="invalid-group__head"><view><AppIcon name="cart" :size="20" /><text>不可结算商品（{{ data.invalidItems.length }}）</text></view><text @click="residentMallService.clearInvalidCart().then(load)">一键清空</text></view><view v-for="item in data.invalidItems" :key="item.id" class="invalid-item"><image :src="item.product.mainImage" mode="aspectFill" /><view><text>{{ item.product.name }}</text><text>规格：{{ item.sku.name }}</text><text class="invalid-reason">{{ item.status === 'stock-insufficient' ? `当前库存不足（仅剩${item.sku.availableStock}件）` : item.status === 'off-shelf' ? '商品已下架' : '商品规格已失效' }}</text></view><text class="delete" @click="remove(item.id)">×</text></view></BaseCard><view v-if="empty" class="empty">购物车还是空的，去商城看看吧</view><text class="cart-footer">大光路智慧社区 · 邻里直供 安心便民</text></view>
+    <view v-if="data" class="stack cart-page">
+      <view class="cart-tip"><AppIcon name="verified" :size="19" /><text>社区便民直供：按商户分别履约，所选商品统一结算。</text></view>
+      <text v-if="actionError" class="action-error">{{ actionError }}</text>
+      <BaseCard v-for="group in data.groups" :key="group.storeId">
+        <view class="merchant-head">
+          <button class="check-hit" :aria-label="'选择' + group.merchantName + '全部商品'" :disabled="busy" @click="toggleGroup(group)"><view class="check" :class="{ active: groupSelected(group) }">{{ groupSelected(group) ? '✓' : '' }}</view></button>
+          <AppIcon name="store" :size="20" /><text>{{ group.merchantName }}（{{ group.storeName }}）</text>
+        </view>
+        <view v-for="item in group.items" :key="item.id" class="cart-item">
+          <button class="check-hit" :aria-label="'选择' + item.product.name" :disabled="busy" @click="toggle(item.id, !item.selected)"><view class="check" :class="{ active: item.selected }">{{ item.selected ? '✓' : '' }}</view></button>
+          <image :src="item.sku.image || item.product.mainImage" mode="aspectFill" />
+          <view class="item-main"><text class="product-name">{{ item.product.name }}</text><text class="spec">规格：{{ item.sku.name }}</text>
+            <view class="price-quantity"><text class="cart-price">¥{{ money(item.latestPrice) }}</text><view class="quantity"><button :disabled="busy || item.quantity <= 1" aria-label="减少数量" @click="updateQuantity(item.id, item.quantity - 1)">−</button><text>{{ item.quantity }}</text><button :disabled="busy || item.quantity >= item.sku.availableStock" aria-label="增加数量" @click="updateQuantity(item.id, item.quantity + 1)">+</button></view></view>
+            <button class="remove" :disabled="busy" @click="remove(item.id)">移除</button>
+          </view>
+        </view>
+      </BaseCard>
+      <BaseCard v-if="data.invalidItems.length">
+        <view class="invalid-head"><text>不可结算商品（{{ data.invalidItems.length }}）</text><button class="remove" :disabled="busy" @click="act(residentMallService.clearInvalidCart)">一键清空</button></view>
+        <view v-for="item in data.invalidItems" :key="item.id" class="invalid-item"><image :src="item.product.mainImage" mode="aspectFill" /><view><text class="product-name">{{ item.product.name }}</text><text class="spec">{{ item.sku.name }}</text><text class="action-error">{{ item.invalidReason }}</text></view><button class="remove" :disabled="busy" @click="remove(item.id)">移除</button></view>
+      </BaseCard>
+      <view v-if="empty" class="empty">购物车还是空的，去商城看看吧</view>
+      <text class="cart-footer">大光路智慧社区 · 邻里直供 安心便民</text>
+    </view>
+    <BottomActionBar v-if="data"><button class="all-check" :disabled="busy || !validItems.length" @click="toggleAll"><view class="check" :class="{ active: allSelected }">{{ allSelected ? '✓' : '' }}</view><text>全选</text></button><view class="cart-total"><text>已选 {{ selectedCount }} 件</text><text>¥{{ money(selectedAmount) }}</text></view><AppButton :disabled="busy || !selectedCount" @click="checkout">结算</AppButton></BottomActionBar>
   </AppPage>
 </template>
 
 <style scoped lang="scss">
-.cart-page { gap: $space-3; }.cart-tip { display: flex; align-items: flex-start; gap: $space-2; padding: $space-3; border: 1px solid rgba(27,77,83,.2); border-radius: $radius-card; background: $color-primary-light; color: $color-text-secondary; font-size: 14px; line-height: 21px; }.cart-tip image { color: $color-primary; }.cart-tip text text { color: $color-primary; font-weight: 700; }.merchant-group__head { display: flex; min-height: 42px; align-items: center; gap: $space-2; border-bottom: 1px solid rgba(225,228,230,.72); }.merchant-group__head text:nth-child(2) { flex: 1; font-size: 18px; font-weight: 700; }.merchant-group__head text:last-child { padding: 3px $space-2; border-radius: $radius-sm; background: $color-primary-light; color: $color-primary; font-size: 12px; }.cart-item { display: flex; align-items: center; gap: $space-2; padding: $space-3 0; border-bottom: 1px solid rgba(225,228,230,.72); }.check { display: flex; width: 28px; height: 28px; flex: none; align-items: center; justify-content: center; border: 1px solid $color-border; border-radius: 50%; color: #fff; }.check--active { border-color: $color-primary; background: $color-primary; }.cart-item image,.invalid-item image { width: 76px; height: 76px; flex: none; border-radius: $radius-md; background: $color-group-bg; }.cart-item__main { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }.cart-item__main text:first-child { overflow: hidden; font-size: 16px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }.cart-item__main text:nth-child(2) { color: $color-text-secondary; font-size: 13px; }.cart-price { color: $color-accent; font-size: 18px; font-weight: 700; }.quantity { display: flex; height: 38px; align-items: center; overflow: hidden; border: 1px solid $color-border; border-radius: $radius-md; }.quantity text { display: flex; width: 32px; height: 38px; align-items: center; justify-content: center; font-size: 18px; }.quantity text:nth-child(2) { width: 28px; font-size: 15px; }.merchant-group__foot { display: flex; align-items: center; justify-content: space-between; gap: $space-3; padding-top: $space-3; }.merchant-group__foot > view { display: flex; flex-direction: column; gap: 3px; color: $color-text-secondary; font-size: 13px; }.merchant-group__foot b { color: $color-accent; font-size: 20px; }.invalid-group__head { display: flex; align-items: center; justify-content: space-between; gap: $space-2; padding-bottom: $space-2; border-bottom: 1px solid rgba(225,228,230,.72); }.invalid-group__head view { display: flex; align-items: center; gap: $space-2; font-size: 17px; font-weight: 700; }.invalid-group__head > text { min-height: 40px; padding-top: 10px; color: $color-primary; font-size: 13px; }.invalid-item { display: flex; align-items: center; gap: $space-2; padding-top: $space-3; }.invalid-item image { filter: grayscale(1); opacity: .62; }.invalid-item > view { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }.invalid-item text:first-child { overflow: hidden; font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }.invalid-item text:nth-child(2) { color: $color-text-secondary; font-size: 13px; }.invalid-reason { color: $color-error !important; }.delete { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; color: $color-text-secondary; font-size: 26px; }.empty { padding: $space-8 0; color: $color-text-secondary; text-align: center; }.cart-footer { padding: $space-4 0; color: $color-text-disabled; font-size: 12px; text-align: center; }
+.cart-page { gap:$space-3; }.cart-tip { display:flex; gap:$space-2; padding:$space-3; border-radius:$radius-card; background:$color-primary-light; color:$color-primary; font-size:15px; line-height:23px; }
+button { margin:0; padding:0; background:transparent; font-size:15px; line-height:normal; }button::after { border:none; }button[disabled] { opacity:.45; }
+.merchant-head { display:flex; align-items:center; gap:6px; padding-bottom:8px; border-bottom:1px solid $color-border; }.merchant-head > text { flex:1; min-width:0; font-size:17px; font-weight:600; line-height:25px; }
+.check-hit { display:flex; flex:none; width:44px; min-height:44px; align-items:center; justify-content:center; }.check { display:flex; width:24px; height:24px; flex:none; align-items:center; justify-content:center; border:1px solid $color-border; border-radius:50%; color:#fff; }.check.active { background:$color-primary; border-color:$color-primary; }
+.cart-item { display:flex; align-items:flex-start; gap:6px; padding:12px 0; border-bottom:1px solid $color-border; }.cart-item > image,.invalid-item > image { width:64px; height:76px; flex:none; border-radius:$radius-md; }.item-main { min-width:0; flex:1; }.product-name { display:block; font-size:16px; font-weight:600; line-height:24px; overflow-wrap:anywhere; }.spec { display:block; font-size:13px; color:$color-text-secondary; line-height:20px; }
+.price-quantity { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:4px; }.cart-price { font-size:18px; font-weight:700; color:$color-accent; }.quantity { display:flex; align-items:center; border:1px solid $color-border; border-radius:$radius-md; }.quantity button { display:flex; width:44px; height:44px; align-items:center; justify-content:center; font-size:22px; }.quantity text { min-width:20px; text-align:center; }
+.remove { display:flex; min-width:44px; min-height:44px; align-items:center; justify-content:center; color:$color-primary; font-size:14px; }.item-main > .remove { margin-left:auto; }.invalid-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }.invalid-item { display:flex; align-items:center; gap:8px; padding-top:12px; }.invalid-item > view { flex:1; min-width:0; }.invalid-item image { opacity:.6; filter:grayscale(1); }.action-error { display:block; color:$color-error; font-size:14px; line-height:22px; }
+.empty { padding:32px 0; text-align:center; color:$color-text-secondary; }.cart-footer { text-align:center; font-size:13px; color:$color-text-secondary; padding:16px 0; }.all-check { display:flex; align-items:center; gap:4px; min-height:48px; flex:none; color:$color-text-primary; }.cart-total { display:flex; flex-direction:column; justify-content:center; min-width:0; flex:1; font-size:13px; }.cart-total text:last-child { font-size:20px; color:$color-accent; font-weight:700; }.cart-total + :deep(.app-button) { flex:0 0 86px; }
 </style>
