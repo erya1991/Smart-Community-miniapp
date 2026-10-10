@@ -82,7 +82,7 @@ onLoad(async (options) => {
           <view class="verify-row"><text>履约方式</text><text>{{ candidate.order.fulfillmentMethod }}</text></view>
           <view class="verify-row"><text>核销地点</text><text>{{ candidate.order.fulfillmentLocation?.name || candidate.order.pickupPoint || candidate.order.storeName }}</text></view>
           <view class="verify-row"><text>当前状态</text><text>{{ candidate.order.fulfillmentStatus }} / {{ candidate.order.paymentStatus }}</text></view>
-          <view v-for="item in candidate.order.items" :key="item.skuId" class="verify-product"><image :src="item.productImage" mode="aspectFill" /><view><text>{{ item.productName }}</text><text>{{ item.skuName }} · 数量 {{ item.quantity }}</text></view></view>
+          <view v-for="item in candidate.order.items" :key="item.skuId" class="verify-product"><image :src="item.productImage" mode="aspectFill" /><view><text>{{ item.productName }}</text><text>{{ item.skuName }} · 数量 {{ item.remainingFulfillmentQuantity ?? item.quantity }}</text></view></view>
           <view v-if="candidate.kind === 'already'" class="verify-row"><text>原核销时间</text><text>{{ candidate.order.verificationAt }}</text></view>
         </template>
       </BaseCard>

@@ -147,7 +147,7 @@ export interface BusinessQualificationCheck {
 export type TradeStatus = '待支付' | '已支付' | '履约中' | '已完成' | '已关闭'
 export type PaymentStatus = '未支付' | '支付中' | '支付成功' | '支付失败' | '已关闭' | 'Mock成功'
 export type FulfillmentStatus = '待备货' | '待配送' | '配送中' | '已送达' | '待发货' | '已发货' | '待自提' | '待核销' | '已核销' | '已完成'
-export type AfterSaleStatus = '无售后' | '售后处理中'
+export type AfterSaleStatus = '无售后' | '售后处理中' | '售后完成'
 export type RefundStatus = '无退款' | '退款处理中' | '退款成功' | '退款失败'
 export type ProfitSharingStatus = '未开始' | '待分账' | '分账中' | '已分账'
 
@@ -162,6 +162,9 @@ export interface MemberAddress {
 }
 
 export interface TradeOrderItem {
+  orderItemSn?: string
+  afterSaleEnabled?: boolean
+  remainingFulfillmentQuantity?: number
   productId: string
   skuId: string
   productName: string
@@ -182,6 +185,15 @@ export interface TradeTimelineEvent {
 }
 
 export interface TradeOrder {
+  memberId?: string
+  afterSaleExpiresAt?: number
+  fulfillmentBlocked?: boolean
+  hasAfterSaleRecords?: boolean
+  afterSaleSummary?: string
+  refundedAmount?: number
+  profitSharingEligibleAmount?: number
+  profitSharingReturnRequired?: boolean
+  fundAdjustmentStatus?: '无需回退' | '待平台资金调整'
   logisticsCode?: string
   logisticsName?: string
   logisticsNo?: string

@@ -61,7 +61,7 @@ export const residentMockAdapter = {
           { label: '待履约', icon: 'car', badge: '1', path: '/pages/mall/order-list/index', available: true },
           { label: '待自提', icon: 'bag', path: '/pages/mall/order-list/index', available: true },
           { label: '待评价', icon: 'message', path: '/pages/mall/order-list/index', available: true },
-          { label: '售后', icon: 'recycle', path: '/pages/mall/order-list/index', available: true },
+          { label: '售后/退款', icon: 'recycle', path: '/pages/mall/order-list/index?filter=after-sale', available: true },
         ],
       },
       {

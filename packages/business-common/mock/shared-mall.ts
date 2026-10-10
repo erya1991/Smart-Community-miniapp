@@ -18,7 +18,7 @@ export function createSharedMallMockAdapter(storage: MallDemoStorage | undefined
   const adapter = createMallMockAdapter({ fulfillmentDemoSeeds: true })
   if (!storage) return adapter
   let queue: Promise<unknown> = Promise.resolve()
-  const direct = new Set(['getMockSnapshot', 'restoreMockSnapshot', 'getMockTradeSnapshot', 'restoreMockTradeSnapshot', 'getDisplayStatus', 'maskMobile'])
+  const direct = new Set(['getMockSnapshot', 'restoreMockSnapshot', 'getMockTradeSnapshot', 'restoreMockTradeSnapshot', 'getMockAfterSaleSnapshot', 'restoreMockAfterSaleSnapshot', 'getDisplayStatus', 'maskMobile'])
   return new Proxy(adapter, { get(target, property, receiver) {
     const method = Reflect.get(target, property, receiver)
     if (typeof method !== 'function' || direct.has(String(property))) return method

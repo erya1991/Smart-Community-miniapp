@@ -13,7 +13,7 @@ export const matchesMerchantOrderFilter = (order: TradeOrder, filter: MerchantOr
   return status === '已完成'
 }
 export const merchantOrderAction = (order: TradeOrder) => {
-  if (!isOrderPaid(order) || order.afterSaleStatus !== '无售后' || order.tradeStatus === '已完成') return ''
+  if (!isOrderPaid(order) || (order.fulfillmentBlocked ?? order.afterSaleStatus === '售后处理中') || order.tradeStatus === '已完成') return ''
   const status = order.fulfillmentStatus
   if (status === '待备货') return '完成备货'
   if (order.fulfillmentMethod === '商户配送' && status === '待配送') return '开始配送'

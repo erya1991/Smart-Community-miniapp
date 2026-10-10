@@ -23,7 +23,7 @@ export function createMerchantFulfillmentMockAdapter(deps: FulfillmentDependenci
   const operable = (order: TradeOrder) => {
     if (order.tradeStatus === '已关闭' || order.paymentStatus === '已关闭') throw new Error('订单已关闭，不可履约。')
     if (!isOrderPaid(order)) throw new Error(order.paymentStatus === '支付中' ? '支付结果确认中，暂不能履约。' : '订单未支付成功，不可履约。')
-    if (order.afterSaleStatus !== '无售后') throw new Error('订单存在阻断性售后，暂不可履约。')
+    if (order.fulfillmentBlocked ?? order.afterSaleStatus === '售后处理中') throw new Error('订单存在阻断性售后或已全部退款，暂不可履约。')
   }
   const log = (order: TradeOrder, title: string, description: string, privateEvent = false) => order.timeline.unshift({ time: deps.now(), title, description, operatorName: deps.context().operatorName, ...(privateEvent ? { visibility: 'merchant' as const } : {}) })
   const lookup = (code: string): VerificationResult => {
@@ -38,7 +38,7 @@ export function createMerchantFulfillmentMockAdapter(deps: FulfillmentDependenci
     if (!['社区自提', '到店核销'].includes(order.fulfillmentMethod)) return error('not-verifiable', '当前履约方式不允许核销。')
     if (order.verificationStatus === '已失效') return error('expired', '凭证已失效，请联系商户核对订单。')
     if (order.verificationStatus === '已核销') return { kind: 'already', reason: 'used', message: `该订单已于 ${order.verificationAt || '此前'} 核销，禁止重复核销。`, order: clone(order) }
-    if (order.afterSaleStatus !== '无售后') return error('after-sale', '订单存在阻断性售后，暂不可核销。')
+    if (order.fulfillmentBlocked ?? order.afterSaleStatus === '售后处理中') return error('after-sale', '订单存在阻断性售后或已全部退款，暂不可核销。')
     if (order.fulfillmentStatus === '待备货') return error('not-prepared', '尚未完成备货，请先完成备货。')
     if (!['待自提', '待核销'].includes(order.fulfillmentStatus) || order.verificationStatus !== '待核销' || !order.verificationCode) return error('not-verifiable', '当前订单不可核销，请刷新状态后重试。')
     return { kind: 'ready', message: '请现场核对居民、商品数量和核销地点，再确认核销。', order: clone(order) }
@@ -56,10 +56,10 @@ export function createMerchantFulfillmentMockAdapter(deps: FulfillmentDependenci
     getMerchantWorkbench: async () => {
       deps.refresh()
       const visible = deps.orders().filter(owns)
-      const count = (filter: MerchantOrderFilter) => visible.filter((order) => matchesMerchantOrderFilter(order, filter) && order.afterSaleStatus === '无售后').length
+      const count = (filter: MerchantOrderFilter) => visible.filter((order) => matchesMerchantOrderFilter(order, filter) && !(order.fulfillmentBlocked ?? order.afterSaleStatus === '售后处理中')).length
       const paid = visible.filter(isOrderPaid)
       const todos = [{ label: '待审核商品', value: 0, description: '待平台审核' }, { label: '待备货', value: count('preparing'), description: '已支付订单' }, { label: '待配送/发货', value: count('delivery'), description: '配送与物流' }, { label: '待核销', value: count('verification'), description: '自提或到店' }]
-      return clone({ context: deps.context(), merchant: { name: deps.context().storeName, storeName: deps.context().storeName, operationStatus: '经营正常', businessHours: '07:00—21:30' }, todoTotal: todos.reduce((sum, todo) => sum + todo.value, 0), todos, afterSales: { value: visible.filter((order) => order.afterSaleStatus !== '无售后').length, description: '售后下一批开放' }, today: { orderCount: paid.filter((order) => order.paidAt?.startsWith(deps.now().slice(0, 10))).length, amount: paid.filter((order) => order.paidAt?.startsWith(deps.now().slice(0, 10))).reduce((sum, order) => sum + order.paidAmount, 0) }, funds: { pending: paid.filter((order) => order.profitSharingStatus === '待分账').reduce((sum, order) => sum + order.paidAmount, 0), completed: paid.filter((order) => order.profitSharingStatus === '已分账').reduce((sum, order) => sum + order.paidAmount, 0) } })
+      return clone({ context: deps.context(), merchant: { name: deps.context().storeName, storeName: deps.context().storeName, operationStatus: '经营正常', businessHours: '07:00—21:30' }, todoTotal: todos.reduce((sum, todo) => sum + todo.value, 0), todos, afterSales: { value: 0, description: '待商家审核' }, today: { orderCount: paid.filter((order) => order.paidAt?.startsWith(deps.now().slice(0, 10))).length, amount: paid.filter((order) => order.paidAt?.startsWith(deps.now().slice(0, 10))).reduce((sum, order) => sum + order.paidAmount, 0) }, funds: { pending: paid.filter((order) => order.profitSharingStatus === '待分账').reduce((sum, order) => sum + (order.profitSharingEligibleAmount ?? order.paidAmount), 0), completed: paid.filter((order) => order.profitSharingStatus === '已分账').reduce((sum, order) => sum + order.paidAmount, 0) } })
     },
     merchantFulfill: async (id: string, action: 'finish-preparing' | 'start-delivery' | 'mark-delivered') => {
       const order = find(id); operable(order)

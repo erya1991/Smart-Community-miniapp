@@ -3,6 +3,8 @@
     { "path": "pages/workbench/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/operation/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/order/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/after-sale/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/after-sale/detail/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/onboarding/application/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/onboarding/result/index", "style": { "navigationStyle": "custom" } },

@@ -43,9 +43,9 @@ onShow(() => { if (data.value) refresh() })
       <view class="order-query"><SearchBar v-model="keyword" class="order-search" placeholder="搜索订单号、居民或商品" /><scroll-view scroll-x :show-scrollbar="false" class="order-filter-scroll"><view class="order-filters"><view v-for="filter in data?.filters || []" :key="filter.key" class="order-filter-hit" @click="activeFilter = filter.key"><text class="order-filter" :class="{ 'order-filter--active': filter.key === activeFilter }">{{ filter.label }} ({{ filter.count }})</text></view></view></scroll-view></view>
       <view class="order-list"><BaseCard v-for="order in orders" :key="order.id" class="order-card" :class="{ 'order-card--complete': order.tradeStatus === '已完成' }" :padded="false" @click="openSubPage('/pages/order/detail/index?id=' + encodeURIComponent(order.id))">
         <view class="order-head"><text>#{{ order.no }}</text><StatusTag :tone="statusTone(order.displayStatus)">{{ order.displayStatus === '支付中' ? '支付结果确认中' : order.displayStatus }}</StatusTag></view>
-        <text class="order-item">{{ order.items.map((item) => item.productName + ' ×' + item.quantity).join('；') }}</text>
+        <text class="order-item">{{ order.items.map((item) => item.productName + ' ×' + (item.remainingFulfillmentQuantity ?? item.quantity)).join('；') }}</text>
         <text class="order-meta">{{ order.memberName }} · {{ order.fulfillmentMethod }} · {{ order.paidAt || order.createdAt }}</text>
-        <text v-if="order.afterSaleStatus !== '无售后'" class="order-blocked">{{ order.afterSaleStatus }} · 履约暂不可用</text>
+        <text v-if="order.hasAfterSaleRecords" class="order-blocked">{{ order.afterSaleSummary }}{{ order.fulfillmentBlocked ? ' · 履约暂不可用' : '' }}</text>
         <view class="order-bottom"><view><text>实付 ¥{{ formatMoneyFromFen(order.paidAmount) }}</text><text>{{ order.fulfillmentStatus === '已送达' ? '等待居民确认' : order.fulfillmentMethod }}</text></view><view class="order-actions"><view class="quiet-action" @click.stop="openSubPage('/pages/order/detail/index?id=' + encodeURIComponent(order.id))">详情</view><view v-if="merchantOrderAction(order)" class="primary-action" @click.stop="handlePrimary(order)">{{ merchantOrderAction(order) }}</view></view></view>
       </BaseCard></view><view v-if="!orders.length" class="order-empty">暂无匹配订单</view>
     </view>

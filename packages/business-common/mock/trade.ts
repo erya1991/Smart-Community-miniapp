@@ -18,6 +18,7 @@ import type {
   MerchantOrderContext,
 } from '../../common/types/mall'
 import { createMerchantFulfillmentMockAdapter } from './fulfillment'
+import { createAfterSaleMockAdapter } from './after-sale'
 
 type StockAction = 'reserve' | 'release'
 
@@ -84,6 +85,7 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
   const submitted = new Map<string, string>()
   const trades: TradeSummary[] = []
   let sequence = 0
+  let residentMemberId = 'member-resident'
   let merchantContext: MerchantOrderContext = { storeId: deps.operatorId, operatorId: deps.operatorId, storeName: '邻里生鲜（大光路店）', operatorName: '店长张华' }
 
   const appendTimeline = (order: TradeOrder, title: string, description: string) => order.timeline.unshift({ time: now(), title, description })
@@ -150,6 +152,9 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
   const residentOrder = (order: TradeOrder) => {
     const result = clone(order)
     delete result.merchantRemark
+    delete result.profitSharingReturnRequired
+    delete result.fundAdjustmentStatus
+    delete result.profitSharingEligibleAmount
     result.timeline = result.timeline.filter((event) => event.visibility !== 'merchant')
     return result
   }
@@ -186,10 +191,10 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
     const stamp = `${Date.now()}-${++sequence}`
     const tradeId = `trade-${stamp}`
     const children: TradeOrder[] = prepared.map(({ group, choice, delivery, location }, index) => ({
-      id: `order-${stamp}-${index + 1}`, no: `DGL${stamp}-${index + 1}`, tradeId, storeId: group.storeId, projectId: deps.projectId, operatorId: group.operatorId, merchantName: group.merchantName, storeName: group.storeName, storeAddress: group.storeAddress, memberName: contact.name, memberMobile: contact.mobile, items: clone(group.items), fulfillmentMethod: choice.fulfillmentMethod,
+      id: `order-${stamp}-${index + 1}`, no: `DGL${stamp}-${index + 1}`, memberId: residentMemberId, tradeId, storeId: group.storeId, projectId: deps.projectId, operatorId: group.operatorId, merchantName: group.merchantName, storeName: group.storeName, storeAddress: group.storeAddress, memberName: contact.name, memberMobile: contact.mobile, items: clone(group.items).map((item, itemIndex) => ({ ...item, orderItemSn: `item-${stamp}-${index + 1}-${itemIndex + 1}` })), fulfillmentMethod: choice.fulfillmentMethod,
       deliveryMethod: choice.fulfillmentMethod === '普通物流' ? 'LOGISTICS' : choice.fulfillmentMethod === '商户配送' ? 'LOCAL_TOWN_DELIVERY' : 'SELF_PICK_UP', tradeStatus: '待支付', paymentStatus: '未支付', fulfillmentStatus: '待备货', afterSaleStatus: '无售后', refundStatus: '无退款', profitSharingStatus: '未开始', goodsAmount: group.goodsAmount, deliveryFee: group.deliveryFee, discountAmount: group.discountAmount, payableAmount: group.payableAmount, paidAmount: 0, payOrderId: `pay-${tradeId}`, createdAt: now(), buyerRemark: choice.buyerRemark.trim(), addressSnapshot: delivery && address ? { name: address.name, mobile: address.mobile, region: address.region, detail: address.detail, label: address.label } : undefined, contactSnapshot: clone(contact), pickupPoint: location?.name, fulfillmentLocation: location && clone(location), timeline: [{ time: now(), title: '订单已提交', description: '库存已锁定，等待交易统一支付。' }],
     }))
-    const trade: TradeSummary = { tradeId, tradeSn: `DGLT${stamp}`, memberId: 'member-resident', goodsAmount: context.goodsAmount, deliveryFee: context.deliveryFee, discountAmount: context.discountAmount, payableAmount: context.payableAmount, paidAmount: 0, paymentStatus: '未支付', createdAt: now(), expiresAt: Date.now() + 30 * 60 * 1000, orders: children }
+    const trade: TradeSummary = { tradeId, tradeSn: `DGLT${stamp}`, memberId: residentMemberId, goodsAmount: context.goodsAmount, deliveryFee: context.deliveryFee, discountAmount: context.discountAmount, payableAmount: context.payableAmount, paidAmount: 0, paymentStatus: '未支付', createdAt: now(), expiresAt: Date.now() + 30 * 60 * 1000, orders: children }
     const reserved: TradeOrderItem[] = []
     try {
       context.items.forEach((item) => {
@@ -248,8 +253,12 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
   }
 
   const fulfillment = createMerchantFulfillmentMockAdapter({ orders: () => orders, context: () => merchantContext, refresh: () => trades.forEach(expireTrade), tradeSn: (order) => order.tradeId ? assertTrade(order.tradeId).tradeSn : order.no, now, complete })
+  const afterSale = createAfterSaleMockAdapter({ orders: () => orders, memberId: () => residentMemberId, merchant: () => merchantContext, residentOrder, tradeSn: order => order.tradeId ? assertTrade(order.tradeId).tradeSn : order.no, refresh: () => trades.forEach(expireTrade), now, restoreStock: (productId, skuId, quantity) => deps.updateStock(productId, skuId, quantity, 'release') })
   return {
     ...fulfillment,
+    ...afterSale,
+    getMerchantWorkbench: async () => { const dashboard = await fulfillment.getMerchantWorkbench(); const afterSales = afterSale.getMerchantAfterSaleTodo(); return { ...dashboard, afterSales, todoTotal: dashboard.todoTotal + afterSales.value } },
+    setResidentContextDemo: async (memberId: string) => { if (!['member-resident', 'member-other'].includes(memberId)) throw new Error('居民演示上下文无效。'); residentMemberId = memberId },
     getMerchantContext: async () => clone(merchantContext),
     getMerchantDemoStores: async () => clone(deps.demoStores?.() || [merchantContext]),
     setMerchantContextDemo: async (storeId: string) => {
@@ -258,11 +267,12 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
       merchantContext = clone(context)
       return clone(merchantContext)
     },
-    getMockTradeSnapshot: () => clone({ addresses, orders, trades, submitted: [...submitted], sequence }),
-    restoreMockTradeSnapshot: (snapshot: { addresses: MemberAddress[]; orders: TradeOrder[]; trades: TradeSummary[]; submitted: [string, string][]; sequence: number }) => {
+    getMockTradeSnapshot: () => clone({ addresses, orders, trades, submitted: [...submitted], sequence, afterSale: afterSale.getMockAfterSaleSnapshot() }),
+    restoreMockTradeSnapshot: (snapshot: { addresses: MemberAddress[]; orders: TradeOrder[]; trades: TradeSummary[]; submitted: [string, string][]; sequence: number; afterSale?: ReturnType<typeof afterSale.getMockAfterSaleSnapshot> }) => {
       addresses = clone(snapshot.addresses); orders = clone(snapshot.orders)
       trades.splice(0, trades.length, ...clone(snapshot.trades).map((trade) => ({ ...trade, orders: trade.orders.map((child) => orders.find((order) => order.id === child.id)!) })))
       submitted.clear(); snapshot.submitted.forEach(([key, id]) => submitted.set(key, id)); sequence = snapshot.sequence
+      afterSale.restoreMockAfterSaleSnapshot(snapshot.afterSale)
     },
     createTrade,
     getTrade: async (tradeId: string) => residentTrade(expireTrade(assertTrade(tradeId))),
@@ -327,12 +337,13 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
     },
     getTradeOrder: async (id: string) => {
       const order = assertOrder(id)
+      if ((order.memberId || 'member-resident') !== residentMemberId) throw new Error('非当前居民订单，无权访问。')
       if (order.tradeId) expireTrade(assertTrade(order.tradeId))
       return residentOrder(order)
     },
     getResidentOrders: async () => {
       trades.forEach(expireTrade)
-      return orders.map((order) => ({ ...residentOrder(order), displayStatus: displayStatus(order) }))
+      return orders.filter(order => (order.memberId || 'member-resident') === residentMemberId).map((order) => ({ ...residentOrder(order), displayStatus: displayStatus(order) }))
     },
     payTradeOrder: async (orderId: string, outcome: 'success' | 'failure' | 'unknown') => {
       const order = assertOrder(orderId)
@@ -364,7 +375,7 @@ export function createMallTradeMockAdapter(deps: TradeDependencies) {
     },
     confirmResidentReceipt: async (orderId: string) => {
       const order = assertOrder(orderId)
-      if (!['Mock成功', '支付成功'].includes(order.paymentStatus) || order.afterSaleStatus !== '无售后' || !(order.fulfillmentStatus === '已送达' || (order.fulfillmentMethod === '普通物流' && order.fulfillmentStatus === '已发货'))) throw new Error('当前订单尚不可确认收货。')
+      if (!['Mock成功', '支付成功'].includes(order.paymentStatus) || (order.fulfillmentBlocked ?? order.afterSaleStatus === '售后处理中') || !(order.fulfillmentStatus === '已送达' || (order.fulfillmentMethod === '普通物流' && order.fulfillmentStatus === '已发货'))) throw new Error('当前订单尚不可确认收货。')
       complete(order, '居民已确认收货，订单履约完成。', order.contactSnapshot.name)
       return residentOrder(order)
     },

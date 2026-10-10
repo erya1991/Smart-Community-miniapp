@@ -12,6 +12,8 @@
     { "path": "pages/pay/result/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/order-list/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/order-detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/after-sale/apply/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/after-sale/detail/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } }
   ],
   "globalStyle": {

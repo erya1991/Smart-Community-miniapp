@@ -17,6 +17,8 @@ const residentPages = [
   '/pages/pay/result/index',
   '/pages/mall/order-list/index',
   '/pages/mall/order-detail/index',
+  '/pages/after-sale/apply/index',
+  '/pages/after-sale/detail/index',
   '/pages/profile/index',
 ]
 const merchantPages = [
@@ -37,6 +39,8 @@ const merchantPages = [
   '/pages/qualification/status/index',
   '/pages/product/editor/index',
   '/pages/order/detail/index',
+  '/pages/after-sale/index',
+  '/pages/after-sale/detail/index',
   '/pages/verification/index',
 ]
 
@@ -49,8 +53,8 @@ const merchantAdapter = read('apps/merchant-miniapp/src/adapters/mock.ts')
 const legacySingleAppExists = existsSync(new URL('../src/pages.json', import.meta.url))
 
 const assertions = [
-  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册冻结一级页、阶段 03 商城页与阶段 04 交易履约页'],
-  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册冻结一级页、阶段 02/03 页面与阶段 04 交易履约页'],
+  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册冻结一级页、阶段 03 商城页、阶段 04 交易履约页与第五批售后页'],
+  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 仅注册冻结一级页、阶段 02/03 页面、阶段 04 交易履约页与第五批售后页'],
   [residentNavigation.includes("label: '首页'") && residentNavigation.includes("label: '服务'") && residentNavigation.includes("label: '商城'") && residentNavigation.includes("label: '我的'") && !residentNavigation.includes('merchant'), '住户导航固定且无商户入口'],
   [merchantNavigation.includes("label: '工作台'") && merchantNavigation.includes("label: '经营'") && merchantNavigation.includes("label: '订单'") && merchantNavigation.includes("label: '我的'") && !merchantNavigation.includes('resident'), '商户导航固定且无住户入口'],
   [sharedTabbar.includes('items: NavItem[]') && !sharedTabbar.includes('AppProfile') && !sharedTabbar.includes('navigationByProfile'), 'Tabbar 仅渲染端级传入导航，不依赖角色切换'],

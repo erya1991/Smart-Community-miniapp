@@ -23,6 +23,7 @@ const quickActions = [
 ]
 const unavailable = () => { showUnavailable.value = true }
 const openTodo = (label: string) => {
+  if (label === '售后待处理') return openSubPage('/pages/after-sale/index?filter=pending')
   if (label === '待审核商品') return openSubPage('/pages/operation/index?filter=pending')
   const filters: Record<string, string> = { '待备货': 'preparing', '待配送': 'delivery', '待配送/发货': 'delivery', '待自提/核销': 'verification', '待核销': 'verification' }
   return filters[label] ? openSubPage(`/pages/order/index?filter=${filters[label]}`) : unavailable()
@@ -46,7 +47,7 @@ onShow(() => { if (data.value) return refresh() })
             <view class="todo-card__top"><text class="todo-card__label">{{ todo.label }}</text><text v-if="todo.label === '待备货'" class="todo-card__urgent">加急</text><view v-else class="todo-card__dot" /></view>
             <view class="todo-card__bottom"><text class="todo-card__value">{{ todo.value }}</text><text class="todo-card__description">{{ todo.description }}</text></view>
           </view>
-          <view class="todo-card todo-card--after-sales" hover-class="todo-card--pressed" @click="unavailable">
+          <view class="todo-card todo-card--after-sales" hover-class="todo-card--pressed" @click="openTodo('售后待处理')">
             <view class="todo-card__after-icon"><AppIcon name="recycle" :size="22" /></view>
             <view class="todo-card__after-copy"><text class="todo-card__label">售后待处理</text><text class="todo-card__description">{{ data!.afterSales.description }}</text></view>
             <view class="todo-card__after-count"><text>{{ data!.afterSales.value }}</text><text>单</text></view>
