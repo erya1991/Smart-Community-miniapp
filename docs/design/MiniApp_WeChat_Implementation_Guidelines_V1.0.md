@@ -1,55 +1,23 @@
 # 大光路智慧社区小程序｜微信小程序实现规范 V1.0
 
-> 文件定位：项目级工程落地规范  
-> 适用终端：住户小程序、商户小程序  
-> 技术栈：Vue 3 + uni-app + 微信小程序  
-> 上游通用规范：项目使用的《微信小程序设计指南》Skill  
-> 官方依据：用户提供的《微信小程序设计指南》  
-> 关联文件：
-> - `docs/design/MiniApp_Design_System_V1.1.md`
-> - `docs/codex/00_Stitch视觉还原协议.md`
-> - `docs/design/Stitch视觉母版映射表.md`
-> - `docs/implementation/V1.0_小程序页面实施清单.md`
+> 适用终端：住户小程序、商户小程序
 >
-> 本文件**不是微信官方设计指南的副本**。  
-> 通用微信设计原则、导航、反馈、异常、触控和适老化规则由上游 Skill 负责；本文件只定义“大光路智慧社区项目在遵循微信官方指南基础上的工程落地约束”。
-
----
+> 技术栈：Vue 3 + uni-app / 微信小程序
+>
+> 文档清洗：2026-10-12（PREP-01/C-1），保留已有平台适配和视觉数值。
+>
+> 本文件是项目工程适配约定，不是微信官方指南副本，不定义业务范围、状态机、角色和权限。
 
 # 1. 规范职责与优先级
 
-项目页面开发时，按以下顺序理解约束：
+业务及当前阶段范围读取 [AGENTS.md](../../AGENTS.md) 指向的有效产品和批准方案。视觉权威顺序：
 
-```text
-PRD / 产品详细设计
-        ↓
-页面实施清单
-        ↓
-MiniApp Design System
-        ↓
-本微信小程序实现规范
-        ↓
-Stitch screen.png / code.html
-        ↓
-现有 uni-app / yudao-mall-uniapp 能力
-```
+1. [Design System](MiniApp_Design_System_V1.1.md)。
+2. 本微信实现规范。
+3. [Stitch 视觉还原规范](Stitch视觉还原规范.md)。
+4. [映射表](Stitch视觉母版映射表.md) 中有效截图及原始 DESIGN 参考。
 
-各文件职责：
-
-| 输入 | 负责内容 |
-|---|---|
-| PRD | 业务对象、字段、状态、流程、权限、规则 |
-| 页面实施清单 | 当前是否开发、页面范围、入口 |
-| Design System | 品牌色、字体、间距、圆角、组件视觉语言 |
-| 本规范 | 微信小程序 / uni-app 的导航、安全区、缩放、滚动、触控、资源与工程落地 |
-| Stitch | 具体页面布局、模块顺序、几何结构、信息密度 |
-| 现有代码 | 成熟商城能力、请求、登录、状态管理等技术复用 |
-
-冲突规则：
-
-> 业务服从 PRD；视觉基线服从 Design System；微信平台适配服从本规范；具体页面构图优先参考 Stitch。
-
----
+本规范负责导航、胶囊和安全区、响应布局、滚动、触控、大字体、表单反馈、资源及真机验证。开发具体平台能力时核实当前官方接口规则；视觉输入不替代平台适配，也不产生业务授权。
 
 # 2. 双小程序工程边界
 
@@ -87,7 +55,7 @@ Stitch screen.png / code.html
 - Request / API Type；
 - 上传与文件能力；
 - 工具函数；
-- Project 公共模型；
+- 通用类型；
 - 通用状态组件；
 - 通用业务组件。
 
@@ -99,7 +67,7 @@ Stitch screen.png / code.html
 
 > **390px 响应式设计基准。**
 
-依据微信官方指南：
+设计基准可以采用不同逻辑宽度；本项目已有视觉约定为：
 
 - 可采用 375px 固定基准；
 - 或采用 390px 响应式基准；
@@ -503,43 +471,11 @@ Stitch 图标只作为视觉参考，不复制 Web 字体实现。
 
 # 18. Stitch → uni-app 转换
 
-Stitch `screen.png`：
+在 Design System 和本规范约束下，使用有效 `screen.png` 与原始 DESIGN 作为页面构图参考。截图缺失时按映射表记录回退，不声称完成直接母版对照。
 
-> 页面视觉验收基准。
+可参考模块顺序、padding/gap、flex/grid、圆角、图片比例和字体层级。不得复制 Tailwind、Web DOM、Google Fonts、Material Web Icons、hover、桌面响应式、固定浏览器 viewport 或 Web-only JS。
 
-Stitch `code.html`：
-
-> 辅助理解布局，不是代码模板。
-
-可参考：
-
-- 模块顺序；
-- padding；
-- gap；
-- flex / grid；
-- 圆角；
-- 图片比例；
-- 字体层级。
-
-禁止复制：
-
-- Tailwind；
-- Web DOM；
-- Google Fonts；
-- Material Web Icons；
-- hover；
-- desktop media query；
-- 浏览器固定 viewport；
-- Web-only JS。
-
-必须转换为：
-
-- Vue 3；
-- uni-app；
-- 小程序组件；
-- 项目公共组件；
-- 项目 Design Token；
-- 微信安全区。
+实现使用 Vue 3、uni-app、小程序组件、共享公共组件、现有 Token 和微信安全区。
 
 ---
 
@@ -547,14 +483,14 @@ Stitch `code.html`：
 
 所有存在 Stitch 母版或参考母版的页面必须遵守：
 
-`docs/codex/00_Stitch视觉还原协议.md`
+[Stitch视觉还原规范](Stitch视觉还原规范.md)
 
 页面开发前：
 
 1. 查询映射表；
 2. 判断 L1 / L2 / L3；
 3. L1 / L2 直接打开必要 `screen.png`；
-4. 按需读取 `code.html`。
+4. 确认 R/Replica 或 O/Operational 模式及截图可用性。
 
 开发后：
 
@@ -566,54 +502,15 @@ Stitch `code.html`：
 
 ---
 
-# 20. Mock 与未开发业务
+# 20. 演示与不可用反馈
 
-业务尚未开发，不等于入口页面必须呈现开发 Demo。
+只在经批准的页面范围内使用必要演示数据。演示内容集中在 Adapter/Mock 层，页面不散落硬编码；演示不创造正式业务规则，不伪装成真实接口。
 
-允许：
-
-- 首页、服务页使用完整 Mock 服务卡；
-- 商城使用合理商品 Mock；
-- 点击未开发 P2-P5 功能进入 `FeatureUnavailable`。
-
-Mock 要求：
-
-- 集中在 Adapter / Mock 层；
-- 页面不散落硬编码；
-- 不创造正式业务规则；
-- 不伪装成真实后端接口。
+不可用状态保留与品牌一致的视觉和明确返回路径。是否提供入口及其允许动作由有效需求决定，本规范不授权未来业务。
 
 ---
 
-# 21. Project / Member / Merchant 上下文
-
-住户端：
-
-```text
-currentProject
-currentMember
-```
-
-商户端：
-
-```text
-currentProject
-currentOperator
-currentStore
-currentMerchantStaff
-```
-
-要求：
-
-- 页面获取明确上下文；
-- 一期可默认大光路项目；
-- 不永久写死唯一 Project；
-- 前端参数不能扩大后端数据权限；
-- 两端不通过“切换用户端类型”共用一级导航。
-
----
-
-# 22. 性能与页面体量
+# 21. 性能与页面体量
 
 优先：
 
@@ -633,7 +530,7 @@ currentMerchantStaff
 
 ---
 
-# 23. 官方指南与项目品牌的边界
+# 22. 官方指南与项目品牌的边界
 
 微信官方指南提供平台通用体验原则。
 
@@ -668,7 +565,7 @@ currentMerchantStaff
 
 ---
 
-# 24. 页面完成前检查
+# 23. 页面完成前检查
 
 每个正式页面至少检查：
 
@@ -713,9 +610,9 @@ currentMerchantStaff
 
 ---
 
-# 25. Codex 阶段交付说明
+# 24. 页面适配证据说明
 
-每阶段完成时至少说明：
+页面适配工作按当前任务允许的验证方式记录：
 
 1. 使用了哪些原生微信能力；
 2. 哪些页面使用自定义导航 / TabBar；
@@ -728,7 +625,7 @@ currentMerchantStaff
 
 ---
 
-# 26. 真机验证
+# 25. 真机验证
 
 最终不能只依赖 H5。
 
@@ -753,7 +650,7 @@ currentMerchantStaff
 
 ---
 
-# 27. 最终原则
+# 26. 最终原则
 
 项目小程序开发统一遵循：
 
@@ -766,7 +663,7 @@ currentMerchantStaff
         +
 Stitch 页面视觉母版
         +
-PRD 业务规则
+有效产品与阶段方案
 ```
 
 目标不是复制 Web 原型，而是：
