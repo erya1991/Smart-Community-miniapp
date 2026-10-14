@@ -72,23 +72,23 @@ npm.cmd run check:boundaries
 
 ## 6. 与 LiLiShop Backend 的关系
 
-正式工作区中的 `lilishop-backend`、`lilishop-ui` 和本仓库保持独立 Git 历史及构建流程。双小程序以 Service → Adapter 边界适配 LiLiShop，不建立平行商品、订单或资金后端。
+正式工作区中的 `lilishop-backend`、`lilishop-ui`、本仓库和 `project-ops` 保持四份独立 Git 历史，三个源码仓独立构建。双小程序以 Service → Adapter 边界适配 LiLiShop，不建立平行商品、订单或资金后端。
 
 当前历史业务 Adapter 仍使用 Mock，尚不能据此宣称真实登录、权限、业务 API 或收付通资金闭环已接通。正式业务以服务端身份、Store 数据范围、金额和状态事实为准。
 
 ## 7. 文档入口
 
 - [研发规范](AGENTS.md)
+- [项目级研发规范](../project-ops/AGENTS.md)
+- [产品基线身份清单](../project-ops/docs/product/PRODUCT_BASELINE_MANIFEST.md)
+- [总体需求大纲 V1.0](../project-ops/docs/product/source/00_大光路智慧社区_P0商城闭环_总体需求大纲_V1.0.md)
+- [正式开发总清单 V1.1](../project-ops/docs/product/current/01_大光路智慧社区_P0商城闭环_产品开发总清单_V1.1.md)
 - [Design System V1.1](docs/design/MiniApp_Design_System_V1.1.md)
 - [微信小程序实现规范 V1.0](docs/design/MiniApp_WeChat_Implementation_Guidelines_V1.0.md)
 - [Stitch 视觉还原规范](docs/design/Stitch视觉还原规范.md)
 - [Stitch 视觉母版映射表](docs/design/Stitch视觉母版映射表.md)
 
-正式产品原件当前位于：
-
-`D:\工作\工作任务2026\智慧社区课题\需求资料\第二版需求-基于LiLiShop\`
-
-其中总体大纲为最高业务依据，总清单管理原功能编号及 Stage 计划。使用前实际定位和读取，不以视觉资料或历史实现记录替代。未来项目级资料由 `project-ops` 管理；该仓库尚未建立。
+产品依据按总体大纲 V1.0 → 正式开发总清单 V1.1 → 当前批准的阶段设计与验收资料使用；V1.1 已为 APPROVED / CURRENT，历史 V1.0 总清单和 V1.1-DRAFT 仅供追溯。D:\工作 下原件和 source 快照保持只读，原件位置及 SHA 见产品基线身份清单。跨仓任务必须显式读取 project-ops/AGENTS.md 与本仓库 AGENTS；兄弟仓规范不会自动适用于本仓库。视觉资料、历史实现及 Mock 不替代正式业务依据。
 
 ## 8. 当前实施状态
 
