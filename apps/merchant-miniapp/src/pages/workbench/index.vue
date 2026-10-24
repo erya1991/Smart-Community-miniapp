@@ -1,139 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
 import BaseCard from '@/components/BaseCard.vue'
-import FeatureUnavailable from '@/components/FeatureUnavailable.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
-import AppIcon from '@/components/AppIcon.vue'
-import { usePageResource } from '@/composables/usePageResource'
-import { merchantSupplyDashboard } from '@/services/supply'
-import MerchantOrderDemoPanel from '@/features/fulfillment/MerchantOrderDemoPanel.vue'
-import { formatMoneyFromFen, openSubPage } from '@/utils/navigation'
+import MerchantIdentityPanel from '../../components/MerchantIdentityPanel.vue'
 import { merchantTabItems } from '@/config/navigation'
+import { useMerchantContext } from '@/stores/merchant-context'
 
-const { status, data, errorMessage, load, refresh } = usePageResource(merchantSupplyDashboard.getWorkbench)
-const showUnavailable = ref(false)
-const quickActions = [
-  { label: '新增商品', icon: 'plus', path: '/pages/product/editor/index' },
-  { label: '商品管理', icon: 'store', active: true, path: '/pages/operation/index' },
-  { label: '经营资格', icon: 'verified', path: '/pages/qualification/status/index' },
-]
-const unavailable = () => { showUnavailable.value = true }
-const openTodo = (label: string) => {
-  if (label === '售后待处理') return openSubPage('/pages/after-sale/index?filter=pending')
-  if (label === '待审核商品') return openSubPage('/pages/operation/index?filter=pending')
-  const filters: Record<string, string> = { '待备货': 'preparing', '待配送': 'delivery', '待配送/发货': 'delivery', '待自提/核销': 'verification', '待核销': 'verification' }
-  return filters[label] ? openSubPage(`/pages/order/index?filter=${filters[label]}`) : unavailable()
-}
-onLoad(load)
-onShow(() => { if (data.value) return refresh() })
+const { loadIdentity } = useMerchantContext()
+onShow(loadIdentity)
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" @retry="load">
+  <AppPage>
     <template #navbar><AppNavbar title="工作台" compact show-user /></template>
     <view class="stack workbench-stack">
-      <MerchantOrderDemoPanel @changed="refresh" />
-      <BaseCard class="store-brief" :padded="false" @click="openSubPage('/pages/qualification/status/index')"><view class="store-brief__icon"><AppIcon name="shop" :size="26" /></view><view class="store-brief__copy"><text>{{ data!.qualification.storeName }}</text><text>{{ data!.qualification.tradeReady ? '可正式交易' : data!.qualification.baseBusinessReady ? '可维护商品 · 正式交易待完善' : '经营基础资格待完善' }}</text></view><text class="store-brief__arrow">›</text></BaseCard>
-      <view v-if="!data!.qualification.tradeReady" class="qualification-alert" @click="openSubPage('/pages/qualification/status/index')"><view><text>正式交易暂不可用</text><text>{{ data!.qualification.tradeReasons.join('；') }}</text></view><text>查看原因 ›</text></view>
-
-      <BaseCard class="todo-section" :padded="false">
-        <view class="section-row"><SectionHeader title="待办事项" /><view class="todo-heading"><text>{{ data!.todoTotal }}件待处理</text><view class="section-action" @click="openSubPage('/pages/operation/index')">商品管理 ›</view></view></view>
-        <view class="todo-grid">
-          <view v-for="todo in data!.todos" :key="todo.label" class="todo-card" :class="{ 'todo-card--urgent': todo.label === '待备货' }" hover-class="todo-card--pressed" @click="openTodo(todo.label)">
-            <view class="todo-card__top"><text class="todo-card__label">{{ todo.label }}</text><text v-if="todo.label === '待备货'" class="todo-card__urgent">加急</text><view v-else class="todo-card__dot" /></view>
-            <view class="todo-card__bottom"><text class="todo-card__value">{{ todo.value }}</text><text class="todo-card__description">{{ todo.description }}</text></view>
-          </view>
-          <view class="todo-card todo-card--after-sales" hover-class="todo-card--pressed" @click="openTodo('售后待处理')">
-            <view class="todo-card__after-icon"><AppIcon name="recycle" :size="22" /></view>
-            <view class="todo-card__after-copy"><text class="todo-card__label">售后待处理</text><text class="todo-card__description">{{ data!.afterSales.description }}</text></view>
-            <view class="todo-card__after-count"><text>{{ data!.afterSales.value }}</text><text>单</text></view>
-          </view>
-        </view>
-      </BaseCard>
-
-      <view class="workbench-actions">
-        <view class="section-row section-row--plain"><SectionHeader title="快捷操作" /><text class="section-note">常用高频</text></view>
-        <view class="action-grid"><view v-for="action in quickActions" :key="action.label" class="action-card" :class="{ 'action-card--active': action.active }" hover-class="action-card--pressed" @click="openSubPage(action.path)"><view class="action-card__icon"><AppIcon :name="action.icon" :size="28" /></view><text class="action-card__label">{{ action.label }}</text></view></view>
-      </view>
-
-      <BaseCard class="overview-section" :padded="false">
-        <view class="section-row"><SectionHeader title="经营概览" /><view class="overview-tools"><text class="section-note">今日汇总</text></view></view>
-        <view class="overview-grid">
-          <view class="overview-item"><text class="overview-label">今日订单数</text><text class="overview-value">{{ data!.today.orderCount }}<text class="overview-unit"> 单</text></text></view>
-          <view class="overview-item"><text class="overview-label">今日成交额</text><text class="overview-value overview-value--primary">¥{{ formatMoneyFromFen(data!.today.amount) }}</text></view>
-          <view class="overview-item"><text class="overview-label">待分账</text><text class="overview-value">¥{{ formatMoneyFromFen(data!.funds.pending) }}</text></view>
-          <view class="overview-item"><text class="overview-label">已分账</text><text class="overview-value overview-value--primary">¥{{ formatMoneyFromFen(data!.funds.completed) }}</text></view>
-        </view>
+      <MerchantIdentityPanel />
+      <BaseCard class="workbench-scope">
+        <SectionHeader title="经营服务暂未开放" />
+        <text>当前仅提供商户身份确认和本设备登录管理。身份核实不代表商品、订单或交易操作已经开放。</text>
       </BaseCard>
     </view>
-    <FeatureUnavailable v-show="showUnavailable" @close="showUnavailable = false" />
     <template #tabbar><AppTabbar :items="merchantTabItems" active-path="/pages/workbench/index" /></template>
   </AppPage>
 </template>
 
 <style scoped lang="scss">
 .workbench-stack { gap: $space-3; }
-.store-brief { display:flex; min-height:72px; align-items:center; gap:$space-3; padding:$space-3; }
-.store-brief__icon { display:flex; width:44px; height:44px; align-items:center; justify-content:center; flex:none; border-radius:$radius-md; background:$color-primary-light; }
-.store-brief__copy { flex:1; min-width:0; }
-.store-brief__copy > text { display:block; }
-.store-brief__copy > text:first-child { font-size:16px; font-weight:600; }
-.store-brief__copy > text:last-child { margin-top:$space-1; font-size:12px; color:$color-text-secondary; }
-.store-brief__arrow { color:$color-primary; font-size:22px; }
-.qualification-alert { display:flex; min-height:52px; align-items:center; justify-content:space-between; gap:$space-2; padding:$space-3; border-radius:$radius-md; background:$color-warning-light; color:$color-warning; font-size:13px; }
-.qualification-alert > view { flex:1; min-width:0; }
-.qualification-alert > view > text { display:block; }
-.qualification-alert > view > text:first-child { font-size:15px; font-weight:600; }
-.qualification-alert > text { flex:none; color:$color-primary; }
-.section-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: $space-2; }
-.section-row :deep(.section-header) { min-height: 36px; }
-.section-row :deep(.section-header__title) { font-size: 17px; line-height: 24px; }
-.section-row :deep(.section-header__accent) { width: 3px; height: 16px; }
-.section-row--plain { min-height: 36px; }
-.section-note { flex: none; color: $color-text-secondary; font-size: 12px; font-weight: 500; }
-.section-action { display: flex; min-height: $touch-target-min; align-items: center; color: $color-primary; font-size: 13px; font-weight: 600; white-space: nowrap; }
-.todo-section, .overview-section { padding: $space-3; }
-.todo-heading, .overview-tools { display: flex; align-items: center; gap: $space-2; }
-.todo-heading > text { padding: 2px $space-2; border-radius: 999px; background: $color-accent; color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
-.todo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $space-2; }
-.todo-card { display: flex; min-height: 76px; justify-content: space-between; flex-direction: column; padding: $space-3; border-radius: $radius-md; background: $color-group-bg; }
-.todo-card--urgent { background: rgba(250, 238, 233, 0.72); }
-.todo-card--pressed, .action-card--pressed { opacity: 0.72; }
-.todo-card__top, .todo-card__bottom { display: flex; align-items: center; justify-content: space-between; gap: $space-2; }
-.todo-card__label { font-size: 15px; font-weight: 600; }
-.todo-card__value { font-size: 28px; font-weight: 700; line-height: 30px; }
-.todo-card--urgent .todo-card__value { color: $color-accent; }
-.todo-card__description { overflow: hidden; color: $color-text-secondary; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.todo-card__urgent { padding: 2px 6px; border-radius: $radius-sm; background: $color-accent; color: #fff; font-size: 11px; font-weight: 700; }
-.todo-card__dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: $color-primary; }
-.todo-card--after-sales { grid-column: 1 / -1; min-height: 52px; align-items: center; flex-direction: row; gap: $space-2; }
-.todo-card__after-icon { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; border-radius: 10px; background: $color-accent-light; }
-.todo-card__after-copy { flex: 1; min-width: 0; }
-.todo-card__after-copy .todo-card__label, .todo-card__after-copy .todo-card__description { display: block; }
-.todo-card__after-count { display: flex; align-items: baseline; gap: 2px; color: $color-error; }
-.todo-card__after-count text:first-child { font-size: 28px; font-weight: 700; }
-.todo-card__after-count text:last-child { color: $color-text-primary; font-size: 12px; font-weight: 600; }
-.action-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: $space-2; }
-.action-card { display: flex; min-height: 76px; align-items: center; justify-content: center; flex-direction: column; gap: $space-1; border: 1px solid rgba(225, 228, 230, 0.72); border-radius: $radius-card; background: $color-card-bg; box-shadow: 0 2px 8px rgba(27, 77, 83, 0.04); color: $color-text-primary; }
-.action-card--active { border-color: $color-primary; background: $color-primary; color: #fff; box-shadow: 0 3px 8px rgba(27, 77, 83, 0.14); }
-.action-card__icon { display: flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 10px; background: $color-primary-light; }
-.action-card--active .action-card__icon { background: rgba(255, 255, 255, 0.14); }
-.action-card--active :deep(.app-icon) { filter: brightness(0) invert(1); }
-.action-card__label { font-size: 14px; font-weight: 600; }
-.overview-section { padding-bottom: $space-2; }
-.overview-tools { min-width: 0; margin-left: auto; }
-.overview-tools .section-action { min-height: 36px; }
-.overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: $space-1; border-top: 1px solid rgba(225, 228, 230, 0.72); }
-.overview-item { min-width: 0; padding: $space-2 $space-3 $space-3; }
-.overview-item:nth-child(odd) { border-right: 1px solid rgba(225, 228, 230, 0.72); }
-.overview-item:nth-child(-n + 2) { border-bottom: 1px solid rgba(225, 228, 230, 0.72); }
-.overview-label, .overview-value { display: block; }
-.overview-label { color: $color-text-secondary; font-size: 13px; }
-.overview-value { overflow: hidden; margin-top: 2px; font-size: 22px; font-weight: 700; line-height: 30px; text-overflow: ellipsis; white-space: nowrap; }
-.overview-value--primary { color: $color-primary; }
-.overview-unit { font-size: 12px; }
+.workbench-scope > text { display: block; color: $color-text-secondary; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
 </style>
