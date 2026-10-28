@@ -29,7 +29,7 @@ onShow(() => { if (data.value) refresh() })
 <template>
   <AppPage :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="智慧社区平台" show-brand /></template>
-    <view class="stack">
+    <view v-if="data" class="stack">
       <view class="community-row"><AppIcon name="location" :size="19" /><text class="community-row__name">{{ data!.communityName }}</text><view class="community-row__notice" aria-label="消息通知" @click="showNoticeUnavailable = true"><AppIcon name="bell" :size="20" /></view></view>
       <view class="hero"><image class="hero__image" src="/static/images/home/hero-community-life.png" mode="aspectFill" /><view class="hero__shade" /><view class="hero__copy"><text class="hero__title">家门口的社区生活服务</text><text class="hero__subtitle">购物与便民入口，一站找到</text></view></view>
       <BaseCard class="home-entry-card"><QuickEntryGrid class="home-entry-grid" :items="data!.entries" /></BaseCard>
