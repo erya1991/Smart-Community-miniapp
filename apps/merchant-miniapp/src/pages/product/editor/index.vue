@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import Stage1View from '../../../components/stage1/ProductEditor.vue'
+import {stage1Enabled} from '../../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+function onShow(callback:(...args:any[])=>any){registerStage1LegacyonShow((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
 import { computed, nextTick, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import {onLoad as registerStage1LegacyonLoad,onShow as registerStage1LegacyonShow} from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -123,7 +132,8 @@ onShow(() => {
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar :title="title" centered show-back /></template>
     <view v-if="form && qualification" class="stack editor-page">
       <view class="editor-state"><StatusTag :tone="form.draft ? 'disabled' : form.auditStatus === 'PASS' ? 'success' : form.auditStatus === 'REFUSE' ? 'error' : 'pending'">{{ auditLabel(form) }}</StatusTag><text>{{ form.marketEnable === 'UPPER' ? '销售中' : '已下架 / 未上架' }}</text><view class="sku-link" @click="goSku">编辑 SKU 与库存 ›</view></view>

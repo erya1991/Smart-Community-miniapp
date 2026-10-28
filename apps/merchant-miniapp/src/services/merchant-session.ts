@@ -1,4 +1,4 @@
-// Merchant-only Stage 0 adapter. Backend remains the authority; no business write API is exposed here.
+// Merchant-only Session authority. Stage1 callers use constrained paths and never receive raw credentials.
 export const MERCHANT_SESSION_KEY = 'daguanglu:merchant:session:v1'
 export type MerchantDomain = 'APPLICANT' | 'STORE'
 export type MerchantRole = 'OWNER' | 'STAFF'
@@ -15,7 +15,9 @@ export interface MerchantPorts {
   baseUrl: string
   now?: () => number
   storage: { get(key: string): unknown; set(key: string, value: unknown): void; remove(key: string): void }
-  request(input: { path: string; method: 'GET' | 'POST'; body?: unknown; accessToken?: string }): Promise<MerchantResponse>
+  request(input: { path: string; method: 'GET' | 'POST' | 'PUT'; body?: unknown; accessToken?: string }): Promise<MerchantResponse>
+  upload?(input: { path: string; filePath: string; metadata: string; accessToken: string }): Promise<MerchantResponse>
+  download?(input: { path: string; accessToken: string }): Promise<MerchantResponse>
 }
 const messages: Record<string, string> = {
   API_NOT_CONFIGURED: '商户登录服务尚未配置，请等待服务开通。',
@@ -97,6 +99,7 @@ export class MerchantSessionClient {
   get authenticated(): boolean { return this.session !== null }
   get revision(): number { return this.epoch }
   get memberId(): string | null { return this.subject }
+  get domain(): MerchantDomain | null { return this.identityDomain }
   private configured(): void {
     if (!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~-]+)*$/.test(this.ports.baseUrl)) {
       throw new MerchantError('API_NOT_CONFIGURED')
@@ -133,7 +136,7 @@ export class MerchantSessionClient {
       this.confirmedRole = null
     } catch (error) { this.failClosed(error instanceof MerchantError ? error : new MerchantError('STORAGE_UNAVAILABLE')) }
   }
-  private async request(path: string, method: 'GET' | 'POST', body?: unknown, accessToken?: string): Promise<MerchantResponse> {
+  private async request(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown, accessToken?: string): Promise<MerchantResponse> {
     this.configured()
     try { return await this.ports.request({ path, method, body, accessToken }) }
     catch { throw new MerchantError('NETWORK_ERROR') }
@@ -206,9 +209,12 @@ export class MerchantSessionClient {
   }
   async identity(): Promise<MerchantIdentityContext> {
     const epoch = this.epoch; const sequence = ++this.readSequence
+    const originalAccess = this.session?.accessToken
     for (let attempt = 0; attempt < 2; attempt++) {
+      let usedAccess: string | null = null
       try {
         const accessToken = await this.access(epoch)
+        usedAccess = accessToken
         const identity = this.identityDomain; const memberId = this.subject
         let context: MerchantIdentityContext
         if (identity === 'APPLICANT') {
@@ -235,15 +241,56 @@ export class MerchantSessionClient {
         if (error instanceof MerchantError && this.invalidations.has(error)) throw error
         this.current(epoch)
         if (sequence !== this.readSequence) throw new MerchantError('STALE_OPERATION')
-        if (attempt === 0 && error instanceof MerchantError && ['ACCESS_CHANGED', 'SESSION_REJECTED'].includes(error.code) && this.session) {
-          if (error.code === 'SESSION_REJECTED') await this.refresh(epoch)
+        if (attempt === 0 && error instanceof MerchantError && this.session
+          && (error.code === 'ACCESS_CHANGED' || (error.code === 'SESSION_REJECTED' && usedAccess === originalAccess))) {
+          if (error.code === 'SESSION_REJECTED' && this.session.accessToken === usedAccess) await this.refresh(epoch)
           continue // Retry only these read-only identity GETs; no write request is replayed.
         }
-        if (error instanceof MerchantError && ['SESSION_REJECTED', 'DENIED', 'IDENTITY_CONFLICT', 'INVALID_RESPONSE', 'ACCESS_CHANGED'].includes(error.code)) this.failClosed(error)
+        if (error instanceof MerchantError && ['SESSION_REJECTED', 'SESSION_REQUIRED', 'DENIED', 'IDENTITY_CONFLICT', 'INVALID_RESPONSE', 'ACCESS_CHANGED'].includes(error.code)) this.failClosed(error)
         throw error instanceof MerchantError ? error : new MerchantError('OPERATION_UNAVAILABLE')
       }
     }
     throw new MerchantError('STALE_OPERATION')
+  }
+  private stage1Path(path: string): string {
+    if (!/^\/[A-Za-z0-9/_-]+$/.test(path) || path.includes('//') || path.includes('..')) throw new MerchantError('INVALID_REQUEST')
+    if (!this.identityDomain) throw new MerchantError('SESSION_REQUIRED')
+    return (this.identityDomain === 'APPLICANT' ? '/store/passport/applicant/p0/s1' : '/store/p0/s1') + path
+  }
+  /** GET may reread once after a changed Access; writes and uploads are never automatically replayed. */
+  private async stage1Call(path: string, readOnly: boolean, send: (path: string, token: string) => Promise<MerchantResponse>): Promise<MerchantResponse> {
+    const epoch = this.epoch
+    const fullPath = this.stage1Path(path)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const token = await this.access(epoch)
+      const response = await send(fullPath, token)
+      this.current(epoch)
+      const body = response.data && typeof response.data === 'object' ? response.data as Record<string, unknown> : null
+      const denied = [401, 403].includes(response.status) && ['SESSION_REJECTED', 'SESSION_REQUIRED'].includes(String(body?.message))
+      if (readOnly && attempt === 0 && (this.session?.accessToken !== token || denied)) {
+        if (denied && this.session?.accessToken === token) await this.refresh(epoch)
+        continue
+      }
+      if (denied && this.session?.accessToken === token) this.failClosed(new MerchantError('SESSION_REJECTED', response.status))
+      return response
+    }
+    throw new MerchantError('STALE_OPERATION')
+  }
+  business(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown): Promise<MerchantResponse> {
+    return this.stage1Call(path, method === 'GET', (full, token) => this.request(full, method, body, token))
+  }
+  uploadBusiness(filePath: string, metadata: string): Promise<MerchantResponse> {
+    return this.stage1Call('/files', false, async (path, accessToken) => {
+      if (!this.ports.upload) throw new MerchantError('OPERATION_UNAVAILABLE')
+      return this.ports.upload({path, accessToken, filePath, metadata})
+    })
+  }
+  previewBusiness(fileId: string, goodsId?: string): Promise<MerchantResponse> {
+    if (!/^[1-9][0-9]{0,18}$/.test(fileId) || goodsId !== undefined && !/^[1-9][0-9]{0,18}$/.test(goodsId)) return Promise.reject(new MerchantError('INVALID_REQUEST'))
+    return this.stage1Call(goodsId ? '/goods/' + goodsId + '/images/' + fileId : '/files/' + fileId + '/preview', true, async (path, accessToken) => {
+      if (!this.ports.download) throw new MerchantError('OPERATION_UNAVAILABLE')
+      return this.ports.download({path, accessToken})
+    })
   }
   async logout(): Promise<{ confirmed: boolean }> {
     const session = this.session; const identity = this.identityDomain

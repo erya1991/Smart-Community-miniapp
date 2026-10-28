@@ -428,6 +428,37 @@ check('late write response cannot return old profile as the newly logged-in iden
   assert.equal(f.client.memberId, profile('b').memberId)
 })
 
+check('explicit avatar session rejection clears only the current Resident credentials without replay', async () => {
+  for (const code of ['SESSION_REJECTED', 'SESSION_REQUIRED', 'IDENTITY_UNAVAILABLE']) {
+    const f = fixture()
+    await f.login()
+    f.handlers.set(urls.avatar, () => failure(code))
+    await rejectsCode(f.client.uploadAvatar({ filePath: '/synthetic/avatar.png', size: 128, type: 'png' }), code)
+    assert.equal(f.client.authenticated, false)
+    assert.equal(f.map.has(RESIDENT_SESSION_KEY), false)
+    assert.equal(f.uploads.length, 1)
+    assert.equal(f.count(urls.refresh), 0)
+    assert.deepEqual(f.map.get(merchantKey), merchantValue)
+  }
+})
+
+check('a delayed rejected avatar upload cannot invalidate a newer Resident login', async () => {
+  const f = fixture()
+  await f.login()
+  const upload = deferred()
+  f.handlers.set(urls.avatar, () => upload.promise)
+  const oldUpload = f.client.uploadAvatar({ filePath: '/synthetic/avatar.png', size: 128, type: 'png' })
+  await settleUntil(() => f.uploads.length === 1, 'old upload must be in flight')
+  f.setProfile(profile('b'))
+  f.setTokens(tokens(11))
+  await f.login()
+  const saved = structuredClone(f.map.get(RESIDENT_SESSION_KEY))
+  upload.resolve(failure('SESSION_REJECTED'))
+  await rejectsCode(oldUpload, 'STALE_OPERATION')
+  assert.equal(f.client.memberId, profile('b').memberId)
+  assert.deepEqual(f.map.get(RESIDENT_SESSION_KEY), saved)
+})
+
 check('profile conflict and same-phone link requirement never replace Member A or leak response details', async () => {
   const f = fixture()
   await f.login()

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
+import Stage1Home from '../../components/stage1/Home.vue'
+import {stage1Enabled} from '../../services/stage1'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
@@ -18,7 +20,8 @@ onShow(loadIdentity)
     <template #navbar><AppNavbar title="我的" centered /></template>
     <view class="stack merchant-profile-stack">
       <MerchantIdentityPanel />
-      <BaseCard class="merchant-profile-scope">
+      <Stage1Home v-if="stage1Enabled" profile/>
+      <BaseCard v-else class="merchant-profile-scope">
         <SectionHeader title="商户服务" />
         <text>店铺资料、工作人员及经营资格服务尚未开放，当前仅查看已核实的身份。</text>
       </BaseCard>

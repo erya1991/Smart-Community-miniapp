@@ -78,3 +78,16 @@ button::after {
   color: $color-text-secondary;
   font-size: 13px;
 }
+/* #ifdef H5 */
+/* The framework's header shadow defaults to a remote PNG. A local shadow keeps
+   both test hosts self-contained without changing request-domain validation. */
+[class*='uni-page-head-shadow-']::after {
+  background-image: none !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+/* Uni H5 also preloads its remote shadow through a hidden body animation. */
+body::after {
+  animation: none !important;
+  background-image: none !important;
+}
+/* #endif */

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {stage1Enabled} from '../../../services/stage1'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPage from '@/components/AppPage.vue'
@@ -41,8 +42,8 @@ const simulate = async (outcome: 'processing' | 'success' | 'failure') => {
   try { const result = await uni.showModal({ title: '平台退款 Mock', content: '本次以平台模拟器身份更新退款结果，仅用于原型演示，不执行真实资金操作。' }); if (!result.confirm) return; await platformRefundDemoService.process(data.value.id, outcome); await refresh() }
   catch (error) { message.value = error instanceof Error ? error.message : '模拟失败'; await refresh() } finally { busy.value = false }
 }
-onLoad(options => { id.value = options?.id || ''; load() })
-onShow(() => { if (data.value) refresh() })
+onLoad(options => { if(stage1Enabled)return; id.value = options?.id || ''; load() })
+onShow(() => { if(stage1Enabled)return; if (data.value) refresh() })
 </script>
 <template>
   <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">

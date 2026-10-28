@@ -268,7 +268,12 @@ export class ResidentSessionClient {
     try { response = await this.ports.upload({ filePath: image.filePath, accessToken }) }
     catch { throw new ResidentError('WRITE_RESULT_UNKNOWN') }
     this.current(epoch)
-    const data = object(result(response))
+    let data: Record<string, any>
+    try { data = object(result(response)) } catch (error) {
+      if (error instanceof ResidentError && response.status === 403
+        && ['SESSION_REJECTED', 'SESSION_REQUIRED', 'IDENTITY_UNAVAILABLE'].includes(error.code)) this.clear()
+      throw error
+    }
     if (!id(data.fileId) || typeof data.url !== 'string' || !/^https:\/\/[^\s@]+$/i.test(data.url)) throw new ResidentError('INVALID_RESPONSE')
     return { fileId: data.fileId, url: data.url }
   }

@@ -144,6 +144,25 @@ const currentMerchantStaff = readonly(computed<MerchantStaff | null>(() => state
   ? { id: state.identity.clerkId, name: state.identity.role === 'OWNER' ? '负责人' : '工作人员', role: state.identity.role } : null))
 
 export const refreshMerchantContext = loadIdentity
+// Business adapters reuse this client. No token or mutable role/Store is exported.
+export const merchantSessionRevision = () => client.revision
+// Non-secret journal partition; authorization remains entirely server side.
+export const merchantOperationOwner = () => { initializeMerchantContext(); return client.memberId ? client.domain+':'+client.memberId : null }
+export async function merchantBusinessRequest(path: string, method: 'GET'|'POST'|'PUT', body?: unknown) {
+  initializeMerchantContext()
+  try { return await client.business(path, method, body) }
+  catch (error) { if (error instanceof MerchantError && ['SESSION_REJECTED','SESSION_REQUIRED','STORAGE_UNAVAILABLE'].includes(error.code)) failed(error); throw error }
+}
+export async function merchantBusinessUpload(filePath: string, metadata: string) {
+  initializeMerchantContext()
+  try { return await client.uploadBusiness(filePath, metadata) }
+  catch (error) { if (error instanceof MerchantError && ['SESSION_REJECTED','SESSION_REQUIRED','STORAGE_UNAVAILABLE'].includes(error.code)) failed(error); throw error }
+}
+export async function merchantBusinessPreview(fileId: string, goodsId?: string) {
+  initializeMerchantContext()
+  try { return await client.previewBusiness(fileId, goodsId) }
+  catch (error) { if (error instanceof MerchantError && ['SESSION_REJECTED','SESSION_REQUIRED','STORAGE_UNAVAILABLE'].includes(error.code)) failed(error); throw error }
+}
 export function useMerchantContext() {
   initializeMerchantContext()
   return {

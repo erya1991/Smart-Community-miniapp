@@ -28,10 +28,10 @@ const residentServiceEntries: QuickEntry[] = [
 ]
 
 const products: ProductSummary[] = [
-  { id: 'product-vegetables', name: '当日新鲜蔬菜组合', merchantName: '邻里生鲜', price: 19.9, fulfillment: '社区自提', imageTone: '#d9e8d7', image: '/static/images/product-vegetables.svg', homeImage: '/static/images/home/product-vegetables.png' },
-  { id: 'product-rice', name: '正宗五常大米 5kg', merchantName: '大光路生活超市', price: 49.9, fulfillment: '商户配送', imageTone: '#eadfcf', image: '/static/images/product-rice.svg', homeImage: '/static/images/home/product-rice.png' },
-  { id: 'product-tissue', name: '时令水蜜桃家庭装', merchantName: '邻里生鲜', price: 29.9, fulfillment: '社区自提', imageTone: '#f1d9d1', image: '/static/images/product-peach.svg', homeImage: '/static/images/home/product-tissue.png', homeName: '家庭装竹浆抽纸', homeMerchantName: '大光路百货便利店', homePrice: 19.9 },
-  { id: 'product-breakfast', name: '社区暖心早餐包组合', merchantName: '大光路社区食堂', price: 15.8, fulfillment: '社区自提', imageTone: '#eee1ca', image: '/static/images/product-breakfast.svg', homeImage: '/static/images/home/product-peach.png', homeName: '时令水蜜桃家庭装', homeMerchantName: '邻里生鲜', homePrice: 29.9 },
+  { id: 'product-vegetables', name: '当日新鲜蔬菜组合', merchantName: '邻里生鲜', price: 19.9, fulfillment: '社区自提', imageTone: '#d9e8d7', image: '/static/images/catalog/vegetables.png', homeImage: '/static/images/home/product-vegetables.png' },
+  { id: 'product-rice', name: '正宗五常大米 5kg', merchantName: '大光路生活超市', price: 49.9, fulfillment: '商户配送', imageTone: '#eadfcf', image: '/static/images/catalog/rice.png', homeImage: '/static/images/home/product-rice.png' },
+  { id: 'product-tissue', name: '时令水蜜桃家庭装', merchantName: '邻里生鲜', price: 29.9, fulfillment: '社区自提', imageTone: '#f1d9d1', image: '/static/images/catalog/peach.png', homeImage: '/static/images/home/product-tissue.png', homeName: '家庭装竹浆抽纸', homeMerchantName: '大光路百货便利店', homePrice: 19.9 },
+  { id: 'product-breakfast', name: '社区暖心早餐包组合', merchantName: '大光路社区食堂', price: 15.8, fulfillment: '社区自提', imageTone: '#eee1ca', image: '/static/images/catalog/breakfast.png', homeImage: '/static/images/home/product-peach.png', homeName: '时令水蜜桃家庭装', homeMerchantName: '邻里生鲜', homePrice: 29.9 },
 ]
 
 const mallProducts: ProductSummary[] = [

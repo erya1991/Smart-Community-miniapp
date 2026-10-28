@@ -10,6 +10,8 @@ import BaseCard from '@/components/BaseCard.vue'
 import type { PageStatus } from '@/types/app'
 import { merchantTabItems } from '@/config/navigation'
 import { merchantIdentityPage, merchantOwnPagePath, merchantRestrictedTitle, merchantTabPath, MERCHANT_PROFILE_PATH } from '../services/merchant-route-guard'
+import {stage1Enabled,useStage1} from '../services/stage1'
+import {stage1PageAllowed} from '../services/stage1-route-guard'
 
 withDefaults(defineProps<{
   status?: PageStatus
@@ -20,7 +22,8 @@ withDefaults(defineProps<{
 const emit = defineEmits<{ retry: [] }>()
 const component = getCurrentInstance()
 const ownPath = ref('')
-const identityPage = computed(() => merchantIdentityPage(ownPath.value))
+const business=useStage1()
+const identityPage = computed(() => merchantIdentityPage(ownPath.value)||stage1Enabled&&stage1PageAllowed(ownPath.value,business.identity.state.identity?.identity,business.authority.context))
 const tabPath = computed(() => merchantTabPath(ownPath.value))
 const restrictedTitle = computed(() => merchantRestrictedTitle(ownPath.value))
 
@@ -32,6 +35,7 @@ function identifyPage() {
 identifyPage()
 onMounted(identifyPage)
 onShow(identifyPage)
+onShow(()=>{if(stage1Enabled)void business.refreshAuthority()})
 const showIdentity = () => uni.redirectTo({ url: MERCHANT_PROFILE_PATH })
 </script>
 
@@ -45,9 +49,9 @@ const showIdentity = () => uni.redirectTo({ url: MERCHANT_PROFILE_PATH })
     <template #navbar><AppNavbar :title="restrictedTitle" compact /></template>
     <view class="merchant-scope-limit">
       <BaseCard>
-        <text class="merchant-scope-limit__title">经营功能尚未开放</text>
-        <text class="merchant-scope-limit__copy">当前可使用商户微信登录、查看本人身份及退出登录。</text>
-        <text class="merchant-scope-limit__copy">开店申请、店铺管理和订单处理将在后续开放，当前店铺身份不代表这些操作已获授权。</text>
+        <text class="merchant-scope-limit__title">{{stage1Enabled?(business.authority.loading?'正在核对经营权限':'当前页面不可用'):'经营功能尚未开放'}}</text>
+        <text class="merchant-scope-limit__copy">{{stage1Enabled?(business.authority.error||'请核对当前登录及页面所需权限。'):'当前可使用商户微信登录、查看本人身份及退出登录。'}}</text>
+        <text v-if="!stage1Enabled" class="merchant-scope-limit__copy">开店申请、店铺管理和订单处理将在后续开放，当前店铺身份不代表这些操作已获授权。</text>
         <view class="merchant-scope-limit__action"><AppButton @click="showIdentity">查看我的身份</AppButton></view>
       </BaseCard>
     </view>

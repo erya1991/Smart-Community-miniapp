@@ -19,6 +19,16 @@ export function createMerchantClient(): MerchantSessionClient {
         fail: () => reject(new MerchantError('NETWORK_ERROR')),
       })
     }),
+    upload: ({path, accessToken, filePath, metadata}) => new Promise((resolve, reject) => {
+      uni.uploadFile({url: `${apiBaseUrl}${path}`, filePath, name:'file', formData:{metadata}, timeout:30000,
+        header:{accessToken}, success: response => {try {resolve({status:response.statusCode,data:JSON.parse(response.data)})} catch {reject(new MerchantError('INVALID_RESPONSE'))}},
+        fail:()=>reject(new MerchantError('NETWORK_ERROR'))})
+    }),
+    download: ({path, accessToken}) => new Promise((resolve, reject) => {
+      uni.downloadFile({url:`${apiBaseUrl}${path}`,header:{accessToken},timeout:15000,
+        success: response => resolve({status:response.statusCode,data:{localPath:response.tempFilePath}}),
+        fail:()=>reject(new MerchantError('NETWORK_ERROR'))})
+    }),
   })
 }
 export function merchantLoginCode(): Promise<string> {

@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import Stage1View from '../../components/stage1/Products.vue'
+import {stage1Enabled} from '../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+function onShow(callback:(...args:any[])=>any){registerStage1LegacyonShow((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
 import { computed, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import {onLoad as registerStage1LegacyonLoad,onShow as registerStage1LegacyonShow} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
@@ -56,7 +65,8 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="经营" compact show-user /></template>
     <view v-if="data" class="stack operation-stack">
       <view class="operation-tools"><text class="operation-title">商品管理</text><view class="operation-add-hit" hover-class="operation-add-hit--pressed" @click="edit()"><view class="operation-add"><AppIcon name="plus" :size="17" /><text>新增商品</text></view></view></view>

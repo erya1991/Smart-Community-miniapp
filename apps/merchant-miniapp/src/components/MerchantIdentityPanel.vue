@@ -5,6 +5,8 @@ import BaseCard from '@/components/BaseCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import IconContainer from '@/components/IconContainer.vue'
 import { useMerchantContext } from '../stores/merchant-context'
+import {stage1Enabled} from '../adapters/stage1-http'
+const openApplication=()=>uni.navigateTo({url:'/pages/onboarding/application/index'})
 
 const { state, isWechat, loginMerchant, loadIdentity, logout } = useMerchantContext()
 const showApplicationExplanation = ref(false)
@@ -38,14 +40,14 @@ const reading = computed(() => state.loading || state.busy)
 
     <view v-if="identity?.identity === 'APPLICANT'" class="merchant-identity-panel__details">
       <text class="merchant-identity-panel__body">当前尚无可使用的经营身份。</text>
-      <text class="merchant-identity-panel__hint">您可以查看本人身份和申请开店入口说明，当前不会创建店铺或工作人员授权。</text>
-      <AppButton variant="secondary" :disabled="reading" @click="showApplicationExplanation = true">申请开店</AppButton>
+      <text class="merchant-identity-panel__hint">{{stage1Enabled?'可以填写入驻申请，或接受负责人发送的工作人员邀请。':'您可以查看本人身份和申请开店入口说明，当前不会创建店铺或工作人员授权。'}}</text>
+      <AppButton variant="secondary" :disabled="reading" @click="stage1Enabled?openApplication():showApplicationExplanation = true">申请开店</AppButton>
       <text v-if="showApplicationExplanation" class="merchant-identity-panel__hint">申请服务尚未开放，当前不会提交入驻申请。</text>
     </view>
     <view v-else-if="identity?.identity === 'STORE'" class="merchant-identity-panel__details">
       <view class="merchant-identity-panel__row"><text>当前角色</text><text>{{ identity.role === 'OWNER' ? '负责人' : '工作人员' }}</text></view>
       <view class="merchant-identity-panel__row"><text>当前店铺</text><text>{{ identity.storeName }}</text></view>
-      <text class="merchant-identity-panel__hint">当前店铺与角色已由服务端核实。本页仅提供身份查看，经营功能尚未开放。</text>
+      <text class="merchant-identity-panel__hint">{{stage1Enabled?'店铺及身份已由服务端核实，经营操作仍按当前授权逐项校验。':'当前店铺与角色已由服务端核实。本页仅提供身份查看，经营功能尚未开放。'}}</text>
     </view>
     <view v-else class="merchant-identity-panel__details">
       <text class="merchant-identity-panel__body">使用商户小程序微信身份登录，读取本人或已授权的当前店铺。</text>

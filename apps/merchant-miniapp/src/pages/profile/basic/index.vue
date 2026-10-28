@@ -1,6 +1,14 @@
 <script setup lang="ts">
+import Stage1View from '../../../components/stage1/Profile.vue'
+import {stage1Enabled} from '../../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import {onLoad as registerStage1LegacyonLoad} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -32,7 +40,8 @@ onLoad(load)
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="stateMessage" secondary :with-bottom-action="canEdit" @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="stateMessage" secondary :with-bottom-action="canEdit" @retry="load">
     <template #navbar><AppNavbar title="基本资料" centered show-back /></template>
     <view v-if="profile" class="stack basic-page">
       <view class="subject-status"><view><text class="subject-status__name">{{ profile.subjectName }}</text><text class="subject-status__code">主体编码 {{ profile.code }}</text></view><StatusTag :tone="profile.status === 'normal' ? 'success' : 'error'">{{ profile.status === 'normal' ? '正常' : profile.status === 'suspended' ? '暂停' : '退出' }}</StatusTag></view>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {stage1Enabled} from '../../services/stage1'
 import { nextTick, ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
@@ -50,7 +51,7 @@ const confirm = async () => {
     candidate.value = null
   } finally { saving.value = false }
 }
-onLoad(async (options) => {
+onLoad(async (options) => { if(stage1Enabled)return;
   context.value = await merchantTradeService.getContext()
   code.value = typeof options?.code === 'string' ? options.code : ''
   // Navigation only fills the code; the merchant still queries and confirms it.

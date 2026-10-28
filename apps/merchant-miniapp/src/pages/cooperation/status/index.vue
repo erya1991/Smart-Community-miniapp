@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import Stage1View from '../../../components/stage1/Eligibility.vue'
+import {stage1Enabled} from '../../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+function onShow(callback:(...args:any[])=>any){registerStage1LegacyonShow((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
+import {onLoad as registerStage1LegacyonLoad,onShow as registerStage1LegacyonShow} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import BaseCard from '@/components/BaseCard.vue'
@@ -15,7 +24,8 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" cooperation/>
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" secondary @retry="load">
     <template #navbar><AppNavbar title="合作协议详情" centered show-back /></template>
     <view v-if="data" class="stack agreement-page">
       <BaseCard><text class="agreement-title">{{ data.agreement.name }}</text><text class="agreement-store">{{ data.storeName }}</text><StatusTag :tone="data.agreement.status === 'active' ? 'success' : 'pending'">{{ { active:'有效', missing:'未建立', expired:'已失效', terminated:'已终止' }[data.agreement.status] }}</StatusTag></BaseCard>

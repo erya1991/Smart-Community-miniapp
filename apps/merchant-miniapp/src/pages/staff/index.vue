@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import Stage1View from '../../components/stage1/Staff.vue'
+import {stage1Enabled} from '../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
+import {onLoad as registerStage1LegacyonLoad} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -30,7 +38,8 @@ onLoad(load)
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" secondary @retry="load">
     <template #navbar><AppNavbar title="商户人员" centered show-back /></template>
     <view class="operational-head"><view><text class="operational-head__title">人员与权限范围</text><text class="operational-head__note">普通工作人员仅能查看本人身份与门店范围</text></view><view v-if="permissions.canCreate" class="head-action"><AppButton size="compact" @click="openSubPage('/pages/staff/editor/index')">邀请人员</AppButton></view></view>
     <view v-if="data" class="operational-list">

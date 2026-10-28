@@ -70,9 +70,9 @@ export function createMerchantSupplyMockAdapter(getLegacyProducts: () => Promise
         skuList: [{ id: id + '-sku', specs: { '规格': '500g 袋装' }, sn: id.toUpperCase(), price, cost: Math.round(price * 0.6), quantity, weight: 0.5, isMain: true }],
         forceOffShelf: state === 'forced', authMessage: state === 'forced' ? '平台已强制下架，请完善材料并联系平台解除限制。' : undefined,
       })
-      goods.push(extra('goods-tomato', '鲜采番茄便民装', 36, 990, 'active'))
-      goods.push(extra('goods-cucumber', '时令黄瓜便民装', 18, 790, 'down'))
-      goods.push(extra('goods-draft', '青菜净菜装', 10, 590, 'draft'))
+      goods.push({ ...extra('goods-tomato', '鲜采番茄便民装', 36, 990, 'active'), goodsImage: '/static/images/catalog/tomato.png', goodsGallery: ['/static/images/catalog/tomato.png'] })
+      goods.push({ ...extra('goods-cucumber', '时令黄瓜便民装', 18, 790, 'down'), goodsImage: '/static/images/catalog/cucumber.png', goodsGallery: ['/static/images/catalog/cucumber.png'] })
+      goods.push({ ...extra('goods-draft', '青菜净菜装', 10, 590, 'draft'), goodsImage: '/static/images/catalog/greens.png', goodsGallery: ['/static/images/catalog/greens.png'] })
       goods.push(extra('goods-forced', '蔬菜组合礼盒', 20, 1590, 'forced'))
       return goods
     })

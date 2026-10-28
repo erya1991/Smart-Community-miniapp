@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {stage1Enabled} from '../../../services/stage1'
 import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
@@ -48,8 +49,8 @@ const fulfill = async () => {
 }
 const shipped = async () => { shipmentOpen.value = false; await refresh() }
 const saveRemark = async () => { if (!data.value || busy.value) return; busy.value = true; actionError.value = ''; try { await merchantTradeService.saveRemark(data.value.id, remark.value); await refresh(); uni.showToast({ title: '备注已保存', icon: 'success' }) } catch (error) { actionError.value = error instanceof Error ? error.message : '保存失败，请重试。' } finally { busy.value = false } }
-onLoad((options) => { orderId.value = options?.id || ''; load() })
-onShow(() => { if (data.value) refresh() })
+onLoad((options) => { if(stage1Enabled)return; orderId.value = options?.id || ''; load() })
+onShow(() => { if(stage1Enabled)return; if (data.value) refresh() })
 </script>
 
 <template>

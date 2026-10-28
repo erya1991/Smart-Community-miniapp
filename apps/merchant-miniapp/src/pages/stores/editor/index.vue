@@ -1,6 +1,14 @@
 <script setup lang="ts">
+import Stage1View from '../../../components/stage1/Application.vue'
+import {stage1Enabled} from '../../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
 import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import {onLoad as registerStage1LegacyonLoad} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -32,7 +40,8 @@ onLoad((options) => load(options?.id))
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="stateMessage" secondary with-bottom-action @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" change/>
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="stateMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar :title="isEdit ? '编辑门店' : '新增门店'" centered show-back /></template>
     <view class="stack editor-page">
       <FormSection title="门店资料" description="门店归属当前正式经营主体，创建后不可更换主体">

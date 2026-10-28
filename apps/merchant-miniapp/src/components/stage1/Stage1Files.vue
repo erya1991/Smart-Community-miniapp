@@ -1,0 +1,21 @@
+<script setup lang="ts">
+import {ref,onMounted,inject,watch} from 'vue'
+import AppButton from '@/components/AppButton.vue'
+import Stage1Status from './Stage1Status.vue'
+import {stage1Service} from '../../services/stage1'
+const props=withDefaults(defineProps<{modelValue:string[];purpose:'GOODS'|'QUALIFICATION';label?:string;receiptKey?:string;disabled?:boolean;maximum?:number}>(),{label:'附件',maximum:10})
+const emit=defineEmits<{(e:'update:modelValue',value:string[]):void}>()
+const page=getCurrentPages().slice(-1)[0] as any
+const key='file_'+String(page?.route||'')+'_'+String(page?.options?.id||'new')+'_'+(props.receiptKey||props.label),busy=ref(false),error=ref(''),pending=ref(stage1Service.pending(key))
+const activity=inject<(scope:string,active:boolean)=>void>('stage1-upload-activity',()=>{})
+watch([busy,pending],()=>activity(key,busy.value||pending.value),{immediate:true,flush:'sync'})
+onMounted(()=>{pending.value=stage1Service.pending(key)})
+async function upload(path:string){busy.value=true;error.value='';try{const result=await stage1Service.upload(key,path,props.purpose);emit('update:modelValue',[...props.modelValue,result.id])}catch(e){error.value=e instanceof Error?e.message:'上传失败'}finally{pending.value=stage1Service.pending(key);busy.value=false}}
+function choose(){uni.chooseImage({count:1,sizeType:['original'],success:r=>upload(r.tempFilePaths[0]),fail:()=>{error.value='未选择图片，可重试。'}})}
+function document(){uni.chooseMessageFile({count:1,type:'file',extension:['pdf','png','jpg','jpeg'],success:r=>upload(r.tempFiles[0].path),fail:()=>{error.value='未选择附件，或当前端不支持此方式。'}})}
+async function preview(id:string){try{const local=await stage1Service.preview(id);uni.previewImage({urls:[local],fail:()=>uni.openDocument({filePath:local,showMenu:false,fail:()=>{error.value='当前端未能预览该附件。'}})})}catch(e){error.value=e instanceof Error?e.message:'附件读取失败'}}
+async function recover(retry=false){busy.value=true;try{const value=await(retry?stage1Service.retry<{id:string}>(key):stage1Service.recover<{id:string}>(key));emit('update:modelValue',[...new Set([...props.modelValue,value.id])]);error.value=''}catch(e){error.value=e instanceof Error?e.message:'结果尚未确认'}finally{pending.value=stage1Service.pending(key);busy.value=false}}
+async function abandon(){const answer=await uni.showModal({title:'核实本次上传结果？',content:'上传已成功时返回原文件；尚未提交时关闭原请求，避免晚到上传产生重复结果。'});if(!answer.confirm)return;busy.value=true;try{const value=await stage1Service.abandon<{id:string}>(key);emit('update:modelValue',[...new Set([...props.modelValue,value.id])]);error.value=''}catch(e){error.value=e instanceof Error?e.message:'结果尚未确认'}finally{pending.value=stage1Service.pending(key);busy.value=false}}
+</script>
+<template><view class="s1-files"><text class="s1-files__label">{{label}}</text><Stage1Status :error="error" :pending="pending" :busy="busy" @recover="recover()" @retry="recover(true)" @abandon="abandon"/><view class="s1-files__list"><view v-for="(id,index) in modelValue" :key="id" class="s1-files__item"><text @click="preview(id)">附件 {{index+1}} · 点击预览</text><AppButton variant="quiet" :disabled="disabled||busy||pending" @click="emit('update:modelValue',modelValue.filter(v=>v!==id))">移除引用</AppButton></view></view><view v-if="modelValue.length<maximum" class="s1-files__actions"><AppButton variant="secondary" :disabled="disabled||pending" :loading="busy" @click="choose">拍照或选择图片</AppButton><!-- #ifdef MP-WEIXIN --><AppButton v-if="purpose!=='GOODS'" variant="quiet" :disabled="disabled||pending||busy" @click="document">选择文件</AppButton><!-- #endif --></view><text class="s1-files__hint">{{purpose==='GOODS'?'每张不超过5 MB':'单份不超过10 MB'}}，最多 {{maximum}} 份。上传成功后仍需保存并提交资料。</text></view></template>
+<style scoped lang="scss">.s1-files{display:flex;flex-direction:column;gap:$space-3}.s1-files__label{font-size:15px;font-weight:600}.s1-files__list{display:flex;flex-direction:column;gap:$space-2}.s1-files__item{padding:$space-3;border:1px solid $color-border;border-radius:$radius-md;display:flex;flex-direction:column;gap:$space-2}.s1-files__item>text{min-height:44px;display:flex;align-items:center;font-size:15px;color:$color-primary}.s1-files__actions{display:flex;flex-direction:column;gap:$space-2}.s1-files__hint{font-size:13px;color:$color-text-secondary;line-height:1.6}</style>

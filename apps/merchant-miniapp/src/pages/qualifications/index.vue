@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import Stage1View from '../../components/stage1/Qualifications.vue'
+import {stage1Enabled} from '../../services/stage1'
+import {ref as stage1Ref} from 'vue'
+import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
+const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
+stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+
+import {onLoad as registerStage1LegacyonLoad} from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppButton from '@/components/AppButton.vue'
@@ -18,7 +26,8 @@ onLoad(load)
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
+  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" secondary @retry="load">
     <template #navbar><AppNavbar title="资质列表" centered show-back /></template>
     <view class="operational-head"><view><text class="operational-head__title">资质证照</text><text class="operational-head__note">未经平台确认的资料不计入有效经营资格</text></view><view v-if="permissions.canCreate" class="head-action"><AppButton size="compact" @click="openSubPage('/pages/qualifications/editor/index')">新增资质</AppButton></view></view>
     <view v-if="data" class="qualification-list"><BaseCard v-for="item in data" :key="item.id" class="qualification-item"><view class="qualification-item__heading"><view><text class="qualification-item__title">{{ item.type }}</text><text class="qualification-item__holder">{{ item.holderName }} · {{ item.certificateNoMasked }}</text></view><StatusTag :tone="tone(item.status)">{{ label[item.status] }}</StatusTag></view><view class="qualification-item__facts"><view><text>有效期</text><text>{{ item.effectiveDate }} 至 {{ item.expiryDate }}</text></view><view><text>适用业务</text><text>{{ item.businessTypes.join('、') }}</text></view><view><text>适用类目</text><text>{{ item.categories.length ? item.categories.join('、') : '全部授权类目' }}</text></view></view><view v-if="item.reason" class="qualification-reason" :class="{ 'qualification-reason--error': ['expired', 'invalid'].includes(item.status) }">{{ item.reason }}</view><view class="qualification-item__footer"><text>最近更新 {{ item.updatedAt }}</text><view v-if="permissions.canEdit" class="update-action" hover-class="update-action--pressed" @click="openSubPage(`/pages/qualifications/editor/index?id=${item.id}`)">{{ ['expired', 'invalid'].includes(item.status) ? '更新并重提' : '查看 / 更新' }}</view></view></BaseCard></view>

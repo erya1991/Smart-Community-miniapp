@@ -11,6 +11,7 @@ export default defineConfig({
   plugins: [uni()],
   resolve: {
     alias: [
+      { find: '@/components/AppPage.vue', replacement: fromRoot('./src/components/AppPage.vue') },
       ...(isMiniProgram ? [{ find: 'vue', replacement: uniVueRuntime }] : []),
       { find: '@/components', replacement: shared('ui/components') },
       { find: '@/composables', replacement: shared('common/composables') },

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {stage1Enabled} from '../../services/stage1'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPage from '@/components/AppPage.vue'
@@ -17,8 +18,8 @@ const filterKeys: MerchantAfterSaleFilter[] = ['pending', 'processing', 'complet
 const { status, data, errorMessage, load, refresh } = usePageResource(() => merchantAfterSaleService.getList())
 const records = computed(() => (data.value?.records || []).filter(record => active.value === 'all' || active.value === 'pending' && record.serviceStatus === 'APPLY' || active.value === 'processing' && ['PASS', 'BUYER_RETURN', 'SELLER_CONFIRM', 'WAIT_REFUND'].includes(record.serviceStatus) || active.value === 'completed' && ['COMPLETE', 'REFUSE', 'BUYER_CANCEL'].includes(record.serviceStatus)))
 const money = (amount: number) => (amount / 100).toFixed(2)
-onLoad(options => { const filter = options?.filter; if (filterKeys.includes(filter as MerchantAfterSaleFilter)) active.value = filter as MerchantAfterSaleFilter; load() })
-onShow(() => { if (data.value) refresh() })
+onLoad(options => { if(stage1Enabled)return; const filter = options?.filter; if (filterKeys.includes(filter as MerchantAfterSaleFilter)) active.value = filter as MerchantAfterSaleFilter; load() })
+onShow(() => { if(stage1Enabled)return; if (data.value) refresh() })
 </script>
 <template>
   <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">

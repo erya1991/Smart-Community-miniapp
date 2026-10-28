@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const nativeRequire = createRequire(path.join(root, 'package.json'))
 const ts = nativeRequire('typescript')
-const source = (file) => readFileSync(path.join(root, file), 'utf8')
+const source = (file) => readFileSync(path.resolve(root, file), 'utf8')
 function loadModule(file, overrides = {}, sourceOverride) {
   const filename = path.resolve(root, file)
   const module = { exports: {} }
@@ -371,6 +371,37 @@ check('failed GET retry cannot loop or return a previously authorized Store', as
   assert.equal(f.client.authenticated, false)
 })
 
+check('a rejection after proactive Refresh never consumes a second Refresh for one identity read', async () => {
+  for (const options of [{ kind: 'APPLICANT' }, { kind: 'STORE', role: 'OWNER' }, { kind: 'STORE', role: 'STAFF' }]) {
+    const f = fixture(options)
+    await f.login()
+    f.advance(16 * 60 * 1000)
+    const readRoute = options.kind === 'APPLICANT' ? urls.applicant : urls.info
+    const refreshRoute = options.kind === 'APPLICANT' ? urls.applicantRefresh : urls.storeRefresh
+    const beforeReads = f.count(readRoute)
+    f.handlers.set(readRoute, () => failure('SESSION_REJECTED'))
+    await rejected(f.client.identity(), 'SESSION_REJECTED')
+    assert.equal(f.count(refreshRoute), 1)
+    assert.equal(f.count(readRoute), beforeReads + 1)
+    assert.equal(f.client.authenticated, false)
+    assert.equal(f.map.has(MERCHANT_SESSION_KEY), false)
+    assert.deepEqual(f.map.get(residentKey), residentValue)
+  }
+})
+
+check('an explicit required-session response invalidates only current Merchant credentials', async () => {
+  for (const kind of ['APPLICANT', 'STORE']) {
+    const f = fixture({ kind })
+    await f.login()
+    f.handlers.set(kind === 'APPLICANT' ? urls.applicant : urls.info, () => failure('SESSION_REQUIRED'))
+    await rejected(f.client.identity(), 'SESSION_REQUIRED')
+    assert.equal(f.client.authenticated, false)
+    assert.equal(f.map.has(MERCHANT_SESSION_KEY), false)
+    assert.equal(f.count(kind === 'APPLICANT' ? urls.applicantRefresh : urls.storeRefresh), 0)
+    assert.deepEqual(f.map.get(residentKey), residentValue)
+  }
+})
+
 check('logout clears Merchant locally first and preserves the Resident session', async () => {
   for (const kind of ['APPLICANT', 'STORE']) {
     const f = fixture({ kind })
@@ -639,6 +670,10 @@ check('a failed identity reread clears a displayed Store instead of presenting n
   assert.match(f.context.state.error, /[\u4e00-\u9fff]/)
 })
 
+check('approved applicant still needs a successful trusted Store login and never promotes locally',async()=>{
+ const f=contextFixture();await f.context.loginMerchant();assert.equal(f.context.state.identity.identity,'APPLICANT');f.setCurrent(storeContext());f.pending.login=()=>{throw new MerchantError('DATA_UNAVAILABLE',503)};await f.context.loginMerchant();assert.equal(f.context.currentStore.value,null);assert.equal(f.context.state.identity,null);assert.deepEqual(f.context.permissions.value,noBusinessPermissions);f.pending.login=null;await f.context.loginMerchant();assert.equal(f.context.state.identity.identity,'STORE');assert.equal(f.context.state.identity.role,'OWNER');assert.equal(f.context.currentStore.value.id,storeId);
+})
+
 check('late context reads cannot restore Store after logout or overwrite a newer Staff read', async () => {
   const f = contextFixture({ restored: true, current: storeContext() })
   const old = deferred()
@@ -702,7 +737,7 @@ check('every existing business deep link and unsafe or unknown path stays restri
   const guards = loadModule('apps/merchant-miniapp/src/services/merchant-route-guard.ts')
   const pages = JSON.parse(source('apps/merchant-miniapp/src/pages.json')).pages.map((entry) => `/${entry.path}`)
   const restricted = pages.filter((page) => !['/pages/profile/index', '/pages/workbench/index'].includes(page))
-  assert.equal(restricted.length, 18)
+  assert.equal(restricted.length, 21) // The three approved Stage1 pages also remain closed in Stage0 mode.
   for (const page of restricted) {
     assert.equal(guards.merchantIdentityPage(page), false)
     assert.equal(guards.merchantIdentityPage(`${page}?storeId=910000000000000009`), false)
@@ -779,6 +814,39 @@ check('missing, uninitialized or cyclic owner metadata never borrows a safe rout
   }
 })
 
+check('Stage1 business uses trusted Applicant/Store prefix, never an identity in its payload', async () => {
+  for (const kind of ['APPLICANT','STORE']) {
+    const f=fixture({kind});await f.login();const prefix=kind==='APPLICANT'?'/store/passport/applicant/p0/s1':'/store/p0/s1';
+    f.handlers.set(prefix+'/application', input=>{assert.equal(input.accessToken,f.pair().accessToken);return success({version:1})});
+    const response=await f.client.business('/application','PUT',{requestId:'synthetic_request',expectedVersion:0});
+    assert.equal(response.status,200);assert.deepEqual(f.calls.at(-1).body,{requestId:'synthetic_request',expectedVersion:0});
+    for(const path of ['/../manager/p0/s1','//goods','/goods?storeId=1','/goods%2f1'])await rejected(f.client.business(path,'GET'),'INVALID_REQUEST');
+  }
+})
+check('Stage1 permission denial does not refresh or clear a valid identity',async()=>{
+  const f=fixture({kind:'STORE'});await f.login();f.handlers.set('/store/p0/s1/staff',()=>failure('DENIED'));
+  assert.equal((await f.client.business('/staff','GET')).status,403);assert.equal(f.count(urls.storeRefresh),0);assert.equal(f.client.authenticated,true);
+})
+check('Stage1 stale-session GET refreshes once while writes and uncertain responses are never replayed',async()=>{
+  const f=fixture({kind:'STORE'});await f.login();let reads=0;f.handlers.set('/store/p0/s1/goods',()=>++reads===1?failure('SESSION_REJECTED'):success([]));
+  await f.client.business('/goods','GET');assert.equal(reads,2);assert.equal(f.count(urls.storeRefresh),1);
+  let writes=0;f.handlers.set('/store/p0/s1/goods',()=>{writes++;throw Error('lost response')});
+  await assert.rejects(f.client.business('/goods','POST',{requestId:'unchanged_request'}));assert.equal(writes,1);
+})
+check('Stage1 late business reply cannot overwrite a newly authenticated identity',async()=>{
+  const f=fixture({kind:'STORE'});await f.login();const wait=deferred();f.handlers.set('/store/p0/s1/goods',()=>wait.promise);
+  const result=f.client.business('/goods','GET');await until(()=>f.count('/store/p0/s1/goods')===1);await f.client.logout();await f.login();wait.resolve(failure('SESSION_REJECTED'));
+  await rejected(result,'STALE_OPERATION');assert.equal(f.client.authenticated,true);
+})
+check('Stage1 deep links require server action grants and Owner confirmation, never query parameters',()=>{
+  const guard=loadModule('apps/merchant-miniapp/src/services/stage1-route-guard.ts');const context={ownerFlag:false,permissions:['goods.read','staff.manage']};
+  assert.equal(guard.stage1PageAllowed('/pages/product/editor/index?id=1','STORE',context),true);
+  assert.equal(guard.stage1PageAllowed('/pages/staff/index?owner=true','STORE',context),false);
+  assert.equal(guard.stage1PageAllowed('/pages/product/editor/index?permissions=goods.read','APPLICANT',context),false);
+  assert.equal(guard.stage1PageAllowed('/pages/fulfillment/index','STORE',context),false);
+  assert.equal(guard.stage1PageAllowed('/pages/onboarding/application/index','APPLICANT',null),true);
+  for(const page of ['/pages/order/detail/index','/pages/verification/index','/pages/after-sale/index'])assert.equal(guard.stage1PageAllowed(page,'STORE',{ownerFlag:true,permissions:['goods.read','staff.manage']}),false);
+})
 let failed = 0
 for (const { name, fn } of checks) {
   let timeout
