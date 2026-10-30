@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppPage from '@/components/AppPage.vue'
@@ -45,7 +46,7 @@ const submit = async () => {
   } catch (error) { message.value = error instanceof Error ? error.message : '申请未提交，请重试。'; await refresh() }
   finally { busy.value = false }
 }
-onLoad(async options => { orderId.value = options?.orderId || ''; skuId.value = options?.skuId || ''; await load(); if (data.value) amount.value = money(data.value.maxRefundAmount) })
+onLoad(async options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} orderId.value = options?.orderId || ''; skuId.value = options?.skuId || ''; await load(); if (data.value) amount.value = money(data.value.maxRefundAmount) })
 </script>
 <template>
   <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">

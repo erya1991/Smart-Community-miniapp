@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
@@ -44,7 +45,7 @@ const timeline = computed(() => data.value?.timeline || [])
 const tone = computed(() => displayStatus.value === '已完成' ? 'success' : displayStatus.value === '已关闭' ? 'error' : 'pending')
 const confirmReceipt = () => uni.showModal({ title: '确认收货', content: '确认后订单将完成。', success: async ({ confirm }) => { if (confirm && data.value) { try { await residentMallService.confirmReceipt(data.value.id); uni.showToast({ title: '已确认收货', icon: 'success' }); load() } catch (error) { uni.showToast({ title: error instanceof Error ? error.message : '操作失败', icon: 'none' }) } } } })
 const cancel = () => uni.showModal({ title: '取消订单', content: '取消将关闭同一交易的全部未支付商户订单，并释放库存。', success: async ({ confirm }) => { if (confirm && data.value) { try { await residentMallService.cancelOrder(data.value.id); load() } catch (error) { uni.showToast({ title: error instanceof Error ? error.message : '操作失败', icon: 'none' }) } } } })
-onLoad((options) => { orderId.value = typeof options?.id === 'string' ? options.id : ''; load() }); onShow(load)
+onLoad((options) => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} orderId.value = typeof options?.id === 'string' ? options.id : ''; load() }); onShow(() => { if(!stage2Enabled)load() })
 </script>
 
 <template>

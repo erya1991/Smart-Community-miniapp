@@ -1,3 +1,7 @@
+import { stage2Enabled } from '../adapters/stage2-http'
+import { stage2Mall } from './stage2-mall'
+import { configurePageResourceScope } from '../../../../packages/common/composables/usePageResource'
+import { stage2Owner } from '../adapters/stage2-http'
 import { appAdapter } from '@/adapters/mock'
 import type { CheckoutRequest, CreateTradeInput, CreateTradeOrderInput, MallProductDetail, MallProductQuery, MemberAddress } from '../../../../packages/common/types/mall'
 
@@ -20,7 +24,7 @@ const getHome = async () => {
   const [catalog, community, cartCount] = await Promise.all([
     appAdapter.getMallHome(), appAdapter.getResidentCommunity(), getCartCount(),
   ])
-  return { ...catalog, communityName: community.name, cartCount }
+  return { ...catalog, communityName: community.name, cartCount, sectionErrors: {} as Record<string,string> }
 }
 
 const addCart = async (productId: string, skuId?: string, expectedPrice?: number, quantity = 1) => {
@@ -33,7 +37,7 @@ const addCart = async (productId: string, skuId?: string, expectedPrice?: number
 }
 
 /** Resident product flow boundary. Swap only the adapter when real Mall APIs are ready. */
-export const residentMallService = {
+const legacyMallService = {
   getHome,
   getCommunityHome: async () => {
     const [home, catalog] = await Promise.all([appAdapter.getResidentHome(), getHome()])
@@ -41,7 +45,7 @@ export const residentMallService = {
       const visual = home.products.find((item) => item.id === product.id && (item.homeName || item.name) === product.name)
       return { ...product, homeImage: visual?.homeImage || product.image }
     })
-    return { entries: home.entries, services: home.services, communityName: catalog.communityName, products }
+    return { entries: home.entries, services: home.services, communityName: catalog.communityName, products, sectionErrors: {} as Record<string,string> }
   },
   getCartCount,
   getProducts: (query: MallProductQuery = {}) => appAdapter.getResidentProducts(query),
@@ -77,3 +81,21 @@ export const residentMallService = {
   cancelOrder: (id: string) => appAdapter.cancelTradeOrder(id),
   confirmReceipt: (id: string) => appAdapter.confirmResidentReceipt(id),
 }
+
+// The retained prototype is unreachable for every formal Stage2 business method.
+const unavailable = async (): Promise<never> => { throw new Error('本期请使用待处理交易入口；此操作尚未开放。') }
+if (stage2Enabled) configurePageResourceScope(stage2Owner)
+export const residentMallService = stage2Enabled ? {
+  ...legacyMallService,
+  getHome: stage2Mall.getHome, getProducts: stage2Mall.getProducts, getDetail: stage2Mall.getDetail,
+  getCommunityHome: async () => { const [navigation, catalog] = await Promise.all([appAdapter.getResidentHome(), stage2Mall.getHome()]); return { entries: navigation.entries, services: navigation.services, communityName: catalog.communityName, products: catalog.products.slice(0, 4), sectionErrors: catalog.sectionErrors } },
+  getCartCount: stage2Mall.getCartCount, getCart: stage2Mall.getCart, addCart: stage2Mall.addCart, prepareBuyNow: stage2Mall.prepareBuyNow,
+  updateCartQuantity: stage2Mall.updateCartQuantity, toggleCartItem: stage2Mall.toggleCartItem,
+  removeCartItem: stage2Mall.removeCartItem, clearInvalidCart: stage2Mall.clearInvalidCart,
+  getAddresses: stage2Mall.getAddresses, getAddress: stage2Mall.getAddress, saveAddress: stage2Mall.saveAddress,
+  deleteAddress: stage2Mall.deleteAddress, setDefaultAddress: stage2Mall.setDefaultAddress,
+  getCheckout: unavailable, createTrade: unavailable, getTrade: unavailable, getTradeForOrder: unavailable,
+  payTrade: unavailable, queryTradePayment: unavailable, cancelTrade: unavailable, createOrder: unavailable,
+  getOrder: unavailable, getOrders: unavailable, payOrder: unavailable, queryPayment: unavailable,
+  cancelOrder: unavailable, confirmReceipt: unavailable,
+} : legacyMallService

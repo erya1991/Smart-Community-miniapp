@@ -9,6 +9,7 @@ import FeatureUnavailable from '@/components/FeatureUnavailable.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import IconContainer from '@/components/IconContainer.vue'
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { appAdapter } from '@/adapters/mock'
 import { openPage, openSubPage } from '@/utils/navigation'
 import { residentTabItems } from '@/config/navigation'
@@ -32,13 +33,14 @@ const loadNavigation = async () => {
       type: group.type,
       items: group.items.map(({ label, icon, actionText, tone, path, available }) => ({ label, icon, actionText, tone, path, available })),
     }))
+    if (stage2Enabled) groups.value = [{ title: '我的交易', type: 'list', items: [{ label: '待处理交易与原提交', icon: 'order', path: '/pages/mall/pending/index', available: true }] }, ...groups.value.filter(g => g.type !== 'orders')]
   } catch {
     navigationError.value = true
   }
 }
 const handleEntry = (item: ProfileItem) => {
   if (item.available && item.path) {
-    openPage(item.path)
+    openPage(stage2Enabled && item.path.startsWith('/pages/mall/order-') ? '/pages/mall/pending/index' : item.path)
     return
   }
   showUnavailable.value = true
@@ -130,7 +132,7 @@ onShow(() => { void loadProfile() })
       </BaseCard>
       <button v-if="state.authenticated" class="profile-button profile-button--quiet" :disabled="state.busy" @click="confirmLogout">退出本设备登录</button>
 
-      <view class="profile-demo-note">以下订单、服务和社区入口为演示功能，不展示本人的真实业务记录。</view>
+      <view class="profile-demo-note">{{ stage2Enabled ? '待处理交易可找回尚未完成或需要核验的模拟交易；其他社区服务为演示入口。' : '以下订单、服务和社区入口为演示功能，不展示本人的真实业务记录。' }}</view>
       <view v-if="navigationError" class="profile-feedback profile-feedback--error">
         <text>演示入口加载失败，不影响本人资料。</text>
         <button class="profile-button profile-button--quiet" @click="loadNavigation">重试入口</button>

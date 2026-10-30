@@ -5,6 +5,7 @@
     { "path": "pages/mall/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/list/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/pending/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/cart/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/member/address/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/member/address-edit/index", "style": { "navigationStyle": "custom" } },

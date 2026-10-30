@@ -25,6 +25,7 @@ function page(initial, status = 'loading') {
     '../../composables/usePageResource.js': { usePageResource: () => ({ data, status: state, errorMessage: { value: '' }, load() {}, refresh() {} }) },
     '../../services/mall.js': { residentMallService: { getCommunityHome() {} } },
     '../../features/mall/useCatalogCart.js': { useCatalogCart: () => ({ actionMessage: { value: '' }, addCart() {} }) },
+    '../../features/mall/useStage2HomeSections.js': { useStage2HomeSections: () => ({ retry() {} }) },
     '../../utils/navigation.js': { openPage() {}, openSubPage() {} },
     '../../config/navigation.js': { residentTabItems: ['home', 'profile'] },
   }
@@ -33,7 +34,7 @@ function page(initial, status = 'loading') {
   const render = component.setup({})
   return { data, state, props, render: () => { props.length = 0; return render({}, {}) } }
 }
-const home = { communityName: 'Synthetic community', entries: [], services: [], products: [] }
+const home = { communityName: 'Synthetic community', entries: [], services: [], products: [], sectionErrors: {} }
 test('initial null data renders the loading shell and tabbar without dereferencing data', () => {
   const p = page(null); p.render()
   assert.ok(p.props.some(x => x.status === 'loading'))

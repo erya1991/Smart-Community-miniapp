@@ -10,6 +10,7 @@ export const isWechat = process.env.UNI_PLATFORM === 'mp-weixin'
 export function createResidentClient(): ResidentSessionClient {
   return new ResidentSessionClient({
     baseUrl: apiBaseUrl,
+    storageKey: import.meta.env.VITE_STAGE2_ENABLED === 'true' ? `daguanglu:resident:stage2:${apiBaseUrl}:session:v1` : undefined,
     storage: {
       get: (key) => uni.getStorageSync(key),
       set: (key, value) => uni.setStorageSync(key, value),
@@ -21,6 +22,12 @@ export function createResidentClient(): ResidentSessionClient {
         header: { 'Content-Type': 'application/json', ...(accessToken ? { accessToken } : {}) },
         success: (response) => resolve({ status: response.statusCode, data: response.data }),
         fail: () => reject(new ResidentError('NETWORK_ERROR')),
+      })
+    }),
+    download: ({ path, accessToken }) => new Promise((resolve, reject) => {
+      uni.downloadFile({ url: `${apiBaseUrl}${path}`, header: { accessToken }, timeout: 15000,
+        success: (response) => resolve({ status: response.statusCode, filePath: response.tempFilePath }),
+        fail: () => reject(new ResidentError('ASSET_UNAVAILABLE')),
       })
     }),
     upload: ({ filePath, accessToken }) => new Promise<ResidentResponse>((resolve, reject) => {

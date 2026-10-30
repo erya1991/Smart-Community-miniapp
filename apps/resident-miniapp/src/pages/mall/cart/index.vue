@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
+import Stage2Notice from '@/features/mall/Stage2Notice.vue'
+import { stage2Mall } from '@/services/stage2-mall'
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
@@ -21,6 +25,8 @@ const selectedItems = computed(() => validItems.value.filter((item) => item.sele
 const selectedCount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.quantity, 0))
 const selectedAmount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.latestPrice * item.quantity, 0))
 const allSelected = computed(() => validItems.value.length > 0 && validItems.value.every((item) => item.selected))
+const partiallySelected = computed(()=>selectedItems.value.length>0&&!allSelected.value)
+const groupPartial = (group: CartMerchantGroup) => group.items.some(i=>i.selected)&&!group.items.every(i=>i.selected)
 const groupSelected = (group: CartMerchantGroup) => group.items.every((item) => item.selected)
 const act = async (action: () => Promise<unknown>) => {
   if (busy.value) return
@@ -33,6 +39,7 @@ const toggle = (id: string, selected: boolean) => act(() => residentMallService.
 const toggleGroup = (group: CartMerchantGroup) => act(() => Promise.all(group.items.map((item) => residentMallService.toggleCartItem(item.id, !groupSelected(group)))))
 const toggleAll = () => act(() => Promise.all(validItems.value.map((item) => residentMallService.toggleCartItem(item.id, !allSelected.value))))
 const updateQuantity = (id: string, quantity: number) => act(() => residentMallService.updateCartQuantity(id, quantity))
+const clearInvalid = () => { if (busy.value || !data.value?.invalidItems.length) return; const count = data.value.invalidItems.length; const removeConfirmed = stage2Enabled ? stage2Mall.invalidRemoval() : residentMallService.clearInvalidCart; uni.showModal({ title: '清理不可结算商品', content: `将删除当前列出的${count}种失效规格，正常商品保留。`, success: ({confirm}) => { if(confirm) void act(removeConfirmed) } }) }
 const remove = (id: string) => act(() => residentMallService.removeCartItem(id))
 const checkout = () => {
   if (busy.value || !selectedItems.value.length) return
@@ -44,33 +51,33 @@ onShow(() => { if (data.value) load() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <AppPage v-if="stage2Enabled && accessRequired(errorMessage)" status="ready"><template #navbar><AppNavbar title="购物车" centered show-back /></template><Stage2Notice :error="errorMessage"/></AppPage><AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="购物车" centered show-back /></template>
-    <view v-if="data" class="stack cart-page">
+    <view v-if="data" class="stack cart-page"><Stage2Notice v-if="stage2Enabled" />
       <view class="cart-tip"><AppIcon name="verified" :size="19" /><text>社区便民直供：按商户分别履约，所选商品统一结算。</text></view>
       <text v-if="actionError" class="action-error">{{ actionError }}</text>
       <BaseCard v-for="group in data.groups" :key="group.storeId">
         <view class="merchant-head">
-          <button class="check-hit" :aria-label="'选择' + group.merchantName + '全部商品'" :disabled="busy" @click="toggleGroup(group)"><view class="check" :class="{ active: groupSelected(group) }">{{ groupSelected(group) ? '✓' : '' }}</view></button>
-          <AppIcon name="store" :size="20" /><text>{{ group.merchantName }}（{{ group.storeName }}）</text>
+          <button class="check-hit" :aria-label="'选择' + group.merchantName + '全部商品'" :disabled="busy" @click="toggleGroup(group)"><view class="check" :class="{ active: groupSelected(group) }">{{ groupSelected(group) ? '✓' : groupPartial(group) ? '−' : '' }}</view></button>
+          <AppIcon name="store" :size="20" /><text>{{ group.storeName || group.merchantName }}</text>
         </view>
         <view v-for="item in group.items" :key="item.id" class="cart-item">
           <button class="check-hit" :aria-label="'选择' + item.product.name" :disabled="busy" @click="toggle(item.id, !item.selected)"><view class="check" :class="{ active: item.selected }">{{ item.selected ? '✓' : '' }}</view></button>
           <image :src="item.sku.image || item.product.mainImage" mode="aspectFill" />
-          <view class="item-main"><text class="product-name">{{ item.product.name }}</text><text class="spec">规格：{{ item.sku.name }}</text>
-            <view class="price-quantity"><text class="cart-price">¥{{ money(item.latestPrice) }}</text><view class="quantity"><button :disabled="busy || item.quantity <= 1" aria-label="减少数量" @click="updateQuantity(item.id, item.quantity - 1)">−</button><text>{{ item.quantity }}</text><button :disabled="busy || item.quantity >= item.sku.availableStock" aria-label="增加数量" @click="updateQuantity(item.id, item.quantity + 1)">+</button></view></view>
+          <view class="item-main"><text class="product-name">{{ item.product.name }}</text><text class="spec">规格：{{ item.sku.name }}</text><text v-if="item.invalidReason" class="action-error">{{ item.invalidReason }}</text>
+            <view class="price-quantity"><text class="cart-price">¥{{ money(item.latestPrice) }}</text><view class="quantity"><button :disabled="busy || item.quantity <= 1" aria-label="减少数量" @click="updateQuantity(item.id, item.quantity - 1)">−</button><text>{{ item.quantity }}</text><button :disabled="busy || item.quantity >= Math.min(99,item.sku.availableStock)" aria-label="增加数量" @click="updateQuantity(item.id, item.quantity + 1)">+</button></view></view>
             <button class="remove" :disabled="busy" @click="remove(item.id)">移除</button>
           </view>
         </view>
       </BaseCard>
       <BaseCard v-if="data.invalidItems.length">
-        <view class="invalid-head"><text>不可结算商品（{{ data.invalidItems.length }}）</text><button class="remove" :disabled="busy" @click="act(residentMallService.clearInvalidCart)">一键清空</button></view>
-        <view v-for="item in data.invalidItems" :key="item.id" class="invalid-item"><image :src="item.product.mainImage" mode="aspectFill" /><view><text class="product-name">{{ item.product.name }}</text><text class="spec">{{ item.sku.name }}</text><text class="action-error">{{ item.invalidReason }}</text></view><button class="remove" :disabled="busy" @click="remove(item.id)">移除</button></view>
+        <view class="invalid-head"><text>不可结算商品（{{ data.invalidItems.length }}）</text><button class="remove" :disabled="busy" @click="clearInvalid">一键清空</button></view>
+        <view v-for="item in data.invalidItems" :key="item.id" class="invalid-item"><image :src="item.product.mainImage" mode="aspectFill" /><view><text class="product-name">{{ item.product.name }}</text><text class="spec">{{ item.sku.name }} · {{ item.quantity }}件</text><text class="action-error">{{ item.invalidReason }}</text><button v-if="stage2Enabled && item.status === 'stock-insufficient'" class="remove" :disabled="busy" @click="updateQuantity(item.id, item.sku.availableStock)">改为{{ item.sku.availableStock }}件</button><button v-else-if="stage2Enabled && item.product.id" class="remove" :disabled="busy" @click="openSubPage('/pages/mall/detail/index?id=' + encodeURIComponent(item.product.id))">重新选择商品与规格</button></view><button class="remove" :disabled="busy" @click="remove(item.id)">移除</button></view>
       </BaseCard>
       <view v-if="empty" class="empty">购物车还是空的，去商城看看吧</view>
       <text class="cart-footer">大光路智慧社区 · 邻里直供 安心便民</text>
     </view>
-    <BottomActionBar v-if="data"><button class="all-check" :disabled="busy || !validItems.length" @click="toggleAll"><view class="check" :class="{ active: allSelected }">{{ allSelected ? '✓' : '' }}</view><text>全选</text></button><view class="cart-total"><text>已选 {{ selectedCount }} 件</text><text>¥{{ money(selectedAmount) }}</text></view><AppButton :disabled="busy || !selectedCount" @click="checkout">结算</AppButton></BottomActionBar>
+    <BottomActionBar v-if="data"><button class="all-check" :disabled="busy || !validItems.length" @click="toggleAll"><view class="check" :class="{ active: allSelected }">{{ allSelected ? '✓' : partiallySelected ? '−' : '' }}</view><text>全选</text></button><view class="cart-total"><text>已选 {{ selectedCount }} 件 · 商品预估</text><text>¥{{ money(selectedAmount) }}</text></view><AppButton :disabled="busy || !selectedCount" @click="checkout">结算</AppButton></BottomActionBar>
   </AppPage>
 </template>
 
@@ -82,5 +89,5 @@ button { margin:0; padding:0; background:transparent; font-size:15px; line-heigh
 .cart-item { display:flex; align-items:flex-start; gap:6px; padding:12px 0; border-bottom:1px solid $color-border; }.cart-item > image,.invalid-item > image { width:64px; height:76px; flex:none; border-radius:$radius-md; }.item-main { min-width:0; flex:1; }.product-name { display:block; font-size:16px; font-weight:600; line-height:24px; overflow-wrap:anywhere; }.spec { display:block; font-size:13px; color:$color-text-secondary; line-height:20px; }
 .price-quantity { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:4px; }.cart-price { font-size:18px; font-weight:700; color:$color-accent; }.quantity { display:flex; align-items:center; border:1px solid $color-border; border-radius:$radius-md; }.quantity button { display:flex; width:44px; height:44px; align-items:center; justify-content:center; font-size:22px; }.quantity text { min-width:20px; text-align:center; }
 .remove { display:flex; min-width:44px; min-height:44px; align-items:center; justify-content:center; color:$color-primary; font-size:14px; }.item-main > .remove { margin-left:auto; }.invalid-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }.invalid-item { display:flex; align-items:center; gap:8px; padding-top:12px; }.invalid-item > view { flex:1; min-width:0; }.invalid-item image { opacity:.6; filter:grayscale(1); }.action-error { display:block; color:$color-error; font-size:14px; line-height:22px; }
-.empty { padding:32px 0; text-align:center; color:$color-text-secondary; }.cart-footer { text-align:center; font-size:13px; color:$color-text-secondary; padding:16px 0; }.all-check { display:flex; align-items:center; gap:4px; min-height:48px; flex:none; color:$color-text-primary; }.cart-total { display:flex; flex-direction:column; justify-content:center; min-width:0; flex:1; font-size:13px; }.cart-total text:last-child { font-size:20px; color:$color-accent; font-weight:700; }.cart-total + :deep(.app-button) { flex:0 0 86px; }
+.empty { padding:32px 0; text-align:center; color:$color-text-secondary; }.cart-footer { text-align:center; font-size:13px; color:$color-text-secondary; padding:16px 0; }.all-check { display:flex; align-items:center; gap:4px; min-height:48px; flex:none; color:$color-text-primary; }.cart-total { display:flex; flex-direction:column; justify-content:center; min-width:0; flex:1; font-size:13px; }.cart-total text:last-child { overflow-wrap:anywhere;word-break:break-all;line-height:24px;font-size:20px; color:$color-accent; font-weight:700; }.cart-total + :deep(.app-button) { flex:0 0 86px; }
 </style>

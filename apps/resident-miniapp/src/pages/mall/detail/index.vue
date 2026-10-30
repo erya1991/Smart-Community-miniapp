@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
+import {stage2Mall} from '@/services/stage2-mall'
+import {moneyCent} from '../../../../../../packages/common/utils/commercePresentation'
+import Stage2Notice from '@/features/mall/Stage2Notice.vue'
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { computed, ref, watch } from 'vue'
 import { onBackPress, onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
@@ -29,7 +34,7 @@ const { status, data, errorMessage, load, refresh } = usePageResource(async () =
   selectedValues.value = Object.fromEntries(Object.entries(selectedValues.value).filter(([name, value]) => groups.some((group) => group.name === name && group.values.includes(value))))
   if (detail.skus.length === 1 && !findSelectedSku(detail, selectedValues.value)) selectedValues.value = getSkuSpecValues(detail, detail.skus[0])
   cartCount.value = count
-  return detail
+  return {...detail,uiDetailBlocks:stage2Enabled?await stage2Mall.detailBlocks(productId.value):[]}
 })
 const selectedSku = computed(() => data.value ? findSelectedSku(data.value, selectedValues.value) : undefined)
 const displaySku = computed(() => selectedSku.value || data.value?.skus.find((item) => item.id === data.value?.currentSkuId))
@@ -37,7 +42,7 @@ const canPurchase = computed(() => status.value === 'ready' && Boolean(data.valu
 const selectionIssue = computed(() => !data.value ? '商品加载中' : !data.value.purchaseEligibility.allowed ? data.value.purchaseEligibility.reason : getSkuSelectionIssue(data.value, selectedValues.value, quantity.value))
 const gallery = computed(() => Array.from(new Set([displaySku.value?.image, ...(data.value?.gallery || []), data.value?.mainImage].filter((item): item is string => Boolean(item)))))
 watch(() => selectedSku.value?.id, () => { galleryIndex.value = 0 })
-const money = (value = 0) => (value / 100).toFixed(2)
+const money = (value?: number) => moneyCent(value)
 const selectSpec = (name: string, value: string) => {
   if (isSubmitting.value || !data.value) return
   const isSelected = selectedValues.value[name] === value
@@ -52,6 +57,7 @@ const changeQuantity = (value: number) => { if (!isSubmitting.value && Number.is
 const openSkuSheet = (action: 'select' | 'add' | 'buy') => { if (!isSubmitting.value) { sheetAction.value = action; actionMessage.value = ''; showSkuSheet.value = true } }
 const previewImage = (current: string) => uni.previewImage({ current, urls: gallery.value })
 const fulfillmentHint = (method: string) => {
+  if(stage2Enabled)return '本店当前支持'+method+'，请在确认页核对地址或服务点及费用。本期不开放核销、收货和售后动作。'
   if (method === '商户配送') return data.value?.deliveryNote
   if (method === '社区自提') return data.value?.fulfillmentMethods.length === 1 ? data.value.deliveryNote : '取货地点与时间以确认订单信息为准，备货后凭取货码取货。'
   return `到店后凭核销码人工核对，门店地址：${data.value?.storeAddress || ''}`
@@ -84,15 +90,15 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <AppPage v-if="stage2Enabled && accessRequired(errorMessage)" status="ready"><template #navbar><AppNavbar title="商品详情" centered show-back /></template><Stage2Notice :error="errorMessage"/></AppPage><AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="商品详情" centered show-back /></template>
-    <view v-if="data" class="stack detail-page">
-      <view class="hero"><swiper class="hero__swiper" :current="galleryIndex" :circular="gallery.length > 1" @change="galleryIndex = $event.detail.current"><swiper-item v-for="photo in gallery" :key="photo"><image :src="photo" mode="aspectFill" @click="previewImage(photo)" /></swiper-item></swiper><text class="hero__count">{{ galleryIndex + 1 }} / {{ gallery.length }}</text></view>
-      <BaseCard class="summary-card"><view class="summary-price"><text>¥{{ money(displaySku?.price) }}</text><text v-if="displaySku?.marketPrice" class="summary-market">¥{{ money(displaySku.marketPrice) }}</text><text class="summary-unit"> / 份</text></view><text class="summary-name">{{ data.name }}</text><text class="summary-point">{{ data.sellingPoint }}</text><view class="summary-metrics"><text>已售 {{ data.salesCount || 0 }} 件</text><text v-if="data.reviewCount !== undefined">{{ data.reviewCount }} 条评价</text></view><view v-if="!canPurchase" class="sold-out"><AppIcon name="bag" :size="15" /><text>{{ data.purchaseEligibility.allowed ? '商品已售罄，请稍后再来。' : data.purchaseEligibility.reason }}</text></view><view v-else-if="selectedSku && selectedSku.availableStock > 0 && selectedSku.availableStock <= selectedSku.warningStock" class="stock-tight"><AppIcon name="bell" :size="15" /><text>库存紧张，仅剩 {{ selectedSku.availableStock }} 件</text></view></BaseCard>
+    <view v-if="data" class="stack detail-page"><Stage2Notice v-if="stage2Enabled" /><text v-if="stage2Enabled && !gallery.length" class="action-error">图片暂不可用，请刷新后重试。</text>
+      <view class="hero"><swiper class="hero__swiper" :current="galleryIndex" :circular="gallery.length > 1" @change="galleryIndex = $event.detail.current"><swiper-item v-for="photo in gallery" :key="photo"><image :src="photo" mode="aspectFill" @click="previewImage(photo)" /></swiper-item></swiper><text v-if="gallery.length" class="hero__count">{{ galleryIndex + 1 }} / {{ gallery.length }}</text></view>
+      <BaseCard class="summary-card"><view class="summary-price"><text>{{displaySku?.price == null ? '价格未核实' : '¥'+money(displaySku.price)}}</text><text v-if="displaySku?.marketPrice" class="summary-market">¥{{ money(displaySku.marketPrice) }}</text><text class="summary-unit"> / 份</text></view><text class="summary-name">{{ data.name }}</text><text class="summary-point">{{ data.sellingPoint }}</text><view v-if="!stage2Enabled" class="summary-metrics"><text>已售 {{ data.salesCount || 0 }} 件</text><text v-if="data.reviewCount !== undefined">{{ data.reviewCount }} 条评价</text></view><view v-if="!canPurchase" class="sold-out"><AppIcon name="bag" :size="15" /><text>{{ data.purchaseEligibility.allowed ? '商品已售罄，请稍后再来。' : data.purchaseEligibility.reason }}</text></view><view v-else-if="selectedSku && selectedSku.availableStock > 0 && selectedSku.availableStock <= selectedSku.warningStock" class="stock-tight"><AppIcon name="bell" :size="15" /><text>库存紧张，仅剩 {{ selectedSku.availableStock }} 件</text></view></BaseCard>
       <BaseCard><view class="sku-entry" @click="openSkuSheet('select')"><view><text class="sku-entry__title">规格与数量</text><text>{{ selectedSku ? `已选：${selectedSku.name} · ${quantity} 件` : '请选择规格与购买数量' }}</text></view><text class="sku-entry__action">选择规格 ›</text></view><CatalogActionFeedback :message="actionMessage" @retry="actionMessage = ''; load()" /></BaseCard>
       <BaseCard><view class="section-title"><view /><text>履约方式说明</text></view><text class="fulfillment-supported">支持：{{ data.fulfillmentMethods.join(' / ') }}</text><view class="fulfillment-notes"><view v-for="method in data.fulfillmentMethods" :key="method"><text>{{ method }}</text><text>{{ fulfillmentHint(method) }}</text></view></view><text class="fulfillment-next">请在确认订单页选择履约方式。</text></BaseCard>
       <BaseCard class="merchant-card"><view class="merchant-card__icon"><AppIcon name="store" :size="24" /></view><view class="merchant-card__main"><text>{{ data.merchantName }}<text v-if="data.storeName !== data.merchantName">（{{ data.storeName }}）</text></text><text>{{ data.storeAddress }}</text></view></BaseCard>
-      <BaseCard><view class="section-title"><view /><text>商品说明与售后</text></view><view class="info-row"><text>商品详情</text><text>{{ data.detail }}</text></view><view class="info-row"><text>配送说明</text><text>{{ data.deliveryNote }}</text></view><view class="info-row"><text>售后说明</text><text>{{ data.afterSaleNote }}</text></view></BaseCard>
+      <BaseCard><view class="section-title"><view /><text>商品说明与售后</text></view><view class="info-row"><text>商品详情</text><view v-if="stage2Enabled"><view v-for="(block,index) in data.uiDetailBlocks" :key="index"><text v-if="block.type==='text'" style="white-space:pre-wrap">{{block.text}}</text><image v-else-if="block.image" :src="block.image" mode="widthFix" style="width:100%;margin-top:12px"/><text v-else class="action-error">详情图片未加载，请重新读取。</text></view></view><text v-else>{{data.detail}}</text></view><view class="info-row"><text>配送说明</text><text>{{ data.deliveryNote }}</text></view><view v-if="!stage2Enabled" class="info-row"><text>售后说明</text><text>{{ data.afterSaleNote }}</text></view></BaseCard>
     </view>
     <template #tabbar><BottomActionBar v-if="status === 'ready'" class="detail-actions"><view class="cart-shortcut" @click="openSubPage('/pages/mall/cart/index')"><view class="cart-shortcut__icon"><AppIcon name="cart" :size="23" /><text v-if="cartCount" class="cart-shortcut__badge">{{ cartCount > 99 ? '99+' : cartCount }}</text></view><text>购物车</text></view><AppButton variant="secondary" :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('add')">加入购物车</AppButton><AppButton :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('buy')">立即购买</AppButton></BottomActionBar><BottomActionBar v-else-if="status === 'error'"><AppButton variant="secondary" @click="openPage('/pages/mall/index')">返回商城</AppButton></BottomActionBar><SkuPickerSheet v-if="showSkuSheet && status === 'ready' && data" :product="data" :selected-values="selectedValues" :quantity="quantity" :action="sheetAction" :busy="isSubmitting" :message="actionMessage" @close="showSkuSheet = false" @select="selectSpec" @quantity="changeQuantity" @submit="submitSku" /></template>
   </AppPage>

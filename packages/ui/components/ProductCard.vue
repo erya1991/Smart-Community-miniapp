@@ -5,7 +5,7 @@ import type { ResidentMallProductSummary } from '../../common/types/mall'
 import AppIcon from './AppIcon.vue'
 
 type CardProduct = ProductSummary | ResidentMallProductSummary
-const props = withDefaults(defineProps<{ product: CardProduct; variant?: 'default' | 'home' }>(), { variant: 'default' })
+const props = withDefaults(defineProps<{ product: CardProduct; variant?: 'default' | 'home'; showSales?: boolean; priceKnown?: boolean }>(), { variant: 'default', showSales: true, priceKnown: true })
 const emit = defineEmits<{ add: [product: CardProduct]; open: [product: CardProduct] }>()
 const handleAdd = () => {
   emit('add', props.product)
@@ -35,9 +35,9 @@ const stockLabel = computed(() => props.product.soldOut ? '已售罄' : 'stockTi
         <text class="product-card__tag">{{ props.product.fulfillment }}</text>
       </template>
       <text v-if="sellingPoint" class="product-card__point">{{ sellingPoint }}</text>
-      <text v-if="salesCount !== undefined" class="product-card__sales">已售 {{ salesCount }} 件</text>
+      <text v-if="showSales && salesCount !== undefined" class="product-card__sales">已售 {{ salesCount }} 件</text>
       <view class="product-card__bottom">
-        <text class="price"><text class="product-card__currency">¥</text>{{ displayPrice.toFixed(2) }}</text>
+        <text class="price"><text class="product-card__currency">¥</text>{{ priceKnown && Number.isFinite(displayPrice) ? displayPrice.toFixed(2) : '未核实' }}</text>
         <view class="product-card__add-hit" @click.stop="handleAdd"><view class="product-card__add" :class="{ 'product-card__add--disabled': unavailable }"><AppIcon name="plus" :size="20" /></view></view>
       </view>
     </view>

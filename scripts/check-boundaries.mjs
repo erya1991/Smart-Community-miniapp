@@ -11,6 +11,7 @@ const residentPages = [
   '/pages/mall/list/index',
   '/pages/mall/detail/index',
   '/pages/mall/cart/index',
+  '/pages/mall/pending/index',
   '/pages/member/address/index',
   '/pages/member/address-edit/index',
   '/pages/mall/confirm/index',
@@ -57,7 +58,7 @@ const merchantAdapter = read('apps/merchant-miniapp/src/adapters/mock.ts')
 const legacySingleAppExists = existsSync(new URL('../src/pages.json', import.meta.url))
 
 const assertions = [
-  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册既有页面及 Stage 0 P04 本人资料编辑页'],
+  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册既有页面、Stage0本人资料编辑及Stage2待处理交易页'],
   [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 保留既有页面，仅新增 Stage1 履约设置、点位编辑、邀请接受页'],
   [residentNavigation.includes("label: '首页'") && residentNavigation.includes("label: '服务'") && residentNavigation.includes("label: '商城'") && residentNavigation.includes("label: '我的'") && !residentNavigation.includes('merchant'), '住户导航固定且无商户入口'],
   [merchantNavigation.includes("label: '工作台'") && merchantNavigation.includes("label: '经营'") && merchantNavigation.includes("label: '订单'") && merchantNavigation.includes("label: '我的'") && !merchantNavigation.includes('resident'), '商户导航固定且无住户入口'],

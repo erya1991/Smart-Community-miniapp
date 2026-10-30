@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -22,7 +23,7 @@ const orders = computed(() => (data.value || []).filter((order) => {
 }))
 const money = (value: number) => (value / 100).toFixed(2)
 const tone = (order: { displayStatus: string }) => order.displayStatus === '已完成' ? 'success' : order.displayStatus === '已关闭' ? 'error' : 'pending'
-onLoad(options => { if (options?.filter === 'after-sale') active.value = '售后/退款'; load() }); onShow(load)
+onLoad(options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} if (options?.filter === 'after-sale') active.value = '售后/退款'; load() }); onShow(() => { if(!stage2Enabled)load() })
 </script>
 
 <template>

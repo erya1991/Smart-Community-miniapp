@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPage from '@/components/AppPage.vue'
@@ -32,8 +33,8 @@ const act = async (kind: 'cancel' | 'return') => {
   } catch (error) { message.value = error instanceof Error ? error.message : '操作失败，请重试。' }
   finally { busy.value = false }
 }
-onLoad(async options => { id.value = options?.id || ''; await load(); try { companies.value = await service.getReturnCompanies() } catch { message.value = '退货物流公司读取失败，请返回重试。' } })
-onShow(() => { if (data.value) return refresh() })
+onLoad(async options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} id.value = options?.id || ''; await load(); try { companies.value = await service.getReturnCompanies() } catch { message.value = '退货物流公司读取失败，请返回重试。' } })
+onShow(() => { if(stage2Enabled)return; if (data.value) return refresh() })
 </script>
 <template>
   <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">

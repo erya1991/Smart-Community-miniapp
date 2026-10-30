@@ -19,11 +19,14 @@ export interface ResidentTokens {
 export interface ResidentEdit { version: number; nickname?: string; avatarFileId?: string }
 export interface ResidentImage { filePath: string; size: number; type: string }
 export interface ResidentResponse { status: number; data: unknown }
+export type ResidentMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 export interface ResidentPorts {
   baseUrl: string
+  storageKey?: string
   now?: () => number
   storage: { get(key: string): unknown; set(key: string, value: unknown): void; remove(key: string): void }
-  request(input: { path: string; method: 'GET' | 'POST' | 'PUT'; body?: unknown; accessToken?: string }): Promise<ResidentResponse>
+  request(input: { path: string; method: ResidentMethod; body?: unknown; accessToken?: string }): Promise<ResidentResponse>
+  download?(input: { path: string; accessToken: string }): Promise<{ status: number; filePath: string }>
   upload?(input: { filePath: string; accessToken: string }): Promise<ResidentResponse>
 }
 const messages: Record<string, string> = {
@@ -117,7 +120,8 @@ export class ResidentSessionClient {
   private epoch = 0
   private refreshFlight: Promise<void> | null = null
   private readonly now: () => number
-  constructor(private readonly ports: ResidentPorts) { this.now = ports.now || Date.now }
+  private readonly storageKey: string
+  constructor(private readonly ports: ResidentPorts) { this.now = ports.now || Date.now; this.storageKey = ports.storageKey || RESIDENT_SESSION_KEY }
   get authenticated(): boolean { return this.session !== null }
   get memberId(): string | null { return this.subject }
   get revision(): number { return this.epoch }
@@ -131,11 +135,11 @@ export class ResidentSessionClient {
     this.session = null
     this.subject = null
     this.refreshFlight = null
-    try { this.ports.storage.remove(RESIDENT_SESSION_KEY) } catch { throw new ResidentError('STORAGE_UNAVAILABLE') }
+    try { this.ports.storage.remove(this.storageKey) } catch { throw new ResidentError('STORAGE_UNAVAILABLE') }
   }
   private persist(): void {
     try {
-      this.ports.storage.set(RESIDENT_SESSION_KEY, { apiBaseUrl: this.ports.baseUrl, identity: 'RESIDENT', memberId: this.subject, session: this.session })
+      this.ports.storage.set(this.storageKey, { apiBaseUrl: this.ports.baseUrl, identity: 'RESIDENT', memberId: this.subject, session: this.session })
     } catch {
       this.clear()
       throw new ResidentError('STORAGE_UNAVAILABLE')
@@ -145,7 +149,7 @@ export class ResidentSessionClient {
     if (this.session) return
     try {
       this.configured()
-      const saved = this.ports.storage.get(RESIDENT_SESSION_KEY)
+      const saved = this.ports.storage.get(this.storageKey)
       if (!saved) return
       const data = object(saved)
       if (data.apiBaseUrl !== this.ports.baseUrl || data.identity !== 'RESIDENT' || !id(data.memberId)) throw new ResidentError('SESSION_REJECTED')
@@ -153,7 +157,7 @@ export class ResidentSessionClient {
       this.subject = data.memberId
     } catch { this.clear() }
   }
-  private async request(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown, accessToken?: string): Promise<ResidentResponse> {
+  private async request(path: string, method: ResidentMethod, body?: unknown, accessToken?: string): Promise<ResidentResponse> {
     this.configured()
     try { return await this.ports.request({ path, method, body, accessToken }) }
     catch { throw new ResidentError(method === 'GET' ? 'NETWORK_ERROR' : 'WRITE_RESULT_UNKNOWN') }
@@ -207,7 +211,7 @@ export class ResidentSessionClient {
     if (!this.session || this.session.absoluteExpiresAt <= this.now()) { this.clear(); throw new ResidentError('SESSION_REJECTED') }
     return this.session.accessToken
   }
-  private async authorized(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown): Promise<unknown> {
+  private async authorizedResponse(path: string, method: ResidentMethod, body?: unknown): Promise<ResidentResponse> {
     const epoch = this.epoch
     const originalAccess = this.session?.accessToken
     const accessToken = await this.access(epoch)
@@ -220,10 +224,31 @@ export class ResidentSessionClient {
       response = await this.request(path, method, body, freshAccess)
       this.current(epoch)
     }
-    try { return result(response) } catch (error) {
+    try { result(response) } catch (error) {
       if (error instanceof ResidentError && response.status === 403 && ['SESSION_REJECTED', 'SESSION_REQUIRED', 'IDENTITY_UNAVAILABLE'].includes(error.code)) this.clear()
-      throw error
     }
+    return response
+  }
+  private async authorized(path: string, method: ResidentMethod, body?: unknown): Promise<unknown> {
+    return result(await this.authorizedResponse(path, method, body))
+  }
+  /** Fixed-origin business transport. Credentials remain private to the existing Session client. */
+  async asset(path: string): Promise<string> {
+    if (!/^\/buyer\/p0\/s2\/goods\/[1-9]\d{0,18}\/images\/[1-9]\d{0,18}$/.test(path) || !this.ports.download) throw new ResidentError('ASSET_UNAVAILABLE')
+    const epoch = this.epoch, member = this.subject, accessToken = await this.access(epoch)
+    const result = await this.ports.download({ path, accessToken })
+    this.current(epoch)
+    if (member !== this.subject || result.status !== 200 || !result.filePath) throw new ResidentError('ASSET_UNAVAILABLE')
+    return result.filePath
+  }
+  async business(path: string, method: ResidentMethod, body?: unknown): Promise<ResidentResponse> {
+    if (!/^\/buyer\/p0\/s2\/[A-Za-z0-9_/-]+$/.test(path) || path.includes('..') || path.includes('//')) throw new ResidentError('INVALID_REQUEST')
+    const epoch = this.epoch
+    const member = this.subject
+    const response = await this.authorizedResponse(path, method, body)
+    this.current(epoch)
+    if (member !== this.subject || !this.subject) throw new ResidentError('STALE_OPERATION')
+    return response
   }
   async profile(): Promise<ResidentProfile> {
     const epoch = this.epoch

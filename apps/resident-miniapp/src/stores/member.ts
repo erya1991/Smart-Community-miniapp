@@ -1,11 +1,12 @@
 import { reactive, readonly } from 'vue'
 import { ResidentError, residentErrorMessage } from '../services/resident-session'
-import type { ResidentEdit, ResidentProfile } from '../services/resident-session'
+import type { ResidentEdit, ResidentProfile, ResidentMethod, ResidentResponse } from '../services/resident-session'
 import { createResidentClient, isWechat, residentLoginCode, residentRequestId, selectResidentAvatar } from '../services/resident-platform'
 
 const client = createResidentClient()
 const state = reactive({
   authenticated: false,
+  businessRevision: 0,
   profile: null as ResidentProfile | null,
   loading: false,
   busy: false,
@@ -32,6 +33,16 @@ export function initializeResidentContext() {
   if (initialized) return
   initialized = true
   try { client.restore(); sync() } catch (error) { sync(); state.error = residentErrorMessage(error) }
+}
+export function residentBusinessOwner(): string {
+  initializeResidentContext()
+  void state.businessRevision
+  return `${client.memberId || 'anonymous'}:${client.revision}`
+}
+export async function residentProductAsset(path: string): Promise<string> { initializeResidentContext(); try { return await client.asset(path) } finally { sync() } }
+export async function residentBusinessRequest(path: string, method: ResidentMethod, body?: unknown): Promise<ResidentResponse> {
+  initializeResidentContext()
+  try { return await client.business(path, method, body) } finally { sync() }
 }
 async function failure(error: unknown, operation: number) {
   if (operation !== action || (error instanceof ResidentError && error.code === 'STALE_OPERATION')) return
@@ -153,7 +164,9 @@ async function logout(): Promise<void> {
   state.error = ''
   state.notice = ''
   try {
-    const outcome = await client.logout()
+    const pending = client.logout()
+    sync()
+    const outcome = await pending
     if (operation === action) state.notice = outcome.confirmed ? '已退出本设备登录。' : '本设备登录信息已清除；网络异常，服务端退出结果尚未确认。'
   } catch (error) { if (operation === action) state.error = residentErrorMessage(error) }
   finally { if (operation === action) { state.busy = false; sync() } }

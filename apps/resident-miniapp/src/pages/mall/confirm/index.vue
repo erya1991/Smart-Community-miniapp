@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Stage2Confirm from '@/features/mall/Stage2Confirm.vue'
+import { stage2Enabled } from '@/adapters/stage2-http'
+const s2Options = ref<Record<string, string | undefined> | null>(null)
+const s2Visible = ref(true)
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -66,7 +70,7 @@ const submit = async () => {
   } finally { submitting.value = false }
 }
 const continuePayment = () => uni.redirectTo({ url: '/pages/pay/result/index?tradeId=' + encodeURIComponent(submittedTradeId.value) })
-onLoad((options) => {
+onLoad((options) => { if (stage2Enabled) { s2Options.value = options || {}; return }
   request.productId = options?.productId
   request.skuId = options?.skuId
   if (options?.quantity !== undefined) request.quantity = Number(options.quantity)
@@ -82,7 +86,8 @@ onShow(async () => {
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <Stage2Confirm v-if="stage2Enabled" :options="s2Options" :visible="s2Visible" />
+  <AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="确认订单" centered show-back /></template>
     <view v-if="data" class="stack confirm-page">
       <view class="checkout-tip"><AppIcon name="verified" :size="19" /><text>共 {{ data.merchantGroups.length }} 家商户、{{ itemCount }} 件商品。请逐店确认履约信息，统一提交并支付。</text></view>

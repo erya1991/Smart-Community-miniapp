@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import Stage2AddressEdit from '@/features/mall/Stage2AddressEdit.vue'
+import { stage2Enabled } from '@/adapters/stage2-http'
+const s2Options = ref<Record<string, string | undefined> | null>(null)
+const s2Visible = ref(true)
+const s2Form=ref<InstanceType<typeof Stage2AddressEdit>>()
+onBackPress(()=>stage2Enabled ? s2Form.value?.requestLeave()??false:false)
 import { reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onBackPress } from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
@@ -27,7 +33,7 @@ const save = async () => {
   actionError.value = ''
   try { await residentMallService.saveAddress({ id: id.value || undefined, ...form }); uni.showToast({ title: id.value ? '地址已保存' : '地址已新增', icon: 'success' }); uni.navigateBack() } catch (error) { actionError.value = error instanceof Error ? error.message : '保存失败，请重试。' } finally { saving.value = false }
 }
-onLoad(async (options) => {
+onLoad(async (options) => { if (stage2Enabled) { s2Options.value = options || {}; return }
   id.value = typeof options?.id === 'string' ? options.id : ''
   if (!id.value) return
   try { const address = await residentMallService.getAddress(id.value); if (!address) throw new Error('地址不存在'); Object.assign(form, address) } catch (error) { actionError.value = error instanceof Error ? error.message : '地址加载失败' }
@@ -35,7 +41,8 @@ onLoad(async (options) => {
 </script>
 
 <template>
-  <AppPage secondary :with-bottom-action="true">
+  <Stage2AddressEdit ref="s2Form" v-if="stage2Enabled" :options="s2Options" :visible="s2Visible" />
+  <AppPage v-else secondary :with-bottom-action="true">
     <template #navbar><AppNavbar :title="id ? '编辑收货地址' : '新增收货地址'" centered show-back /></template>
     <view v-if="actionError" class="form-error-tip">{{ actionError }}</view>
     <view class="stack address-edit-page"><view v-if="Object.values(errors).some(Boolean)" class="form-error-tip">请完善标红的地址信息后再保存。</view><FormSection title="联系人与地址" description="配送订单仅使用本次保存的地址快照"><FormField label="收货人" required :error="errors.name"><input v-model="form.name" placeholder="请输入收货人姓名" /></FormField><FormField label="手机号" required :error="errors.mobile"><input v-model="form.mobile" type="number" maxlength="11" placeholder="请输入手机号" /></FormField><FormField label="省市区" required :error="errors.region"><input v-model="form.region" placeholder="例如：江苏省南京市秦淮区" /></FormField><FormField label="详细地址" required :error="errors.detail" hint="5—100 字"><textarea v-model="form.detail" auto-height placeholder="街道、门牌号、楼栋与房间号" /></FormField><FormField label="地址标签"><input v-model="form.label" maxlength="8" placeholder="例如：家、公司" /></FormField><view class="default-row" @click="form.isDefault = !form.isDefault"><text>设为默认收货地址</text><text class="default-check" :class="{ 'default-check--active': form.isDefault }">{{ form.isDefault ? '✓' : '' }}</text></view></FormSection></view>

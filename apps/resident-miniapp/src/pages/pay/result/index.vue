@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import Stage2Payment from '@/features/mall/Stage2Payment.vue'
+import { stage2Enabled } from '@/adapters/stage2-http'
+const s2Options = ref<Record<string, string | undefined> | null>(null)
+const s2Visible = ref(true)
 import { computed, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import BaseCard from '@/components/BaseCard.vue'
@@ -43,12 +47,14 @@ const viewOrders = () => {
   else openSubPage('/pages/mall/order-list/index')
 }
 const returnMall = () => uni.switchTab({ url: '/pages/mall/index' })
-onLoad((options) => { tradeId.value = options?.tradeId || ''; orderId.value = options?.orderId || ''; load() })
-onShow(() => { if (data.value && !busy.value) load() })
+onLoad((options) => { if (stage2Enabled) { s2Options.value = options || {}; return } tradeId.value = options?.tradeId || ''; orderId.value = options?.orderId || ''; load() })
+onShow(() => { if (stage2Enabled) { s2Visible.value = true; return } if (data.value && !busy.value) load() })
+onHide(() => { s2Visible.value = false })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <Stage2Payment v-if="stage2Enabled" :options="s2Options" :visible="s2Visible" />
+  <AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="支付结果" centered show-back /></template>
     <view v-if="data" class="stack payment-page">
       <ResultState :tone="paid ? 'success' : failed || closed ? 'error' : 'pending'" :title="title" :description="description" />

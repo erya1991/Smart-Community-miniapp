@@ -845,6 +845,7 @@ function pageFixture(initial = {}) {
     changeAvatar: async () => { calls.avatar++ },
   }
   const overrides = {
+    '@/adapters/stage2-http': { stage2Enabled: false },
     '@/stores/member': { useResidentContext: () => context },
     '@/utils/navigation': { openPage: (url) => calls.navigation.push(url), openSubPage: (url) => calls.navigation.push(url) },
     '@/config/navigation': { residentTabItems: [] },

@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import Stage2Notice from '@/features/mall/Stage2Notice.vue'
+import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
+import { stage2Enabled, stage2Owner } from '@/adapters/stage2-http'
+import { stage2Mall } from '@/services/stage2-mall'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/AppButton.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -15,15 +19,25 @@ import { checkoutAddressSelection } from '@/features/checkoutAddress'
 const selecting = ref(false)
 const checkoutKey = ref('')
 const actionError = ref('')
+const busy = ref(false)
 const { status, data, errorMessage, load } = usePageResource(residentMallService.getAddresses)
 const empty = computed(() => data.value?.length === 0)
 const edit = (id?: string) => openSubPage(`/pages/member/address-edit/index${id ? `?id=${id}` : ''}`)
-const setDefault = async (id: string) => {
-  actionError.value = ''
-  try { await residentMallService.setDefaultAddress(id); uni.showToast({ title: '已设为默认地址', icon: 'success' }); await load() }
-  catch (error) { actionError.value = error instanceof Error ? error.message : '设置失败，请重试。' }
+const act = async (work: () => Promise<unknown>) => {
+  if (busy.value) return
+  const owner = stage2Owner(); busy.value = true; actionError.value = ''
+  try { await work(); if (!stage2Enabled || owner === stage2Owner()) await load() }
+  catch (error) { if (!stage2Enabled || owner === stage2Owner()) actionError.value = error instanceof Error ? error.message : '操作未完成，请刷新地址簿。' }
+  finally { busy.value = false }
 }
-const remove = (id: string) => uni.showModal({ title: '删除地址', content: '删除后不会影响已创建订单中的地址快照。', success: async ({ confirm }) => { if (confirm) { await residentMallService.deleteAddress(id); uni.showToast({ title: '地址已删除', icon: 'success' }); load() } } })
+const setDefault = (id: string) => act(() => residentMallService.setDefaultAddress(id))
+const clearDefault = () => act(() => stage2Mall.clearDefault())
+const remove = (id: string) => {
+  if (busy.value) return
+  try { const owner = stage2Owner(), deletion = stage2Enabled ? stage2Mall.addressRemoval(id) : () => residentMallService.deleteAddress(id); uni.showModal({ title: '删除地址', content: '仅删除当前选择的这条地址，不影响已创建订单中的地址快照。', success: ({ confirm }) => { if (confirm && (!stage2Enabled || owner === stage2Owner())) void act(deletion) } }) }
+  catch (error) { actionError.value = error instanceof Error ? error.message : '请先刷新地址簿。' }
+}
+watch(stage2Owner, () => { actionError.value = '' }, { flush: 'sync' })
 const choose = async (id: string) => {
   if (!selecting.value) return
   try { checkoutAddressSelection.select(checkoutKey.value, id); uni.navigateBack() }
@@ -34,9 +48,9 @@ onShow(load)
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary :with-bottom-action="true" @retry="load">
+  <AppPage v-if="stage2Enabled && accessRequired(errorMessage)" status="ready"><template #navbar><AppNavbar :title="selecting ? '选择收货地址' : '收货地址'" centered show-back /></template><Stage2Notice :error="errorMessage"/></AppPage><AppPage v-else :status="status === 'empty' ? 'ready' : status" :state-message="errorMessage" secondary :with-bottom-action="true" @retry="load">
     <template #navbar><AppNavbar :title="selecting ? '选择收货地址' : '收货地址'" centered show-back /></template>
-    <view class="stack address-page">
+    <view class="stack address-page"><text v-if="stage2Enabled && data?.length && !data.some(a=>a.isDefault)" class="address-tip">当前无默认地址；下单时请逐店明确选择。</text>
       <text v-if="actionError" class="address-error">{{ actionError }}</text>
       <text v-if="selecting" class="address-tip">点击地址用于本次下单；仅“设为默认”会修改默认地址。</text>
       <view class="address-tip"><AppIcon name="verified" :size="18" /><text>配送订单会保存本次地址快照，后续修改不会影响历史订单。</text></view>
@@ -44,6 +58,7 @@ onShow(load)
         <view class="address-card__body"><view class="address-card__head"><text>{{ address.name }}</text><text>{{ address.mobile }}</text><text v-if="address.isDefault" class="default-tag">默认</text><text class="address-label">{{ address.label }}</text></view><text class="address-card__detail">{{ address.region }}{{ address.detail }}</text></view>
         <view class="address-card__actions"><text class="address-card__default" :class="{ 'address-card__default--active': address.isDefault }" @click.stop="setDefault(address.id)">{{ address.isDefault ? '✓ 默认地址' : '设为默认' }}</text><view><text @click.stop="edit(address.id)">编辑</text><text @click.stop="remove(address.id)">删除</text></view></view>
       </BaseCard>
+      <AppButton v-if="stage2Enabled && data?.some(a => a.isDefault)" :disabled="busy" variant="secondary" @click="clearDefault">取消当前默认地址</AppButton>
       <view v-if="empty" class="address-empty">暂无收货地址，请先新增地址。</view>
     </view>
     <BottomActionBar><AppButton @click="edit()">新增收货地址</AppButton></BottomActionBar>

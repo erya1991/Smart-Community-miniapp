@@ -1,0 +1,5 @@
+/** Display only: server integer cents and immutable facts remain authoritative. */
+export function moneyCent(value: unknown): string { return typeof value==='number'&&Number.isSafeInteger(value)&&value>=0 ? (value/100).toFixed(2) : '未核实' }
+export function shanghaiTime(value: unknown): string { if(typeof value!=='string'||!/(?:Z|[+-]\d\d:\d\d)$/.test(value)||!Number.isFinite(Date.parse(value)))return '未核实'; const d=new Date(Date.parse(value)+8*3600000);return d.toISOString().slice(0,19).replace('T',' ')+'（上海）' }
+export function accessRequired(value: unknown): boolean { return typeof value==='string'&&/请先.*登录|登录.*失效|重新登录|无权|AUTH_REQUIRED|SESSION_REJECTED/.test(value) }
+export function categoryPaths(rows: Array<{id:string;name:string;parentId?:string|null}>){const all=new Map(rows.map(r=>[r.id,r]));return rows.map(row=>{const names=[row.name],seen=new Set([row.id]);let p=row.parentId;while(p&&p!=='0'&&!seen.has(p)&&seen.size<4){seen.add(p);const parent=all.get(p);if(!parent){names.unshift('上级名称未提供');break;}names.unshift(parent.name);p=parent.parentId;}return {...row,path:names.join(' / ')};});}

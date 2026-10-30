@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import {stage2Enabled} from '@/adapters/stage2-http'
+import Stage2Notice from '@/features/mall/Stage2Notice.vue'
+import {accessRequired} from '../../../../../packages/common/utils/commercePresentation'
 import { ref } from 'vue'
+import { useStage2HomeSections } from '@/features/mall/useStage2HomeSections'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
 import BaseCard from '@/components/BaseCard.vue'
-import ProductCard from '@/components/ProductCard.vue'
+import ProductCard from '@/features/mall/ResidentProductCard.vue'
 import QuickEntryGrid from '@/components/QuickEntryGrid.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import ServiceCard from '@/components/ServiceCard.vue'
@@ -19,6 +23,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import { residentTabItems } from '@/config/navigation'
 
 const { status, data, errorMessage, load, refresh } = usePageResource(residentMallService.getCommunityHome)
+const { retry: retrySection } = useStage2HomeSections(data, 4)
 const { actionMessage, addCart } = useCatalogCart()
 const showNoticeUnavailable = ref(false)
 
@@ -27,14 +32,14 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" @retry="load">
+  <AppPage v-if="stage2Enabled && accessRequired(errorMessage)" status="ready"><template #navbar><AppNavbar title="智慧社区平台" show-brand /></template><Stage2Notice :error="errorMessage"/></AppPage><AppPage v-else :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="智慧社区平台" show-brand /></template>
     <view v-if="data" class="stack">
       <view class="community-row"><AppIcon name="location" :size="19" /><text class="community-row__name">{{ data!.communityName }}</text><view class="community-row__notice" aria-label="消息通知" @click="showNoticeUnavailable = true"><AppIcon name="bell" :size="20" /></view></view>
       <view class="hero"><image class="hero__image" src="/static/images/home/hero-community-life.png" mode="aspectFill" /><view class="hero__shade" /><view class="hero__copy"><text class="hero__title">家门口的社区生活服务</text><text class="hero__subtitle">购物与便民入口，一站找到</text></view></view>
       <BaseCard class="home-entry-card"><QuickEntryGrid class="home-entry-grid" :items="data!.entries" /></BaseCard>
       <view><SectionHeader title="便民服务" action-text="更多" @action="openPage('/pages/service/index')" /><view class="stack"><ServiceCard v-for="service in data!.services" :key="service.id" :service="service" /></view></view>
-      <view><SectionHeader title="社区好物" action-text="进入商城" @action="openPage('/pages/mall/index')" /><CatalogActionFeedback :message="actionMessage" @retry="actionMessage = ''; load()" /><view v-if="data!.products.length" class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" variant="home" :product="product" @open="openSubPage(`/pages/mall/detail/index?id=${encodeURIComponent(product.id)}`)" @add="addCart" /></view><view v-else class="home-empty">暂无推荐商品，可进入商城查看全部商品。</view></view>
+      <view><SectionHeader title="社区好物" action-text="进入商城" @action="openPage('/pages/mall/index')" /><CatalogActionFeedback :message="data!.sectionErrors.products || actionMessage" @retry="data!.sectionErrors.products ? retrySection('products') : (actionMessage = '', load())" /><view v-if="data!.products.length" class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" variant="home" :product="product" @open="openSubPage(`/pages/mall/detail/index?id=${encodeURIComponent(product.id)}`)" @add="addCart" /></view><view v-else-if="!data!.sectionErrors.products" class="home-empty">暂无推荐商品，可进入商城查看全部商品。</view></view>
       <text class="page-footer">大光路智慧社区便民服务</text>
     </view>
     <template #tabbar><AppTabbar :items="residentTabItems" active-path="/pages/home/index" /></template>

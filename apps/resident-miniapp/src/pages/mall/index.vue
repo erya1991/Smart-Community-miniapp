@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {accessRequired} from '../../../../../packages/common/utils/commercePresentation'
+import S2CategorySelector from '@/features/mall/S2CategorySelector.vue'
+import Stage2Notice from '@/features/mall/Stage2Notice.vue'
+import { useStage2HomeSections } from '@/features/mall/useStage2HomeSections'
+import { stage2Enabled } from '@/adapters/stage2-http'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
@@ -6,7 +11,7 @@ import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
 import IconContainer from '@/components/IconContainer.vue'
-import ProductCard from '@/components/ProductCard.vue'
+import ProductCard from '@/features/mall/ResidentProductCard.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import { usePageResource } from '@/composables/usePageResource'
@@ -20,6 +25,7 @@ import type { ResidentMallProductSummary } from '../../../../../packages/common/
 
 const keyword = ref('')
 const { status, data, errorMessage, load, refresh } = usePageResource(residentMallService.getHome)
+const { retry: retrySection } = useStage2HomeSections(data)
 const { actionMessage, addCart } = useCatalogCart(async () => {
   if (data.value) data.value = { ...data.value, cartCount: await residentMallService.getCartCount() }
 })
@@ -33,17 +39,19 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" @retry="load">
+  <AppPage v-if="stage2Enabled && accessRequired(errorMessage)" status="ready"><template #navbar><AppNavbar title="社区商城" show-brand brand-icon="store" /></template><Stage2Notice :error="errorMessage"/></AppPage><AppPage v-else :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="社区商城" show-brand brand-icon="store" /></template>
-    <view class="stack mall-stack">
+    <view class="stack mall-stack"><Stage2Notice v-if="stage2Enabled" />
       <view class="mall-community-row">
         <view class="mall-community"><AppIcon name="location" :size="20" /><text>{{ data!.communityName }}</text></view>
-        <view class="mall-cart" aria-label="购物车" hover-class="mall-cart--pressed" @click="openSubPage('/pages/mall/cart/index')"><AppIcon name="cart" :size="22" /><text v-if="data!.cartCount" class="mall-cart__badge">{{ data!.cartCount > 99 ? '99+' : data!.cartCount }}</text></view>
+        <view class="mall-cart" aria-label="购物车" hover-class="mall-cart--pressed" @click="openSubPage('/pages/mall/cart/index')"><AppIcon name="cart" :size="22" /><text v-if="data!.sectionErrors.cart || data!.cartCount" class="mall-cart__badge">{{ data!.sectionErrors.cart ? '?' : data!.cartCount > 99 ? '99+' : data!.cartCount }}</text></view>
       </view>
       <view class="mall-search"><SearchBar v-model="keyword" clearable placeholder="搜索商品或商户" @confirm="openSearch" /><button class="mall-search__submit" hover-class="mall-search__submit--pressed" @click="openSearch">搜索</button></view>
-      <view class="category-panel"><scroll-view class="category-scroll" scroll-x :show-scrollbar="false"><view class="category-list"><view v-for="category in data!.categories" :key="category.id" class="category" hover-class="category--pressed" @click="openCategory(category.id)"><IconContainer :icon="category.icon" size="md" /><text>{{ category.name }}</text></view></view></scroll-view></view>
+      <CatalogActionFeedback v-if="data!.sectionErrors.cart" :message="data!.sectionErrors.cart" retry-label="重试数量" @retry="retrySection('cart')" />
+      <CatalogActionFeedback v-if="data!.sectionErrors.categories" :message="data!.sectionErrors.categories" retry-label="重试分类" :show-cart="false" @retry="retrySection('categories')" />
+      <S2CategorySelector v-if="stage2Enabled" :rows="data?.categories||[]" @select="openCategory"/><view v-else class="category-panel"><scroll-view class="category-scroll" scroll-x :show-scrollbar="false"><view class="category-list"><view v-for="category in data!.categories" :key="category.id" class="category" hover-class="category--pressed" @click="openCategory(category.id)"><IconContainer :icon="category.icon" size="md" /><text>{{ category.name }}</text></view></view></scroll-view></view>
       <view class="supply-tip"><view class="supply-tip__bar" /><AppIcon name="store" :size="18" /><text>社区周边商户直供 · 新鲜便捷</text></view>
-      <view class="mall-products"><SectionHeader title="社区精选" subtitle="周边直供 · 邻里好物" action-text="全部商品" @action="openSubPage('/pages/mall/list/index')" /><CatalogActionFeedback :message="actionMessage" @retry="actionMessage = ''; load()" /><view v-if="data!.products.length" class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" :product="product" @open="openProduct" @add="addCart" /></view><view v-else class="mall-empty">暂无在售商品，请稍后再来看看。</view></view>
+      <view class="mall-products"><SectionHeader title="社区精选" subtitle="周边直供 · 邻里好物" action-text="全部商品" @action="openSubPage('/pages/mall/list/index')" /><CatalogActionFeedback :message="data!.sectionErrors.products || actionMessage" @retry="data!.sectionErrors.products ? retrySection('products') : (actionMessage = '', load())" /><view v-if="data!.products.length" class="two-column-grid"><ProductCard v-for="product in data!.products" :key="product.id" :product="product" @open="openProduct" @add="addCart" /></view><view v-else-if="!data!.sectionErrors.products" class="mall-empty">暂无在售商品，请稍后再来看看。</view></view>
       <view class="mall-footer"><view class="mall-footer__brand"><AppIcon name="verified" :size="16" /><text>大光路智慧社区便民服务</text></view><text>社区好物 · 方便日常生活</text></view>
     </view>
     <template #tabbar><AppTabbar :items="residentTabItems" active-path="/pages/mall/index" /></template>

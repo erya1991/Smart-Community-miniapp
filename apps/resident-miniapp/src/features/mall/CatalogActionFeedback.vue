@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { openSubPage } from '@/utils/navigation'
 
-defineProps<{ message: string }>()
+withDefaults(defineProps<{ message: string; retryLabel?: string; showCart?: boolean }>(), { retryLabel: '刷新商品', showCart: true })
 const emit = defineEmits<{ retry: [] }>()
 </script>
 
 <template>
   <view v-if="message" class="catalog-feedback">
     <text>{{ message }}</text>
-    <view class="catalog-feedback__actions"><button @click="emit('retry')">刷新商品</button><button @click="openSubPage('/pages/mall/cart/index')">查看购物车</button></view>
+    <view class="catalog-feedback__actions"><button @click="emit('retry')">{{ retryLabel }}</button><button v-if="showCart" @click="openSubPage('/pages/mall/cart/index')">查看购物车</button></view>
   </view>
 </template>
 
