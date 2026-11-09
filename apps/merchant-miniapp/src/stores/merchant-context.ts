@@ -2,7 +2,7 @@ import { computed, reactive, readonly, ref } from 'vue'
 import type { ApplicationStatus, MerchantCooperationPermissions } from '@/types/merchant-cooperation'
 import { MerchantError, merchantErrorMessage } from '../services/merchant-session'
 import type { MerchantIdentityContext } from '../services/merchant-session'
-import { createMerchantClient, isWechat, merchantLoginCode } from '../services/merchant-platform'
+import { createMerchantClient, apiBaseUrl, localTestLoginEnabled, isWechat, merchantLoginCode } from '../services/merchant-platform'
 
 // Compatibility fields remain for preserved demos. They never grant business access.
 export interface MerchantOperatorApplicationContext { id: string; status: ApplicationStatus }
@@ -85,7 +85,7 @@ function loadIdentity(): Promise<void> {
   return promise
 }
 
-async function loginMerchant(): Promise<void> {
+async function loginMerchant(input?: {username:string;password:string;uuid:string}): Promise<void> {
   if (state.busy) return
   const operation = ++action
   readSequence++
@@ -98,7 +98,7 @@ async function loginMerchant(): Promise<void> {
   state.errorCode = ''
   state.notice = ''
   try {
-    const identity = await client.login(merchantLoginCode)
+    const identity = input ? await client.localLogin(input) : await client.login(merchantLoginCode)
     if (operation !== action) return
     accept(identity)
     state.notice = identity.identity === 'APPLICANT' ? '已核实您的个人身份，当前仅可查看本人信息。' : '已读取当前店铺身份。'
@@ -173,7 +173,7 @@ export async function merchantBusinessPreview(fileId: string, goodsId?: string) 
 export function useMerchantContext() {
   initializeMerchantContext()
   return {
-    state: readonly(state), isWechat, loginMerchant, loadIdentity, logout,
+    state: readonly(state), isWechat, apiBaseUrl, localTestLoginEnabled, loginMerchant: () => loginMerchant(), loginLocal: (input:{username:string;password:string;uuid:string}) => loginMerchant(input), loadIdentity, logout,
     currentOperatorApplication, currentOperator, currentStore, currentMerchantStaff, permissions,
   }
 }

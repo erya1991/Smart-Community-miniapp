@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+// #ifdef H5
+import UatLoginForm from '@shared/ui/components/UatLoginForm.vue'
+// #endif
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppPage from '@/components/AppPage.vue'
@@ -20,7 +23,7 @@ import type { ProfileGroupSummary, ProfileItemSummary } from '@/types/app'
 
 type ProfileItem = ProfileItemSummary
 
-const { state, loadProfile, loginBasic, authorizePhone, logout, confirmExistingLink, isWechat } = useResidentContext()
+const { state, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, logout, confirmExistingLink, isWechat } = useResidentContext()
 const groups = ref<ProfileGroupSummary[]>([])
 const navigationError = ref(false)
 const avatarFailed = ref(false)
@@ -121,7 +124,10 @@ onShow(() => { void loadProfile() })
           <button class="profile-button profile-button--secondary" disabled>请在微信小程序中授权手机号</button>
           <!-- #endif -->
         </view>
-        <text v-if="!isWechat" class="profile-note">当前环境不支持微信登录和手机号授权，请在微信小程序中使用。</text>
+        <!-- #ifdef H5 -->
+<UatLoginForm v-if="localTestLoginEnabled && !state.authenticated" :api-base-url="apiBaseUrl" domain="buyer" :busy="state.busy || state.loading" @login="loginLocal" />
+<!-- #endif -->
+        <text v-if="!isWechat && !localTestLoginEnabled" class="profile-note">当前环境不支持微信登录和手机号授权，请在微信小程序中使用。</text>
       </BaseCard>
 
       <view v-if="state.error" class="profile-feedback profile-feedback--error" role="alert">

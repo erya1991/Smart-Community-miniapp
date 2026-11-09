@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {openPage} from '../../utils/navigation'
 import {accessRequired} from '../../../../../packages/common/utils/commercePresentation'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import AppPage from '@/components/AppPage.vue'
@@ -39,7 +40,7 @@ async function act(work: (target: string, isCurrent: () => boolean) => Promise<{
 const refresh = () => act(target => stage2Mall.refresh(target))
 const pay = () => act(async (target, isCurrent) => { const prepared = await stage2Mall.prepare(target); if (!isCurrent() || prepared.trade.tradeId !== target) return prepared; accept(prepared.trade); if (!prepared.launchReady || !prepared.trade.allowedActions.includes('PAY')) return prepared; return stage2Mall.launch(target) })
 const cancel = () => { if (!data.value || busy.value || data.value.tradeId !== tradeId.value) return; const current = data.value, owner = stage2Owner(), context = contextGeneration; uni.showModal({ title: '取消整笔交易', content: `将取消本次全部店铺订单，共${current.orders.length}家店，合计¥${money(current.amountCent)}。最终结果需服务端核验。`, confirmText: '确认取消', success: ({ confirm }) => { if (confirm && owner === stage2Owner() && context === contextGeneration && current.tradeId === tradeId.value) void act(target => stage2Mall.cancel(target)) } }) }
-const mall = () => uni.switchTab({ url: '/pages/mall/index' })
+const mall = () => openPage('/pages/mall/index')
 const timer = setInterval(() => { now.value = Math.max(now.value, clockNow()); if (props.visible && data.value && !paid.value && !closed.value && !busy.value && (data.value.status !== 'WAIT_PAY' || deadline.value === 0)) void refresh() }, 5000)
 onUnmounted(() => { contextGeneration++; actionSequence++; sequence++; clearInterval(timer) })
 watch(() => props.options, () => { contextGeneration++; actionSequence++; sequence++; data.value = undefined; busy.value = false; error.value = ''; status.value = 'loading'; void load() }, { immediate: true, flush: 'sync' })

@@ -3,6 +3,7 @@ import {ref,watch,onBeforeUnmount} from 'vue'
 import type {Stage3Api,Order} from '../../../business-common/stage3/types'
 import {Stage3Error} from '../../../business-common/stage3/client'
 import {label,money,date,blocked,opening} from '../../../business-common/stage3/presentation'
+import {specification} from '../../../business-common/stage45/presentation'
 import BaseCard from '../BaseCard.vue'
 import AppButton from '../AppButton.vue'
 import StatusTag from '../StatusTag.vue'
@@ -61,7 +62,7 @@ defineExpose({load})
     <view class="s3-view remark"><text class="s3-text meta">买家下单留言</text><text class="s3-text">{{order.buyerRemark||'无'}}</text></view>
     <view v-if="merchant" class="s3-view remark"><text class="s3-text meta">商户内部备注（只读）</text><text class="s3-text">{{order.merchantRemark||'无已有备注'}}</text></view>
    </BaseCard>
-   <BaseCard><text class="s3-text section">商品与金额</text><view v-for="item in order.items" :key="item.skuId" class="s3-view item"><view class="s3-view"><text class="s3-text strong">{{item.name}}</text><text class="s3-text meta">{{item.specifications||'默认规格'}} · 剩余履约 {{item.quantity}} 件</text></view><text class="s3-text">¥{{money(item.unitPriceCent)}}</text></view>
+   <BaseCard><text class="s3-text section">商品与金额</text><view v-for="item in order.items" :key="item.skuId" class="s3-view item"><view class="s3-view"><text class="s3-text strong">{{item.name}}</text><text class="s3-text meta">{{specification(item.specifications)}} · 剩余履约 {{item.quantity}} 件</text></view><text class="s3-text">¥{{money(item.unitPriceCent)}}</text></view>
     <view class="s3-view row"><text class="s3-text">商品金额</text><text class="s3-text">¥{{money(order.goodsCent)}}</text></view><view class="s3-view row"><text class="s3-text">配送 / 物流费</text><text class="s3-text">¥{{money(order.freightCent)}}</text></view><view class="s3-view row"><text class="s3-text">订单金额</text><text class="s3-text">¥{{money(order.amountCent)}}</text></view><view class="s3-view row"><text class="s3-text strong">实际已付</text><text class="s3-text price">{{order.paidAmountCent==null?'待核实':'¥'+money(order.paidAmountCent)}}</text></view>
    </BaseCard>
    <BaseCard v-if="order.method==='EXPRESS'"><text class="s3-text section">物流信息</text><template v-if="order.logistics.shippedAt"><text class="s3-text">{{order.logistics.company}}</text><view class="s3-view row"><text class="s3-text">运单号 {{order.logistics.number}}</text><AppButton variant="secondary" size="compact" @click="copy(order.logistics.number||'')">复制单号</AppButton></view><text class="s3-text meta">{{date(order.logistics.shippedAt)}}</text><text class="s3-text meta">展示已登记发货信息；运单异常请联系商户协调。</text></template><text v-else class="s3-text meta">尚未登记发货。</text></BaseCard>

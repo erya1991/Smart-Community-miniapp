@@ -13,14 +13,17 @@ export interface MerchantTokens {
 export interface MerchantResponse { status: number; data: unknown }
 export interface MerchantPorts {
   baseUrl: string
+  localTestLoginEnabled?: boolean
   storageKey?: string
   now?: () => number
   storage: { get(key: string): unknown; set(key: string, value: unknown): void; remove(key: string): void }
-  request(input: { path: string; method: 'GET' | 'POST' | 'PUT'; body?: unknown; accessToken?: string }): Promise<MerchantResponse>
+  request(input: { path: string; method: 'GET' | 'POST' | 'PUT'; body?: unknown; accessToken?: string; headers?: Record<string,string> }): Promise<MerchantResponse>
   upload?(input: { path: string; filePath: string; metadata: string; accessToken: string }): Promise<MerchantResponse>
   download?(input: { path: string; accessToken: string }): Promise<MerchantResponse>
 }
 const messages: Record<string, string> = {
+  UAT_LOGIN_DENIED: '本机测试登录未通过，请核对账号、密码和验证码。',
+  UAT_LOGIN_DISABLED: '当前环境未开启本机测试登录。',
   API_NOT_CONFIGURED: '商户登录服务尚未配置，请等待服务开通。',
   CONFIG_REQUIRED: '商户微信登录尚未开放，请稍后重试。',
   B04_PENDING: '商户身份资料服务尚未开放，请稍后重试。',
@@ -29,8 +32,8 @@ const messages: Record<string, string> = {
   RELATION_CONFLICT: '当前人员与店铺关系需要核对，请联系服务人员。',
   IDENTITY_CONFLICT: '返回的商户身份不一致，请重新登录或联系服务人员。',
   DENIED: '当前身份或店铺授权不可用，请重新核对身份。',
-  SESSION_REQUIRED: '请先使用商户微信登录。',
-  SESSION_REJECTED: '商户登录已失效，请重新使用微信登录。',
+  SESSION_REQUIRED: '请先完成商户身份登录。',
+  SESSION_REJECTED: '商户登录已失效，请重新登录。',
   SESSION_UNAVAILABLE: '暂时无法建立商户会话，请稍后重试。',
   WECHAT_REJECTED: '微信登录未完成或凭证已失效，请重新登录。',
   WECHAT_UNAVAILABLE: '请在商户微信小程序中使用微信登录。',
@@ -153,7 +156,16 @@ export class MerchantSessionClient {
       if (typeof loginCode !== 'string' || !/^[A-Za-z0-9_-]{1,512}$/.test(loginCode)) throw new MerchantError('WECHAT_REJECTED')
       const response = await this.request('/store/passport/wechat/login', 'POST', { loginCode })
       this.current(epoch)
-      const data = object(result(response))
+      return await this.acceptLogin(response, epoch)
+    } catch (error) {
+      if (error instanceof MerchantError && this.invalidations.has(error)) throw error
+      this.current(epoch)
+      this.failClosed(error instanceof MerchantError ? error : new MerchantError('LOGIN_UNAVAILABLE'))
+    }
+  }
+  private async acceptLogin(response:MerchantResponse, epoch:number): Promise<MerchantIdentityContext> {
+    this.current(epoch)
+    const data = object(result(response))
       if (!id(data.memberId) || !domain(data.identity) || (data.identity === 'STORE' ? !role(data.role) : data.role != null)) {
         throw new MerchantError('INVALID_RESPONSE')
       }
@@ -164,10 +176,21 @@ export class MerchantSessionClient {
       this.current(epoch)
       if (context.identity === 'STORE' && initialRole !== context.role) throw new MerchantError('IDENTITY_CONFLICT')
       return context
+  }
+  async localLogin(input: {username:string;password:string;uuid:string}): Promise<MerchantIdentityContext> {
+    this.clear()
+    const epoch = this.epoch
+    try {
+      if (this.ports.localTestLoginEnabled !== true || this.ports.baseUrl !== 'https://127.0.0.1:19793/api') throw new MerchantError('UAT_LOGIN_DISABLED')
+      if (!/^[A-Za-z0-9_-]{3,64}$/.test(input.username) || input.password.length < 8 || input.password.length > 128 || !/^[A-Za-z0-9-]{16,64}$/.test(input.uuid)) throw new MerchantError('INVALID_REQUEST')
+      const response = await this.ports.request({path:'/store/passport/uat/login',method:'POST',body:{username:input.username,password:input.password},headers:{'Content-Type':'application/x-www-form-urlencoded',uuid:input.uuid}})
+      this.current(epoch)
+      if (object(result(response)).source !== 'UAT_SYNTHETIC') throw new MerchantError('INVALID_RESPONSE')
+      return await this.acceptLogin(response, epoch)
     } catch (error) {
       if (error instanceof MerchantError && this.invalidations.has(error)) throw error
       this.current(epoch)
-      this.failClosed(error instanceof MerchantError ? error : new MerchantError('LOGIN_UNAVAILABLE'))
+      this.failClosed(error instanceof MerchantError ? error : new MerchantError('UAT_LOGIN_DENIED'))
     }
   }
   private async refresh(epoch: number): Promise<void> {

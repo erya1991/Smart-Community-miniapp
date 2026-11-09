@@ -5,21 +5,22 @@ import type { ResidentImage, ResidentResponse } from './resident-session'
 declare const process: { env: { UNI_PLATFORM?: string } }
 
 // Public API origin only. No AppID, AppSecret, Code or fallback mock endpoint.
-const apiBaseUrl = String(import.meta.env.VITE_RESIDENT_API_BASE_URL || '').replace(/\/$/, '')
+export const apiBaseUrl = String(import.meta.env.VITE_RESIDENT_API_BASE_URL || '').replace(/\/$/, '')
 export const isWechat = process.env.UNI_PLATFORM === 'mp-weixin'
+export const localTestLoginEnabled = !isWechat && import.meta.env.VITE_UAT_TEST_LOGIN === 'true' && apiBaseUrl === 'https://127.0.0.1:19794/api'
 export function createResidentClient(): ResidentSessionClient {
   return new ResidentSessionClient({
-    baseUrl: apiBaseUrl,
+    baseUrl: apiBaseUrl, localTestLoginEnabled,
     storageKey: import.meta.env.VITE_STAGE45_ENABLED === 'true' ? `daguanglu:resident:stage45:${apiBaseUrl}:session:v1` : import.meta.env.VITE_STAGE2_ENABLED === 'true' ? `daguanglu:resident:stage2:${apiBaseUrl}:session:v1` : undefined,
     storage: {
       get: (key) => uni.getStorageSync(key),
       set: (key, value) => uni.setStorageSync(key, value),
       remove: (key) => uni.removeStorageSync(key),
     },
-    request: ({ path, method, body, accessToken }) => new Promise((resolve, reject) => {
+    request: ({ path, method, body, accessToken, headers }) => new Promise((resolve, reject) => {
       uni.request({
         url: `${apiBaseUrl}${path}`, method, data: body as Record<string, unknown>, timeout: 15000,
-        header: { 'Content-Type': 'application/json', ...(accessToken ? { accessToken } : {}) },
+        header: { 'Content-Type': 'application/json', ...(accessToken ? { accessToken } : {}), ...headers },
         success: (response) => resolve({ status: response.statusCode, data: response.data }),
         fail: () => reject(new ResidentError('NETWORK_ERROR')),
       })

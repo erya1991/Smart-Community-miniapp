@@ -15,7 +15,7 @@ import MerchantIdentityPanel from '../../components/MerchantIdentityPanel.vue'
 import { merchantTabItems } from '@/config/navigation'
 import { useMerchantContext } from '@/stores/merchant-context'
 
-const { loadIdentity } = useMerchantContext()
+const { loadIdentity, state } = useMerchantContext()
 onShow(loadIdentity)
 </script>
 
@@ -24,8 +24,8 @@ onShow(loadIdentity)
     <template #navbar><AppNavbar title="工作台" compact show-user /></template>
     <view class="stack workbench-stack">
       <MerchantIdentityPanel />
-      <Stage3Workbench v-if="stage3Enabled"/>
-      <Stage45Entries v-if="stage45Enabled" :api="stage45Api"/>
+      <Stage3Workbench v-if="stage3Enabled && state.identity?.identity === 'STORE'"/>
+      <Stage45Entries v-if="stage45Enabled && state.identity?.identity === 'STORE'" :api="stage45Api"/>
       <Stage1Home v-if="stage1Enabled"/>
       <BaseCard v-if="!stage1Enabled&&!stage3Enabled&&!stage45Enabled" class="workbench-scope">
         <SectionHeader title="经营服务暂未开放" />

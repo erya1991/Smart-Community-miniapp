@@ -75,7 +75,7 @@ const openSkuSheet = (action: 'select' | 'add' | 'buy') => {
 }
 const previewImage = (current: string) => uni.previewImage({ current, urls: gallery.value })
 const fulfillmentHint = (method: string) => {
-  if(stage2Enabled)return '本店当前支持'+method+'，请在确认页核对地址或服务点及费用。本期不开放核销、收货和售后动作。'
+  if(stage2Enabled)return '本店当前支持'+method+'，请在确认页核对地址或服务点及费用。'+(stage45Enabled?'付款后可在商城订单中查看履约进度与可用售后操作。':'本期不开放核销、收货和售后动作。')
   if (method === '商户配送') return data.value?.deliveryNote
   if (method === '社区自提') return data.value?.fulfillmentMethods.length === 1 ? data.value.deliveryNote : '取货地点与时间以确认订单信息为准，备货后凭取货码取货。'
   return `到店后凭核销码人工核对，门店地址：${data.value?.storeAddress || ''}`

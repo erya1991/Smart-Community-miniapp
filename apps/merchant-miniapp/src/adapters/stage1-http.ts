@@ -4,12 +4,12 @@ import type { MerchantResponse } from '../services/merchant-session'
 
 export const stage1Enabled = import.meta.env.VITE_STAGE1_ENABLED === 'true'
 const messages: Record<string,string> = {
-  VERSION_CONFLICT:'资料已更新，请保留输入并读取最新版本。',REVIEW_VERSION_CONFLICT:'审核内容已变化，请重新核对。',
+  ENABLED_POINT_REQUIRED:'请先在下方新增并启用对应类型的点位，再启用社区自提或到店核销。',POINT_INCOMPLETE:'点位资料未完整，请核对地址、联系人和营业时段。',DELIVERY_SCOPE_REQUIRED:'请为商户配送或普通物流选择可配送区县。',VERSION_CONFLICT:'资料已更新，请保留输入并读取最新版本。',REVIEW_VERSION_CONFLICT:'审核内容已变化，请重新核对。',
   IDEMPOTENCY_CONFLICT:'操作标识已用于其他内容，请回查原操作。',UNKNOWN:'本次提交结果尚未确认，请先回查。',
   STALE_OPERATION:'登录身份已变化，请重新读取资料。',RESOURCE_NOT_FOUND:'对象不存在或不在当前可访问范围。',
   BASIC_NOT_ELIGIBLE:'经营基础条件未满足，请查看资格详情。',GOODS_REVIEW_PENDING:'商品正在审核，暂不能修改内容。',
   OCCUPANCY_UNKNOWN:'库存占用来源待核实，暂不能调整。',FILE_UNAVAILABLE:'附件不可用，请重新选择并上传。',
-  SESSION_REQUIRED:'请先使用商户微信登录。',SESSION_REJECTED:'登录或授权已失效，请重新微信登录。',
+  SESSION_REQUIRED:'请先通过正常入口登录商户身份。',SESSION_REJECTED:'登录或授权已失效，请重新登录并核实当前店铺授权。',
   OWNER_REQUIRED:'只有当前店铺负责人可以管理工作人员。',CHANNEL_PENDING:'真实渠道条件仍待核验。',
   RETRY_REQUIRES_ORIGINAL_INPUT:'应用已重新打开，本机不保留原提交资料。请先回查结果；尚未提交的操作需核对原内容后恢复。',
   OPERATION_STORAGE_UNAVAILABLE:'无法保存本次操作标识，尚未发出请求。请检查本机存储。',

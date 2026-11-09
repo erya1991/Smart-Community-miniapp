@@ -22,15 +22,18 @@ export interface ResidentResponse { status: number; data: unknown }
 export type ResidentMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 export interface ResidentPorts {
   baseUrl: string
+  localTestLoginEnabled?: boolean
   storageKey?: string
   now?: () => number
   storage: { get(key: string): unknown; set(key: string, value: unknown): void; remove(key: string): void }
-  request(input: { path: string; method: ResidentMethod; body?: unknown; accessToken?: string }): Promise<ResidentResponse>
+  request(input: { path: string; method: ResidentMethod; body?: unknown; accessToken?: string; headers?: Record<string,string> }): Promise<ResidentResponse>
   download?(input: { path: string; accessToken: string }): Promise<{ status: number; filePath: string }>
   upload?(input: { filePath: string; accessToken: string }): Promise<ResidentResponse>
   businessUpload?(input:{path:string;filePath:string;metadata:string;accessToken:string}):Promise<ResidentResponse>
 }
 const messages: Record<string, string> = {
+  UAT_LOGIN_DENIED: '本机测试登录未通过，请核对账号、密码和验证码。',
+  UAT_LOGIN_DISABLED: '当前环境未开启本机测试登录。',
   API_NOT_CONFIGURED: '登录服务尚未配置，请等待服务开通。',
   WECHAT_UNAVAILABLE: '请在微信小程序中使用微信登录和手机号授权。',
   WECHAT_REJECTED: '微信登录未完成，请重新登录。',
@@ -172,12 +175,32 @@ export class ResidentSessionClient {
     if (!codeValid(loginCode)) throw new ResidentError('WECHAT_REJECTED')
     const response = await this.request('/buyer/passport/connect/miniProgram/login', 'POST', { loginCode })
     this.current(epoch)
+    return await this.acceptLogin(response, epoch)
+  }
+  private async acceptLogin(response:ResidentResponse, epoch:number): Promise<ResidentProfile> {
+    this.current(epoch)
     const data = object(result(response))
     if (data.identity !== 'RESIDENT' || !id(data.memberId)) throw new ResidentError('IDENTITY_UNAVAILABLE')
     this.session = tokens(data.session, this.now())
     this.subject = data.memberId
     this.persist()
     return this.profile()
+  }
+  async localLogin(input: {username:string;password:string;uuid:string}): Promise<ResidentProfile> {
+    this.clear()
+    const epoch = this.epoch
+    try {
+      if (this.ports.localTestLoginEnabled !== true || this.ports.baseUrl !== 'https://127.0.0.1:19794/api') throw new ResidentError('UAT_LOGIN_DISABLED')
+      if (!/^[A-Za-z0-9_-]{3,64}$/.test(input.username) || input.password.length < 8 || input.password.length > 128 || !/^[A-Za-z0-9-]{16,64}$/.test(input.uuid)) throw new ResidentError('INVALID_REQUEST')
+      const response = await this.ports.request({path:'/buyer/passport/uat/login',method:'POST',body:{username:input.username,password:input.password},headers:{'Content-Type':'application/x-www-form-urlencoded',uuid:input.uuid}})
+      this.current(epoch)
+      if (object(result(response)).source !== 'UAT_SYNTHETIC') throw new ResidentError('INVALID_RESPONSE')
+      return await this.acceptLogin(response, epoch)
+    } catch (error) {
+      this.current(epoch)
+      this.clear()
+      throw error instanceof ResidentError ? error : new ResidentError('UAT_LOGIN_DENIED')
+    }
   }
   private async refresh(epoch: number): Promise<void> {
     this.current(epoch)

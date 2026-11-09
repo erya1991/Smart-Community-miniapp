@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+// #ifdef H5
+import UatLoginForm from '@shared/ui/components/UatLoginForm.vue'
+// #endif
 import AppButton from '@/components/AppButton.vue'
 import BaseCard from '@/components/BaseCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
@@ -8,11 +11,11 @@ import { useMerchantContext } from '../stores/merchant-context'
 import {stage1Enabled} from '../adapters/stage1-http'
 const openApplication=()=>uni.navigateTo({url:'/pages/onboarding/application/index'})
 
-const { state, isWechat, loginMerchant, loadIdentity, logout } = useMerchantContext()
+const { state, isWechat, apiBaseUrl, localTestLoginEnabled, loginLocal, loginMerchant, loadIdentity, logout } = useMerchantContext()
 const showApplicationExplanation = ref(false)
 const identity = computed(() => state.identity)
 const title = computed(() => {
-  if (state.busy) return state.activity === 'logout' ? '正在退出登录' : '正在验证微信身份'
+  if (state.busy) return state.activity === 'logout' ? '正在退出登录' : '正在验证登录身份'
   if (state.loading) return '正在核实当前身份'
   if (identity.value?.identity === 'APPLICANT') return '已完成个人身份认证'
   if (identity.value?.identity === 'STORE') return identity.value.storeName
@@ -50,15 +53,18 @@ const reading = computed(() => state.loading || state.busy)
       <text class="merchant-identity-panel__hint">{{stage1Enabled?'店铺及身份已由服务端核实，经营操作仍按当前授权逐项校验。':'当前店铺与角色已由服务端核实。本页仅提供身份查看，经营功能尚未开放。'}}</text>
     </view>
     <view v-else class="merchant-identity-panel__details">
-      <text class="merchant-identity-panel__body">使用商户小程序微信身份登录，读取本人或已授权的当前店铺。</text>
-      <text v-if="!isWechat" class="merchant-identity-panel__hint">请在微信小程序中使用微信登录，网页预览不能完成身份认证。</text>
+      <text class="merchant-identity-panel__body">{{ localTestLoginEnabled ? '使用本机测试身份登录，读取本人或已授权的当前店铺。' : '使用商户小程序微信身份登录，读取本人或已授权的当前店铺。' }}</text>
+      <text v-if="!isWechat && !localTestLoginEnabled" class="merchant-identity-panel__hint">请在微信小程序中使用微信登录，网页预览不能完成身份认证。</text>
     </view>
 
+    <!-- #ifdef H5 -->
+<UatLoginForm v-if="localTestLoginEnabled && !state.authenticated" :api-base-url="apiBaseUrl" domain="store" :busy="reading" @login="loginLocal" />
+<!-- #endif -->
     <view v-if="state.error" class="merchant-identity-panel__feedback merchant-identity-panel__feedback--error" role="alert"><text>{{ state.error }}</text></view>
     <view v-if="state.notice" class="merchant-identity-panel__feedback"><text>{{ state.notice }}</text></view>
 
     <view class="merchant-identity-panel__actions">
-      <AppButton v-if="!state.authenticated" :disabled="!isWechat || reading" :loading="state.activity === 'login'" @click="loginMerchant">{{ state.error ? '重新微信登录' : '微信登录' }}</AppButton>
+      <AppButton v-if="!state.authenticated && !localTestLoginEnabled" :disabled="!isWechat || reading" :loading="state.activity === 'login'" @click="loginMerchant">{{ state.error ? '重新微信登录' : '微信登录' }}</AppButton>
       <AppButton v-if="state.sessionAvailable" variant="secondary" :disabled="reading" :loading="state.loading" @click="loadIdentity">重新核实身份</AppButton>
       <AppButton v-if="state.sessionAvailable || state.activity === 'login'" variant="quiet" :disabled="state.activity === 'logout'" @click="logout">退出本设备登录</AppButton>
     </view>

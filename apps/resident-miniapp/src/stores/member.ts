@@ -1,7 +1,7 @@
 import { reactive, readonly } from 'vue'
 import { ResidentError, residentErrorMessage } from '../services/resident-session'
 import type { ResidentEdit, ResidentProfile, ResidentMethod, ResidentResponse } from '../services/resident-session'
-import { createResidentClient, isWechat, residentLoginCode, residentRequestId, selectResidentAvatar } from '../services/resident-platform'
+import { apiBaseUrl, localTestLoginEnabled, createResidentClient, isWechat, residentLoginCode, residentRequestId, selectResidentAvatar } from '../services/resident-platform'
 
 const client = createResidentClient()
 const state = reactive({
@@ -105,6 +105,13 @@ async function readAfterWrite(profile: ResidentProfile, operation: number) {
 async function loginBasic(): Promise<void> {
   await change(async (operation) => { await basic(operation); active(operation); state.notice = '已使用微信基本登录，手机号可稍后主动授权。' })
 }
+async function loginLocal(input:{username:string;password:string;uuid:string}): Promise<void> {
+  await change(async operation => {
+    state.profile = null; state.authenticated = false; state.linkRequired = false
+    const profile = await client.localLogin(input); active(operation); accept(profile)
+    state.notice = '已使用本机测试身份登录（Mock），不代表真实微信登录。'
+  })
+}
 async function authorizePhone(code?: string, outcome: 'cancelled' | 'failed' = 'cancelled'): Promise<void> {
   await change(async (operation) => {
     if (!isWechat) throw new ResidentError('WECHAT_UNAVAILABLE')
@@ -174,5 +181,5 @@ async function logout(): Promise<void> {
 }
 export function useResidentContext() {
   initializeResidentContext()
-  return { state: readonly(state), isWechat, loadProfile, loginBasic, authorizePhone, saveProfile, changeAvatar, confirmExistingLink, logout }
+  return { state: readonly(state), isWechat, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, saveProfile, changeAvatar, confirmExistingLink, logout }
 }
