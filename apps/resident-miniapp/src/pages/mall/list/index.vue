@@ -28,6 +28,7 @@ const sort = ref<MallProductSort>('default')
 const products = ref<ResidentMallProductSummary[]>([])
 const page = ref(1), total = ref(0)
 const querying = ref(false)
+const readComplete = ref(true)
 const queryError = ref('')
 let queryVersion = 0
 const queryProducts = async (more = false) => {
@@ -38,10 +39,16 @@ const queryProducts = async (more = false) => {
   queryError.value = ''
   try {
     const query = { keyword: keyword.value, categoryId: categoryId.value, sort: sort.value }
-    const result = stage2Enabled ? await stage2Mall.products(query, targetPage) : { records: await residentMallService.getProducts(query), total: 0 }
-    if (version === queryVersion && owner === stage2Owner()) { products.value = more ? [...products.value, ...result.records] : result.records; total.value = stage2Enabled ? result.total : result.records.length; page.value = targetPage }
+    const result = stage2Enabled ? await stage2Mall.products(query, targetPage) : { records: await residentMallService.getProducts(query), total: 0, readComplete: true }
+    if (version === queryVersion && owner === stage2Owner()) {
+      const combined = more ? [...products.value, ...result.records] : result.records
+      products.value = [...new Map(combined.map(product => [product.id, product])).values()]
+      total.value = stage2Enabled ? result.total : result.records.length
+      readComplete.value = (!more || readComplete.value) && result.readComplete !== false
+      page.value = targetPage
+    }
   } catch (error) {
-    if (version === queryVersion && owner === stage2Owner()) { products.value = []; queryError.value = error instanceof Error ? error.message : '商品加载失败，请重试。' }
+    if (version === queryVersion && owner === stage2Owner()) { products.value = []; readComplete.value = true; queryError.value = error instanceof Error ? error.message : '商品加载失败，请重试。' }
   } finally { if (version === queryVersion) querying.value = false }
 }
 const { status, data, errorMessage, load, refresh } = usePageResource(async () => {
@@ -59,7 +66,7 @@ const readQuery = (value: unknown) => {
   try { return decodeURIComponent(value) } catch { return value }
 }
 const resetFilters = () => { keyword.value = ''; categoryId.value = ''; sort.value = 'default'; actionMessage.value = '' }
-watch(stage2Owner, () => { queryVersion++; products.value = []; total.value = 0; querying.value = false }, { flush: 'sync' })
+watch(stage2Owner, () => { queryVersion++; products.value = []; total.value = 0; querying.value = false; readComplete.value = true }, { flush: 'sync' })
 watch([keyword, categoryId, sort], () => { if (data.value) queryProducts() })
 onLoad((options) => {
   keyword.value = readQuery(options?.keyword)
@@ -79,7 +86,8 @@ onShow(() => { if (data.value) refresh() })
       <SearchBar v-model="keyword" clearable placeholder="搜索商品或店铺" @confirm="queryProducts()" />
       <S2CategorySelector v-if="stage2Enabled" :rows="data?.categories||[]" :selected="categoryId" @select="categoryId=$event"/><scroll-view v-else scroll-x :show-scrollbar="false" class="filter-scroll"><view class="filter-list"><view v-for="item in categories" :key="item.id" class="filter-hit" hover-class="filter-hit--pressed" @click="categoryId = item.id"><text class="filter-chip" :class="{ 'filter-chip--active': categoryId === item.id }">{{ item.name }}</text></view></view></scroll-view>
       <view class="sort-list"><view class="sort-hit" :class="{ 'sort-hit--active': sort === 'default' }" @click="sort = 'default'">综合</view><view v-if="!stage2Enabled" class="sort-hit" :class="{ 'sort-hit--active': sort === 'sales' }" @click="sort = 'sales'">销量</view><view class="sort-hit" :class="{ 'sort-hit--active': sort.startsWith('price-') }" @click="togglePrice">{{ priceLabel }}</view></view>
-      <view class="list-summary"><text>{{ querying ? '正在查询商品…' : `共 ${total} 件商品` }}</text><view class="cart-link" @click="openSubPage('/pages/mall/cart/index')"><AppIcon name="cart" :size="19" /><text>购物车</text></view></view>
+      <view class="list-summary"><text>{{ querying ? '正在查询商品…' : `${readComplete ? '共' : '已核实'} ${total} 件商品` }}</text><view class="cart-link" @click="openSubPage('/pages/mall/cart/index')"><AppIcon name="cart" :size="19" /><text>购物车</text></view></view>
+      <CatalogActionFeedback v-if="!readComplete" message="部分商品信息暂未核实，已显示核实可购的商品，请稍后重试。" @retry="queryProducts()" />
       <CatalogActionFeedback :message="queryError || actionMessage" @retry="actionMessage = ''; load()" />
       <view v-if="products.length" class="two-column-grid"><ProductCard v-for="product in products" :key="product.id" :product="product" @open="openSubPage(`/pages/mall/detail/index?id=${encodeURIComponent(product.id)}`)" @add="addCart" /></view>
       <AppButton v-if="stage2Enabled && products.length && products.length < total" :disabled="querying" @click="queryProducts(true)">加载更多</AppButton>

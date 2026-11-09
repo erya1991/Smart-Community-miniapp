@@ -12,12 +12,14 @@ const props = defineProps<{
   action: 'select' | 'add' | 'buy'
   busy: boolean
   message: string
+  maxQuantity?: number
 }>()
 const emit = defineEmits<{ close: []; select: [name: string, value: string]; quantity: [value: number]; submit: [] }>()
 const groups = computed(() => getSpecificationGroups(props.product))
 const sku = computed(() => findSelectedSku(props.product, props.selectedValues))
+const quantityLimit = computed(() => Math.min(sku.value?.availableStock || 0, props.maxQuantity ?? Number.MAX_SAFE_INTEGER))
 const price = computed(() => sku.value?.price ?? props.product.skus.find((item) => item.id === props.product.currentSkuId)?.price ?? 0)
-const issue = computed(() => !props.product.purchaseEligibility.allowed ? props.product.purchaseEligibility.reason : getSkuSelectionIssue(props.product, props.selectedValues, props.quantity))
+const issue = computed(() => !props.product.purchaseEligibility.allowed ? props.product.purchaseEligibility.reason : getSkuSelectionIssue(props.product, props.selectedValues, props.quantity) || (props.maxQuantity !== undefined && props.quantity > props.maxQuantity ? `单种规格最多购买${props.maxQuantity}件。` : ''))
 const submitLabel = computed(() => props.action === 'add' ? '加入购物车' : props.action === 'buy' ? '立即购买' : '确认规格')
 const available = (name: string, value: string) => isSpecValueAvailable(props.product, props.selectedValues, name, value)
 const money = (value: number) => (value / 100).toFixed(2)
@@ -37,7 +39,7 @@ const money = (value: number) => (value / 100).toFixed(2)
             <text class="sku-sheet__label">{{ group.name }}</text>
             <view class="sku-sheet__options"><button v-for="value in group.values" :key="value" class="sku-sheet__option" :class="{ 'sku-sheet__option--active': selectedValues[group.name] === value }" :disabled="busy || (selectedValues[group.name] !== value && !available(group.name, value))" @click="emit('select', group.name, value)"><text>{{ value }}</text><text v-if="!available(group.name, value)" class="sku-sheet__unavailable">该组合无库存</text></button></view>
           </view>
-          <view class="sku-sheet__quantity"><text class="sku-sheet__label">购买数量</text><view class="sku-sheet__counter"><button aria-label="减少购买数量" :disabled="busy || quantity <= 1" @click="emit('quantity', quantity - 1)">−</button><text>{{ quantity }}</text><button aria-label="增加购买数量" :disabled="busy || !sku || quantity >= sku.availableStock" @click="emit('quantity', quantity + 1)">＋</button></view></view>
+          <view class="sku-sheet__quantity"><text class="sku-sheet__label">购买数量</text><view class="sku-sheet__counter"><button aria-label="减少购买数量" :disabled="busy || quantity <= 1" @click="emit('quantity', quantity - 1)">−</button><text>{{ quantity }}</text><button aria-label="增加购买数量" :disabled="busy || !sku || quantity >= quantityLimit" @click="emit('quantity', quantity + 1)">＋</button></view></view>
           <text v-if="issue || message" class="sku-sheet__issue" role="status">{{ message || issue }}</text>
         </view>
       </scroll-view>

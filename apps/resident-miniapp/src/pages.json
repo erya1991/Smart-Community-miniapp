@@ -1,6 +1,9 @@
 {
   "pages": [
     { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/evaluation/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/messages/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/mall/credential/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/service/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/mall/list/index", "style": { "navigationStyle": "custom" } },

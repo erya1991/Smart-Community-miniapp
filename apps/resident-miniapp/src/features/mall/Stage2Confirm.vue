@@ -21,13 +21,15 @@ const items = ref<S2Item[]>([]), stores = ref<S2StoreOptions[]>([]), choices = r
 const preview = ref<S2ItemPresentation[]>([])
 const applySource = ref(-1), applyTargets = ref<string[]>([])
 const submitted = ref(false), original = ref<{ intentId: string; quoteId: string; confirmationHash: string }>()
+const resendAvailable = ref(false)
 let draftKey = '', sequence = 0, addressSequence = 0
 const money = (n: number) => (n / 100).toFixed(2)
 const delivery = (choice: S2Choice) => ['MERCHANT_DELIVERY', 'EXPRESS'].includes(choice.method)
 const active = () => { if (owner !== stage2Owner()) throw new Error('登录身份已变化，请重新进入本人结算。') }
 const manageAddresses = () => uni.navigateTo({url:'/pages/member/address/index'})
 const dirty = () => { if (!submitted.value) quote.value = undefined }
-const allComplete = computed(() => choices.value.length > 0 && choices.value.every((c) => !c.addressIssue && c.method && c.contact.name.trim().length >= 1 && c.contact.name.trim().length <= 30 && /^1\d{10}$/.test(c.contact.mobile) && (delivery(c) ? Boolean(c.addressId) : Boolean(c.pointId))))
+const methodAvailable = (choice: S2Choice) => stores.value.find(s => s.storeId === choice.storeId)?.precheck.commonMethods.includes(choice.method) === true
+const allComplete = computed(() => choices.value.length > 0 && choices.value.every((c) => !c.addressIssue && methodAvailable(c) && c.contact.name.trim().length >= 1 && c.contact.name.trim().length <= 30 && /^1\d{10}$/.test(c.contact.mobile) && (delivery(c) ? Boolean(c.addressId) : Boolean(c.pointId))))
 async function load() {
   if (!props.options) return
   const current = ++sequence; status.value = 'loading'; error.value = ''
@@ -37,6 +39,7 @@ async function load() {
     draftKey = `daguanglu:s2:intent:${import.meta.env.VITE_RESIDENT_API_BASE_URL}:${owner.split(':')[0]}:${JSON.stringify(input)}`
     const saved = uni.getStorageSync(draftKey)
     if (saved && typeof saved.intentId === 'string' && typeof saved.quoteId === 'string' && typeof saved.confirmationHash === 'string') { original.value = saved; submitted.value = true; status.value = 'ready'; await recover(); return }
+    original.value = undefined; submitted.value = false; resendAvailable.value = false
     const selected = await stage2Mall.checkoutItems(input)
     const [optionsResult, addresses, presentation] = await Promise.all([stage2Mall.options(selected), stage2Mall.book(), stage2Mall.checkoutPresentation(input, selected)]); active(); if (current !== sequence) return
     preview.value = presentation; items.value = selected; stores.value = optionsResult.stores; book.value = addresses
@@ -52,29 +55,79 @@ function toggleTarget(store: string) { applyTargets.value = applyTargets.value.i
 async function applyAddress(index: number) { const source = choices.value[index]; if(!source.addressId || !applyTargets.value.length) return; for(const target of choices.value) if(applyTargets.value.includes(target.storeId) && delivery(target)){ target.addressId = source.addressId; target.addressVersion = source.addressVersion } applySource.value = -1; dirty(); await validateAddresses() }
 function payload(): S2Choice[] { return choices.value.map((c) => ({ storeId: c.storeId, method: c.method, ...(delivery(c) ? { addressId: c.addressId, addressVersion: c.addressVersion } : { pointId: c.pointId }), contact: { name: c.contact.name.trim(), mobile: c.contact.mobile.trim() }, remark: c.remark.trim() })) }
 async function execute(work: () => Promise<void>) { if (busy.value) return; busy.value = true; error.value = ''; try { active(); await work(); active() } catch (e) { error.value = e instanceof Error ? e.message : '操作未完成，请查询原交易' } finally { busy.value = false } }
-const calculate = () => execute(async () => { if (!allComplete.value) throw new Error('请逐店选择履约方式、地址或点位，并填写联系人。'); quote.value = await stage2Mall.quote(items.value, payload()) })
-async function accept(result: Awaited<ReturnType<typeof stage2Mall.create>>) { active(); if (result.tradeId) { uni.removeStorageSync(draftKey); uni.redirectTo({ url: `/pages/pay/result/index?tradeId=${result.tradeId}` }) } else if (result.status === 'FAILED') { uni.removeStorageSync(draftKey); original.value = undefined; submitted.value = false; quote.value = undefined; error.value = '原提交已确认未创建交易。请重新读取条件并确认。' } else { error.value = '创建结果仍在核实。请查询本次原意图或从待处理交易继续。' } }
+const calculate = () => execute(async () => {
+  if (!allComplete.value) throw new Error('请逐店选择履约方式、地址或点位，并填写联系人。')
+  const context = draftKey, selected = items.value.map(item => ({ ...item })), choices = payload()
+  const fingerprint = JSON.stringify([selected, choices])
+  const result = await stage2Mall.quote(selected, choices)
+  active()
+  if (context === draftKey && fingerprint === JSON.stringify([items.value, payload()])) quote.value = result
+})
+async function accept(result: Awaited<ReturnType<typeof stage2Mall.create>>, context: string) {
+  active(); if (context !== draftKey) return; resendAvailable.value = false
+  if (result.tradeId) { uni.removeStorageSync(draftKey); uni.redirectTo({ url: `/pages/pay/result/index?tradeId=${result.tradeId}` }) }
+  else if (result.status === 'FAILED') {
+    const priorChoices = choices.value.map(c => ({ ...c, contact: { ...c.contact } }))
+    uni.removeStorageSync(draftKey); original.value = undefined; submitted.value = false; quote.value = undefined
+    await load(); active()
+    if (context !== draftKey) return
+    if (status.value === 'ready') {
+      for (const choice of choices.value) {
+        const prior = priorChoices.find(c => c.storeId === choice.storeId)
+        if (!prior) continue
+        choice.contact = prior.contact; choice.remark = prior.remark; choice.method = prior.method
+        const address = book.value?.records.find(a => a.id === prior.addressId)
+        choice.addressId = delivery(choice) ? address?.id : undefined
+        choice.addressVersion = delivery(choice) ? address?.version : undefined
+        const points = stores.value.find(s => s.storeId === choice.storeId)?.precheck.candidatePoints[choice.method] || []
+        choice.pointId = !delivery(choice) && points.some(p => p.id === prior.pointId) ? prior.pointId : undefined
+      }
+      await validateAddresses(); active()
+      error.value = '原提交已确认未创建交易。已保留本次填写，请核对最新商品、地址及履约后重新报价。'
+    }
+  } else { error.value = '创建结果仍在核实。请查询本次原意图或从待处理交易继续。' }
+}
 const submit = () => execute(async () => {
   if (submitted.value) { await recover(); return }
   if (!quote.value || !allComplete.value) throw new Error('请先获取并核对各店完整报价。')
   const body = { intentId: stage2OperationId('intent'), quoteId: quote.value.quoteId, confirmationHash: quote.value.confirmationHash }
+  const context = draftKey
   // Persist BEFORE dispatch. Ambiguous writes are never replaced with a new purchase intent.
   uni.setStorageSync(draftKey, body); original.value = body; submitted.value = true
-  await accept(await stage2Mall.create(body))
+  await accept(await stage2Mall.create(body), context)
 })
-async function recover() { if (!original.value) return; try { await accept(await stage2Mall.intent(original.value.intentId)) } catch (e) { active(); if ((e as { status?: number }).status === 404) await accept(await stage2Mall.create(original.value)); else throw e } }
+async function recover() {
+  if (!original.value) return
+  active(); resendAvailable.value = false
+  const context = draftKey, intent = original.value.intentId
+  try { await accept(await stage2Mall.intent(intent), context) }
+  catch (e) {
+    active()
+    if (context !== draftKey || original.value?.intentId !== intent) return
+    if ((e as { status?: number }).status !== 404) throw e
+    resendAvailable.value = true
+    error.value = '尚未查到原提交，原请求仍可能在途。可继续查询，或由您确认后重新发送同一个提交。'
+  }
+}
+async function resend() {
+  if (!resendAvailable.value || !original.value) return
+  active(); resendAvailable.value = false
+  const context = draftKey, body = original.value
+  await accept(await stage2Mall.create(body), context)
+}
 watch(() => props.options, load, { immediate: true })
-watch(stage2Owner, () => { sequence++; preview.value = []; items.value = []; stores.value = []; choices.value = []; book.value = undefined; quote.value = undefined; original.value = undefined; status.value = 'error'; error.value = '登录身份已变化，请重新进入本人结算。' }, { flush: 'sync' })
+watch(stage2Owner, () => { sequence++; preview.value = []; items.value = []; stores.value = []; choices.value = []; book.value = undefined; quote.value = undefined; original.value = undefined; submitted.value = false; resendAvailable.value = false; status.value = 'error'; error.value = '登录身份已变化，请重新进入本人结算。' }, { flush: 'sync' })
 </script>
 <template>
   <AppPage v-if="accessRequired(error)" status="ready"><template #navbar><AppNavbar title="确认订单" centered show-back /></template><Stage2Notice :error="error"/></AppPage><AppPage v-else :status="status" :state-message="error" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="确认订单" centered show-back /></template>
     <view class="stack s2-confirm"><Stage2Notice /><text v-if="error" class="s2-error">{{ error }}</text>
-      <BaseCard v-if="submitted"><text>本次提交结果需核实，请继续查询原意图。</text><text class="secondary">{{ original?.intentId }}</text><AppButton :disabled="busy" @click="execute(recover)">查询原提交</AppButton></BaseCard>
+      <BaseCard v-if="submitted"><text>本次提交结果需核实，请继续查询原意图。</text><text class="secondary">{{ original?.intentId }}</text><AppButton :disabled="busy" @click="execute(recover)">查询原提交</AppButton><AppButton v-if="resendAvailable" variant="secondary" :disabled="busy" @click="execute(resend)">重新发送原提交</AppButton></BaseCard>
       <template v-else>
         <BaseCard v-for="(store, index) in stores" :key="store.storeId"><text class="store-name">{{ store.storeName }}</text><S2OrderSummary :items="preview.filter(p=>p.storeId===store.storeId)" :order="quote?.orders.find(o=>o.storeId===store.storeId)"/>
           <text v-if="store.precheck.reasonCodes.length" class="s2-error">{{store.precheck.commonMethods.length ? '该店商品或经营条件已变化，请返回购物车调整。' : '本店所选商品没有共同可用的履约方式；本次全部店铺尚未提交，请返回购物车调整。'}}</text>
           <picker :disabled="busy" :range="store.precheck.commonMethods.map(m => methodNames[m])" @change="chooseMethod(index, $event)"><view class="pick-row">履约方式：{{ methodNames[choices[index].method] || '无共同履约方式' }} ›</view></picker>
+          <text v-if="!methodAvailable(choices[index])" class="s2-error">原履约方式当前不可用，请明确重新选择。</text>
           <template v-if="delivery(choices[index])"><picker :disabled="busy" :range="book?.records.map(a => a.name + ' ' + a.region + a.detail) || []" @change="chooseAddress(index, $event)"><view class="pick-row">收货地址：{{ book?.records.filter(a => a.id === choices[index].addressId).map(a=>a.name+' '+a.mobile+' · '+a.region+a.detail).join('') || '请选择本店地址' }} ›</view></picker><text v-if="choices[index].addressIssue" class="s2-error">{{ choices[index].addressIssue }}</text><button v-if="choices[index].addressId && targetChoices(index).length" class="text-button" @click="applySource = index; applyTargets = []">将本店地址应用到其他店</button><view v-if="applySource === index"><text class="secondary">明确选择要替换地址的配送/物流店铺；其他店保持原选择。</text><button v-for="target in targetChoices(index)" :key="target.storeId" class="text-button" @click="toggleTarget(target.storeId)">{{ applyTargets.includes(target.storeId) ? '✓' : '○' }} {{ stores.find(s => s.storeId === target.storeId)?.storeName }}</button><AppButton variant="secondary" :disabled="!applyTargets.length" @click="applyAddress(index)">确认应用并逐店校验</AppButton></view><button class="text-button" @click="manageAddresses">管理地址</button><button class="text-button" @click="load">返回后重新读取地址与条件</button></template>
           <picker v-else :disabled="busy" :range="store.precheck.candidatePoints[choices[index].method] || []" range-key="name" @change="choices[index].pointId = store.precheck.candidatePoints[choices[index].method]?.[Number($event.detail.value)]?.id; dirty()"><view class="pick-row">服务点：{{ store.precheck.candidatePoints[choices[index].method]?.find(p => p.id === choices[index].pointId)?.name || '请选择' }} ›</view></picker>
           <view v-for="point in (store.precheck.candidatePoints[choices[index].method] || []).filter(p => p.id === choices[index].pointId)" :key="point.id" class="secondary"><text>{{ point.address }}</text><text>联系电话：{{ point.phone }}</text><text>开放时间：{{ openingText(point.opening) }}</text><text>{{ point.instructions }}</text><text>开放时间为服务说明，不限制本次购买。</text></view>

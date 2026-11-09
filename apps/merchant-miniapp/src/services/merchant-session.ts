@@ -13,6 +13,7 @@ export interface MerchantTokens {
 export interface MerchantResponse { status: number; data: unknown }
 export interface MerchantPorts {
   baseUrl: string
+  storageKey?: string
   now?: () => number
   storage: { get(key: string): unknown; set(key: string, value: unknown): void; remove(key: string): void }
   request(input: { path: string; method: 'GET' | 'POST' | 'PUT'; body?: unknown; accessToken?: string }): Promise<MerchantResponse>
@@ -95,7 +96,8 @@ export class MerchantSessionClient {
   private refreshFlight: Promise<void> | null = null
   private readonly invalidations = new WeakSet<MerchantError>()
   private readonly now: () => number
-  constructor(private readonly ports: MerchantPorts) { this.now = ports.now || Date.now }
+  private readonly storageKey: string
+  constructor(private readonly ports: MerchantPorts) { this.now = ports.now || Date.now; this.storageKey = ports.storageKey || MERCHANT_SESSION_KEY }
   get authenticated(): boolean { return this.session !== null }
   get revision(): number { return this.epoch }
   get memberId(): string | null { return this.subject }
@@ -109,7 +111,7 @@ export class MerchantSessionClient {
   private clear(): void {
     this.epoch++; this.readSequence++
     this.session = null; this.subject = null; this.identityDomain = null; this.confirmedRole = null; this.refreshFlight = null
-    try { this.ports.storage.remove(MERCHANT_SESSION_KEY) } catch { throw new MerchantError('STORAGE_UNAVAILABLE') }
+    try { this.ports.storage.remove(this.storageKey) } catch { throw new MerchantError('STORAGE_UNAVAILABLE') }
   }
   private failClosed(error: MerchantError): never {
     try { this.clear() } catch { error = new MerchantError('STORAGE_UNAVAILABLE') }
@@ -118,7 +120,7 @@ export class MerchantSessionClient {
   }
   private persist(): void {
     try {
-      this.ports.storage.set(MERCHANT_SESSION_KEY, { apiBaseUrl: this.ports.baseUrl, identity: this.identityDomain,
+      this.ports.storage.set(this.storageKey, { apiBaseUrl: this.ports.baseUrl, identity: this.identityDomain,
         memberId: this.subject, role: this.confirmedRole, session: this.session })
     } catch { this.failClosed(new MerchantError('STORAGE_UNAVAILABLE')) }
   }
@@ -126,7 +128,7 @@ export class MerchantSessionClient {
     if (this.session) return
     try {
       this.configured()
-      const saved = this.ports.storage.get(MERCHANT_SESSION_KEY)
+      const saved = this.ports.storage.get(this.storageKey)
       if (!saved) return
       const data = object(saved)
       if (data.apiBaseUrl !== this.ports.baseUrl || !domain(data.identity) || !id(data.memberId)) throw new MerchantError('SESSION_REJECTED')
@@ -258,9 +260,10 @@ export class MerchantSessionClient {
     return (this.identityDomain === 'APPLICANT' ? '/store/passport/applicant/p0/s1' : '/store/p0/s1') + path
   }
   /** GET may reread once after a changed Access; writes and uploads are never automatically replayed. */
-  private async stage1Call(path: string, readOnly: boolean, send: (path: string, token: string) => Promise<MerchantResponse>): Promise<MerchantResponse> {
+  private async stage1Call(path: string, readOnly: boolean, send: (path: string, token: string) => Promise<MerchantResponse>, stage3 = false): Promise<MerchantResponse> {
     const epoch = this.epoch
-    const fullPath = this.stage1Path(path)
+    if(stage3 && (this.identityDomain !== 'STORE' || !/^\/store\/p0\/(?:s3|s45)\/[A-Za-z0-9/_-]+$/.test(path) || path.includes('//') || path.includes('..'))) throw new MerchantError('INVALID_REQUEST')
+    const fullPath = stage3 ? path : this.stage1Path(path)
     for (let attempt = 0; attempt < 2; attempt++) {
       const token = await this.access(epoch)
       const response = await send(fullPath, token)
@@ -278,6 +281,17 @@ export class MerchantSessionClient {
   }
   business(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown): Promise<MerchantResponse> {
     return this.stage1Call(path, method === 'GET', (full, token) => this.request(full, method, body, token))
+  }
+  stage3Business(path: string, method: 'GET' | 'POST', body?: unknown): Promise<MerchantResponse> {
+    return this.stage1Call(path, method === 'GET', (full, token) => this.request(full, method, body, token), true)
+  }
+  stage45Upload(path:string,metadata:string,filePath:string):Promise<MerchantResponse>{
+    if(path!=='/store/p0/s45/attachments')throw new MerchantError('INVALID_REQUEST')
+    return this.stage1Call(path,false,async(full,accessToken)=>{if(!this.ports.upload)throw new MerchantError('OPERATION_UNAVAILABLE');return this.ports.upload({path:full,accessToken,filePath,metadata})},true)
+  }
+  stage45Asset(path:string):Promise<MerchantResponse>{
+    if(!/^\/store\/p0\/s45\/(?:attachments\/[1-9][0-9]{0,18}|orders\/[1-9][0-9]{0,18}\/items\/[1-9][0-9]{0,18}\/image)$/.test(path))throw new MerchantError('INVALID_REQUEST')
+    return this.stage1Call(path,true,async(full,accessToken)=>{if(!this.ports.download)throw new MerchantError('OPERATION_UNAVAILABLE');return this.ports.download({path:full,accessToken})},true)
   }
   uploadBusiness(filePath: string, metadata: string): Promise<MerchantResponse> {
     return this.stage1Call('/files', false, async (path, accessToken) => {

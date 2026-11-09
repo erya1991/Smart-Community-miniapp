@@ -12,6 +12,10 @@ import { merchantTabItems } from '@/config/navigation'
 import { merchantIdentityPage, merchantOwnPagePath, merchantRestrictedTitle, merchantTabPath, MERCHANT_PROFILE_PATH } from '../services/merchant-route-guard'
 import {stage1Enabled,useStage1} from '../services/stage1'
 import {stage1PageAllowed} from '../services/stage1-route-guard'
+import {stage45Enabled,useStage45Access} from '../services/stage45'
+import {stage45BusinessPage,stage45PageAllowed} from '../services/stage45-route-guard'
+import {stage3Enabled,useStage3Access} from '../services/stage3'
+import {stage3BusinessPage,stage3PageAllowed} from '../services/stage3-route-guard'
 
 withDefaults(defineProps<{
   status?: PageStatus
@@ -22,8 +26,12 @@ withDefaults(defineProps<{
 const emit = defineEmits<{ retry: [] }>()
 const component = getCurrentInstance()
 const ownPath = ref('')
-const business=useStage1()
-const identityPage = computed(() => merchantIdentityPage(ownPath.value)||stage1Enabled&&stage1PageAllowed(ownPath.value,business.identity.state.identity?.identity,business.authority.context))
+const business=useStage1(),stage3=useStage3Access(),stage45=useStage45Access()
+const stage45Page=computed(()=>stage45Enabled&&stage45BusinessPage(ownPath.value))
+const stage3Page=computed(()=>stage3Enabled&&stage3BusinessPage(ownPath.value))
+const pageLoading=computed(()=>stage45Page.value?stage45.access.loading:stage3Page.value?stage3.access.loading:business.authority.loading)
+const pageError=computed(()=>stage45Page.value?stage45.access.error:stage3Page.value?stage3.access.error:business.authority.error)
+const identityPage = computed(() => merchantIdentityPage(ownPath.value)||(stage45Page.value?stage45PageAllowed(ownPath.value,business.identity.state.identity?.identity,stage45.access.context):stage3Page.value?stage3PageAllowed(ownPath.value,business.identity.state.identity?.identity,stage3.access.context):stage1Enabled&&stage1PageAllowed(ownPath.value,business.identity.state.identity?.identity,business.authority.context)))
 const tabPath = computed(() => merchantTabPath(ownPath.value))
 const restrictedTitle = computed(() => merchantRestrictedTitle(ownPath.value))
 
@@ -35,7 +43,7 @@ function identifyPage() {
 identifyPage()
 onMounted(identifyPage)
 onShow(identifyPage)
-onShow(()=>{if(stage1Enabled)void business.refreshAuthority()})
+onShow(()=>{if(stage1Enabled)void business.refreshAuthority();if(stage3Enabled)void stage3.refreshStage3Access();if(stage45Enabled)void stage45.refreshStage45Access()})
 const showIdentity = () => uni.redirectTo({ url: MERCHANT_PROFILE_PATH })
 </script>
 
@@ -49,8 +57,8 @@ const showIdentity = () => uni.redirectTo({ url: MERCHANT_PROFILE_PATH })
     <template #navbar><AppNavbar :title="restrictedTitle" compact /></template>
     <view class="merchant-scope-limit">
       <BaseCard>
-        <text class="merchant-scope-limit__title">{{stage1Enabled?(business.authority.loading?'正在核对经营权限':'当前页面不可用'):'经营功能尚未开放'}}</text>
-        <text class="merchant-scope-limit__copy">{{stage1Enabled?(business.authority.error||'请核对当前登录及页面所需权限。'):'当前可使用商户微信登录、查看本人身份及退出登录。'}}</text>
+        <text class="merchant-scope-limit__title">{{stage1Enabled?(pageLoading?'正在核对经营权限':'当前页面不可用'):'经营功能尚未开放'}}</text>
+        <text class="merchant-scope-limit__copy">{{stage1Enabled?(pageError||'请核对当前登录及页面所需权限。'):'当前可使用商户微信登录、查看本人身份及退出登录。'}}</text>
         <text v-if="!stage1Enabled" class="merchant-scope-limit__copy">开店申请、店铺管理和订单处理将在后续开放，当前店铺身份不代表这些操作已获授权。</text>
         <view class="merchant-scope-limit__action"><AppButton @click="showIdentity">查看我的身份</AppButton></view>
       </BaseCard>

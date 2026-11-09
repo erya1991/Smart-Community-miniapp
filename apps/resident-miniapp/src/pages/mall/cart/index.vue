@@ -2,8 +2,8 @@
 import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
 import Stage2Notice from '@/features/mall/Stage2Notice.vue'
 import { stage2Mall } from '@/services/stage2-mall'
-import { stage2Enabled } from '@/adapters/stage2-http'
-import { computed, ref } from 'vue'
+import { stage2Enabled, stage2Owner } from '@/adapters/stage2-http'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -19,6 +19,8 @@ import type { CartMerchantGroup } from '../../../../../../packages/common/types/
 const { status, data, errorMessage, load } = usePageResource(residentMallService.getCart)
 const actionError = ref('')
 const busy = ref(false)
+let actionSequence = 0
+if (stage2Enabled) watch(stage2Owner, () => { actionSequence++; busy.value = false; actionError.value = '' }, { flush: 'sync' })
 const money = (value: number) => (value / 100).toFixed(2)
 const validItems = computed(() => data.value?.groups.flatMap((group) => group.items) || [])
 const selectedItems = computed(() => validItems.value.filter((item) => item.selected))
@@ -30,17 +32,38 @@ const groupPartial = (group: CartMerchantGroup) => group.items.some(i=>i.selecte
 const groupSelected = (group: CartMerchantGroup) => group.items.every((item) => item.selected)
 const act = async (action: () => Promise<unknown>) => {
   if (busy.value) return
+  const version = ++actionSequence, owner = stage2Enabled ? stage2Owner() : ''
+  const current = () => !stage2Enabled || version === actionSequence && owner === stage2Owner()
   busy.value = true; actionError.value = ''
-  try { await action(); await load() }
-  catch (error) { actionError.value = error instanceof Error ? error.message : '操作失败，请重试。' }
-  finally { busy.value = false }
+  try { await action(); if (current()) await load() }
+  catch (error) { if (current()) actionError.value = error instanceof Error ? error.message : '操作失败，请重试。' }
+  finally { if (current()) busy.value = false }
 }
 const toggle = (id: string, selected: boolean) => act(() => residentMallService.toggleCartItem(id, selected))
 const toggleGroup = (group: CartMerchantGroup) => act(() => Promise.all(group.items.map((item) => residentMallService.toggleCartItem(item.id, !groupSelected(group)))))
 const toggleAll = () => act(() => Promise.all(validItems.value.map((item) => residentMallService.toggleCartItem(item.id, !allSelected.value))))
 const updateQuantity = (id: string, quantity: number) => act(() => residentMallService.updateCartQuantity(id, quantity))
-const clearInvalid = () => { if (busy.value || !data.value?.invalidItems.length) return; const count = data.value.invalidItems.length; const removeConfirmed = stage2Enabled ? stage2Mall.invalidRemoval() : residentMallService.clearInvalidCart; uni.showModal({ title: '清理不可结算商品', content: `将删除当前列出的${count}种失效规格，正常商品保留。`, success: ({confirm}) => { if(confirm) void act(removeConfirmed) } }) }
-const remove = (id: string) => act(() => residentMallService.removeCartItem(id))
+const clearInvalid = () => {
+  if (busy.value || !data.value?.invalidItems.length) return
+  const count = data.value.invalidItems.length, owner = stage2Owner(), version = actionSequence
+  const removeConfirmed = stage2Enabled ? stage2Mall.invalidRemoval() : residentMallService.clearInvalidCart
+  uni.showModal({ title: '清理不可结算商品', content: `将删除当前列出的${count}种失效规格，正常商品保留。`, success: ({ confirm }) => {
+    if (confirm && (!stage2Enabled || owner === stage2Owner() && version === actionSequence)) void act(removeConfirmed)
+  } })
+}
+const remove = (id: string) => {
+  if (!stage2Enabled) return act(() => residentMallService.removeCartItem(id))
+  if (busy.value) return
+  const item = [...validItems.value, ...(data.value?.invalidItems || [])].find(item => item.id === id)
+  if (!item) return
+  const owner = stage2Owner(), version = actionSequence
+  try {
+    const removeConfirmed = stage2Mall.cartRemoval(id)
+    uni.showModal({ title: '移除商品', content: `确定移除“${item.product.name} · ${item.sku.name}”吗？`, success: ({ confirm }) => {
+      if (confirm && owner === stage2Owner() && version === actionSequence) void act(removeConfirmed)
+    } })
+  } catch (error) { actionError.value = error instanceof Error ? error.message : '请刷新购物车后再操作。' }
+}
 const checkout = () => {
   if (busy.value || !selectedItems.value.length) return
   openSubPage('/pages/mall/confirm/index?cartIds=' + encodeURIComponent(selectedItems.value.map((item) => item.id).join(',')))
@@ -55,7 +78,7 @@ onShow(() => { if (data.value) load() })
     <template #navbar><AppNavbar title="购物车" centered show-back /></template>
     <view v-if="data" class="stack cart-page"><Stage2Notice v-if="stage2Enabled" />
       <view class="cart-tip"><AppIcon name="verified" :size="19" /><text>社区便民直供：按商户分别履约，所选商品统一结算。</text></view>
-      <text v-if="actionError" class="action-error">{{ actionError }}</text>
+      <view v-if="actionError" class="stack"><text class="action-error">{{ actionError }}</text><AppButton variant="secondary" :disabled="busy" @click="actionError = ''; load()">重新读取购物车</AppButton></view>
       <BaseCard v-for="group in data.groups" :key="group.storeId">
         <view class="merchant-head">
           <button class="check-hit" :aria-label="'选择' + group.merchantName + '全部商品'" :disabled="busy" @click="toggleGroup(group)"><view class="check" :class="{ active: groupSelected(group) }">{{ groupSelected(group) ? '✓' : groupPartial(group) ? '−' : '' }}</view></button>

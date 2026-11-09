@@ -153,6 +153,13 @@ export async function merchantBusinessRequest(path: string, method: 'GET'|'POST'
   try { return await client.business(path, method, body) }
   catch (error) { if (error instanceof MerchantError && ['SESSION_REJECTED','SESSION_REQUIRED','STORAGE_UNAVAILABLE'].includes(error.code)) failed(error); throw error }
 }
+export async function merchantStage3Request(path: string, method: 'GET'|'POST', body?: unknown) {
+  initializeMerchantContext()
+  try { return await client.stage3Business(path, method, body) }
+  catch (error) { if (error instanceof MerchantError && ['SESSION_REJECTED','SESSION_REQUIRED','STORAGE_UNAVAILABLE'].includes(error.code)) failed(error); throw error }
+}
+export async function merchantStage45Upload(path:string,metadata:string,filePath:string){initializeMerchantContext();return client.stage45Upload(path,metadata,filePath)}
+export async function merchantStage45Asset(path:string){initializeMerchantContext();const r=await client.stage45Asset(path);if(r.status!==200)throw new MerchantError('OPERATION_UNAVAILABLE');return (r.data as {localPath:string}).localPath}
 export async function merchantBusinessUpload(filePath: string, metadata: string) {
   initializeMerchantContext()
   try { return await client.uploadBusiness(filePath, metadata) }

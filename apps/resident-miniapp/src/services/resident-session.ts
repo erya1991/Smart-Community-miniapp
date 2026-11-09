@@ -28,6 +28,7 @@ export interface ResidentPorts {
   request(input: { path: string; method: ResidentMethod; body?: unknown; accessToken?: string }): Promise<ResidentResponse>
   download?(input: { path: string; accessToken: string }): Promise<{ status: number; filePath: string }>
   upload?(input: { filePath: string; accessToken: string }): Promise<ResidentResponse>
+  businessUpload?(input:{path:string;filePath:string;metadata:string;accessToken:string}):Promise<ResidentResponse>
 }
 const messages: Record<string, string> = {
   API_NOT_CONFIGURED: '登录服务尚未配置，请等待服务开通。',
@@ -234,7 +235,7 @@ export class ResidentSessionClient {
   }
   /** Fixed-origin business transport. Credentials remain private to the existing Session client. */
   async asset(path: string): Promise<string> {
-    if (!/^\/buyer\/p0\/s2\/goods\/[1-9]\d{0,18}\/images\/[1-9]\d{0,18}$/.test(path) || !this.ports.download) throw new ResidentError('ASSET_UNAVAILABLE')
+    if (!/^(?:\/buyer\/p0\/s2\/goods\/[1-9]\d{0,18}\/images\/[1-9]\d{0,18}|\/buyer\/p0\/s45\/(?:attachments\/[1-9]\d{0,18}|orders\/[1-9]\d{0,18}\/items\/[1-9]\d{0,18}\/image))$/.test(path) || !this.ports.download) throw new ResidentError('ASSET_UNAVAILABLE')
     const epoch = this.epoch, member = this.subject, accessToken = await this.access(epoch)
     const result = await this.ports.download({ path, accessToken })
     this.current(epoch)
@@ -242,13 +243,20 @@ export class ResidentSessionClient {
     return result.filePath
   }
   async business(path: string, method: ResidentMethod, body?: unknown): Promise<ResidentResponse> {
-    if (!/^\/buyer\/p0\/s2\/[A-Za-z0-9_/-]+$/.test(path) || path.includes('..') || path.includes('//')) throw new ResidentError('INVALID_REQUEST')
+    if (!/^\/buyer\/p0\/(?:s2|s3|s45)\/[A-Za-z0-9_/-]+$/.test(path) || path.includes('..') || path.includes('//')) throw new ResidentError('INVALID_REQUEST')
     const epoch = this.epoch
     const member = this.subject
     const response = await this.authorizedResponse(path, method, body)
     this.current(epoch)
     if (member !== this.subject || !this.subject) throw new ResidentError('STALE_OPERATION')
     return response
+  }
+  async uploadBusiness(path:string,metadata:string,filePath:string):Promise<ResidentResponse>{
+    if(path!=='/buyer/p0/s45/attachments'||!this.ports.businessUpload)throw new ResidentError('INVALID_REQUEST')
+    const epoch=this.epoch,member=this.subject,accessToken=await this.access(epoch)
+    const result=await this.ports.businessUpload({path,metadata,filePath,accessToken});this.current(epoch)
+    if(member!==this.subject||!this.subject)throw new ResidentError('STALE_OPERATION')
+    return result
   }
   async profile(): Promise<ResidentProfile> {
     const epoch = this.epoch

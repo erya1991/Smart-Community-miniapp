@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {stage45Api,stage45Enabled} from '@/services/stage45'
+import AfterSaleDetail from '@shared/ui/components/stage45/AfterSaleDetail.vue'
+const stage45Item=ref(''),stage45Refresh=ref(0)
+function stage45Created(id:string){uni.redirectTo({url:'/pages/after-sale/detail/index?id='+id})}
+function stage45Open(id:string){uni.navigateTo({url:'/pages/after-sale/detail/index?id='+id})}
 import {stage1Enabled} from '../../../services/stage1'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
@@ -42,11 +47,12 @@ const simulate = async (outcome: 'processing' | 'success' | 'failure') => {
   try { const result = await uni.showModal({ title: '平台退款 Mock', content: '本次以平台模拟器身份更新退款结果，仅用于原型演示，不执行真实资金操作。' }); if (!result.confirm) return; await platformRefundDemoService.process(data.value.id, outcome); await refresh() }
   catch (error) { message.value = error instanceof Error ? error.message : '模拟失败'; await refresh() } finally { busy.value = false }
 }
-onLoad(options => { if(stage1Enabled)return; id.value = options?.id || ''; load() })
-onShow(() => { if(stage1Enabled)return; if (data.value) refresh() })
+onLoad(options => { if(stage45Enabled){id.value=options?.id||'';return} if(stage1Enabled)return; id.value = options?.id || ''; load() })
+onShow(() => { if(stage45Enabled){stage45Refresh.value++;return} if(stage1Enabled)return; if (data.value) refresh() })
 </script>
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <AppPage v-if="stage45Enabled" secondary><template #navbar><AppNavbar title="售后处理" centered show-back/></template><AfterSaleDetail :api="stage45Api" :id="id" merchant :refresh-key="stage45Refresh"/></AppPage>
+  <AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="售后详情" centered show-back /></template>
     <view v-if="data" class="stack after-sale-detail">
       <BaseCard class="status-panel"><StatusTag :tone="data.serviceStatus === 'COMPLETE' ? 'success' : data.serviceStatus === 'REFUSE' ? 'error' : 'pending'">{{ data.statusLabel }}</StatusTag><text>{{ data.nextStep }}</text><text>售后单 {{ data.sn }}</text></BaseCard>

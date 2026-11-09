@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {stage45Api,stage45Enabled} from '@/services/stage45'
+import AfterSaleDetail from '@shared/ui/components/stage45/AfterSaleDetail.vue'
+const stage45Item=ref(''),stage45Refresh=ref(0)
+function stage45Created(id:string){uni.redirectTo({url:'/pages/after-sale/detail/index?id='+id})}
+function stage45Open(id:string){uni.navigateTo({url:'/pages/after-sale/detail/index?id='+id})}
 import { stage2Enabled } from '@/adapters/stage2-http'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
@@ -33,11 +38,12 @@ const act = async (kind: 'cancel' | 'return') => {
   } catch (error) { message.value = error instanceof Error ? error.message : '操作失败，请重试。' }
   finally { busy.value = false }
 }
-onLoad(async options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} id.value = options?.id || ''; await load(); try { companies.value = await service.getReturnCompanies() } catch { message.value = '退货物流公司读取失败，请返回重试。' } })
-onShow(() => { if(stage2Enabled)return; if (data.value) return refresh() })
+onLoad(async options => { if(stage45Enabled){id.value=options?.id||'';return} if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} id.value = options?.id || ''; await load(); try { companies.value = await service.getReturnCompanies() } catch { message.value = '退货物流公司读取失败，请返回重试。' } })
+onShow(() => { if(stage45Enabled){stage45Refresh.value++;return} if(stage2Enabled)return; if (data.value) return refresh() })
 </script>
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <AppPage v-if="stage45Enabled" secondary><template #navbar><AppNavbar title="售后详情" centered show-back/></template><AfterSaleDetail :api="stage45Api" :id="id" :refresh-key="stage45Refresh"/></AppPage>
+  <AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="售后详情" centered show-back /></template>
     <view v-if="data" class="stack after-detail">
       <BaseCard class="status-hero"><StatusTag :tone="data.refundStatus === '退款成功' ? 'success' : 'pending'">{{ data.statusLabel }}</StatusTag><text>{{ data.nextStep }}</text></BaseCard>

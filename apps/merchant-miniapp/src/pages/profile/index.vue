@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
+import {stage3Enabled} from '../../services/stage3'
+import AppButton from '@/components/AppButton.vue'
 import Stage1Home from '../../components/stage1/Home.vue'
 import {stage1Enabled} from '../../services/stage1'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -13,6 +15,7 @@ import { useMerchantContext } from '@/stores/merchant-context'
 
 const { loadIdentity } = useMerchantContext()
 onShow(loadIdentity)
+function openMessages(){uni.navigateTo({url:'/pages/messages/index'})}
 </script>
 
 <template>
@@ -20,6 +23,7 @@ onShow(loadIdentity)
     <template #navbar><AppNavbar title="我的" centered /></template>
     <view class="stack merchant-profile-stack">
       <MerchantIdentityPanel />
+      <AppButton v-if="stage3Enabled" variant="secondary" @click="openMessages">订单与履约消息</AppButton>
       <Stage1Home v-if="stage1Enabled" profile/>
       <BaseCard v-else class="merchant-profile-scope">
         <SectionHeader title="商户服务" />

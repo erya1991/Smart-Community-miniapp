@@ -66,12 +66,12 @@ const goUser = () => {
 .navbar__inner { position: relative; display: flex; min-height: var(--navigation-height); align-items: center; gap: $space-2; padding: 0 var(--menu-inset) 0 $page-gutter; }
 .navbar__mark { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; border-radius: 10px; background: $color-primary-light; }
 .navbar__back { display: flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center; border-radius: 50%; }
-.navbar__back :deep(image) { transform: rotate(180deg); }
+.navbar__back :deep(.app-icon) { transform: rotate(180deg); }
 .navbar__copy { flex: 1; min-width: 0; }
 .navbar__accent { width: 6px; height: 20px; flex: none; border-radius: 999px; background: $color-primary; }
 .navbar__user-hit { display: flex; width: 48px; height: 48px; flex: none; align-items: center; justify-content: center; }
 .navbar__user { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 50%; background: $color-primary; }
-.navbar__user :deep(image) { filter: brightness(0) invert(1); }
+.navbar__user :deep(.app-icon) { filter: brightness(0) invert(1); }
 .navbar__inner--centered { padding-left: max(60px, var(--menu-inset)); padding-right: max(60px, var(--menu-inset)); }
 .navbar__inner--centered .navbar__copy { text-align: center; }
 .navbar__inner--centered .navbar__back { position: absolute; left: $page-gutter; }

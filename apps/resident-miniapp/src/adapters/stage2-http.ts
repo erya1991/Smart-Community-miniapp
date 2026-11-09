@@ -18,12 +18,14 @@ const messages: Record<string, string> = {
   OUT_OF_STOCK: '当前库存不足，请调整数量后确认。',
   GOODS_UNAVAILABLE: '商品当前不可购买，请刷新查看原因。',
   PAYMENT_NOT_ALLOWED: '当前不能再次支付，请查询原交易的最新状态。',
+  PAYMENT_RESULT_REQUIRES_REVIEW: '本笔收到超出本期范围的结果，已保留原付款及交易记录，请查询原交易并等待人工核实。',
   IDEMPOTENCY_CONFLICT: '本次操作内容与原请求不同，请先核实原操作结果。',
   INVENTORY_RELEASE_SPACE_REQUIRED: '目标可售库存需为已有占用保留释放空间。',
   FIELD_INVALID: '填写内容不符合要求，请检查标注字段。',
   CART_CAPACITY: '购物车最多保存200种规格，请先调整购物车。',
   ADDRESS_CAPACITY: '最多保存20条地址，请先编辑已有地址。',
   STORAGE_UNAVAILABLE: '服务暂时不可用，请保留当前操作并稍后查询。',
+  CATALOG_UNVERIFIED: '商品信息暂时无法核实，请稍后重试。',
 }
 export class Stage2Error extends Error {
   constructor(public readonly code: string, public readonly status = 0, public readonly details: unknown = null, public readonly fields: unknown = null) {

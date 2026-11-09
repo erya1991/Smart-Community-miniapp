@@ -5,6 +5,9 @@ const pagesFor = (app) => JSON.parse(read(`apps/${app}/src/pages.json`)).pages.m
 const hasOnlyPages = (actual, expected) => actual.length === expected.length && expected.every((path) => actual.includes(path))
 
 const residentPages = [
+  '/pages/evaluation/index',
+  '/pages/messages/index',
+  '/pages/mall/credential/index',
   '/pages/home/index',
   '/pages/service/index',
   '/pages/mall/index',
@@ -24,6 +27,10 @@ const residentPages = [
   '/pages/profile/edit',
 ]
 const merchantPages = [
+  '/pages/evaluation/index',
+  '/pages/funds/index',
+  '/pages/funds/detail/index',
+  '/pages/messages/index',
   '/pages/workbench/index',
   '/pages/operation/index',
   '/pages/order/index',
@@ -58,8 +65,10 @@ const merchantAdapter = read('apps/merchant-miniapp/src/adapters/mock.ts')
 const legacySingleAppExists = existsSync(new URL('../src/pages.json', import.meta.url))
 
 const assertions = [
-  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 仅注册既有页面、Stage0本人资料编辑及Stage2待处理交易页'],
-  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 保留既有页面，仅新增 Stage1 履约设置、点位编辑、邀请接受页'],
+  [pagesFor('resident-miniapp')[0] === '/pages/home/index', '居民启动页保持首页，新增二级业务页不改变 App Shell 入口'],
+  [pagesFor('merchant-miniapp')[0] === '/pages/workbench/index', '商户启动页保持工作台，新增二级业务页不改变 App Shell 入口'],
+  [hasOnlyPages(pagesFor('resident-miniapp'), residentPages), '住户 App 精确注册既有页面及已批准 Stage0/2/3/45 本人资料、交易、凭证、售后、评价和消息页'],
+  [hasOnlyPages(pagesFor('merchant-miniapp'), merchantPages), '商户 App 精确注册既有页面及已批准 Stage1/3/45 设置、邀请、售后、评价、资金和消息页'],
   [residentNavigation.includes("label: '首页'") && residentNavigation.includes("label: '服务'") && residentNavigation.includes("label: '商城'") && residentNavigation.includes("label: '我的'") && !residentNavigation.includes('merchant'), '住户导航固定且无商户入口'],
   [merchantNavigation.includes("label: '工作台'") && merchantNavigation.includes("label: '经营'") && merchantNavigation.includes("label: '订单'") && merchantNavigation.includes("label: '我的'") && !merchantNavigation.includes('resident'), '商户导航固定且无住户入口'],
   [sharedTabbar.includes('items: NavItem[]') && !sharedTabbar.includes('AppProfile') && !sharedTabbar.includes('navigationByProfile'), 'Tabbar 仅渲染端级传入导航，不依赖角色切换'],

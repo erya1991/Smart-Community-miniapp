@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import Stage3Page from '../../features/stage3/VerificationPage.vue'
+import {stage3Enabled} from '@/services/stage3'
+import {ref as stage3Ref} from 'vue'
+import {onLoad as stage3OnLoad} from '@dcloudio/uni-app'
+const stage3Query=stage3Ref<Record<string,any>>({}),stage3Ready=stage3Ref(false)
+stage3OnLoad(options=>{stage3Query.value=options||{};stage3Ready.value=true})
+
 import {stage1Enabled} from '../../services/stage1'
 import { nextTick, ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
@@ -51,7 +58,7 @@ const confirm = async () => {
     candidate.value = null
   } finally { saving.value = false }
 }
-onLoad(async (options) => { if(stage1Enabled)return;
+onLoad(async (options) => { if(stage1Enabled||stage3Enabled)return;
   context.value = await merchantTradeService.getContext()
   code.value = typeof options?.code === 'string' ? options.code : ''
   // Navigation only fills the code; the merchant still queries and confirms it.
@@ -59,7 +66,8 @@ onLoad(async (options) => { if(stage1Enabled)return;
 </script>
 
 <template>
-  <AppPage secondary :with-bottom-action="candidate?.kind === 'ready'">
+  <Stage3Page v-if="stage3Enabled && stage3Ready" :query="stage3Query"/>
+  <AppPage v-else-if="!stage3Enabled" secondary :with-bottom-action="candidate?.kind === 'ready'">
     <template #navbar><AppNavbar title="订单核销" centered show-back /></template>
     <view class="stack verification-page">
       <BaseCard class="store-card"><AppIcon name="store" :size="22" /><view><text>当前核销门店 / 操作点</text><text>{{ context?.storeName || '正在读取门店' }}</text><text class="operator-name">{{ context?.operatorName }}</text></view><StatusTag tone="success">本店订单</StatusTag></BaseCard>

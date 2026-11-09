@@ -10,6 +10,8 @@ import SectionHeader from '@/components/SectionHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import IconContainer from '@/components/IconContainer.vue'
 import { stage2Enabled } from '@/adapters/stage2-http'
+import {stage45Enabled} from '@/services/stage45'
+import {stage3Enabled} from '@/services/stage3'
 import { appAdapter } from '@/adapters/mock'
 import { openPage, openSubPage } from '@/utils/navigation'
 import { residentTabItems } from '@/config/navigation'
@@ -33,14 +35,16 @@ const loadNavigation = async () => {
       type: group.type,
       items: group.items.map(({ label, icon, actionText, tone, path, available }) => ({ label, icon, actionText, tone, path, available })),
     }))
-    if (stage2Enabled) groups.value = [{ title: '我的交易', type: 'list', items: [{ label: '待处理交易与原提交', icon: 'order', path: '/pages/mall/pending/index', available: true }] }, ...groups.value.filter(g => g.type !== 'orders')]
+    if (stage45Enabled) groups.value = [{title:'我的商城记录',type:'list',items:[{label:'商城订单与售后',icon:'order',path:'/pages/mall/order-list/index',available:true},{label:'我的商品评价',icon:'message',path:'/pages/evaluation/index',available:true},{label:'商城消息',icon:'message',path:'/pages/messages/index',available:true}]},...groups.value.filter(g=>g.type!=='orders')];
+    else if (stage3Enabled) groups.value = [{title:'商城订单与消息',type:'list',items:[{label:'我的商城订单',icon:'order',path:'/pages/mall/order-list/index',available:true},{label:'订单与履约消息',icon:'message',path:'/pages/messages/index',available:true}]},...groups.value.filter(g=>g.type!=='orders')];
+    else if (stage2Enabled) groups.value = [{ title: '我的交易', type: 'list', items: [{ label: '待处理交易与原提交', icon: 'order', path: '/pages/mall/pending/index', available: true }] }, ...groups.value.filter(g => g.type !== 'orders')]
   } catch {
     navigationError.value = true
   }
 }
 const handleEntry = (item: ProfileItem) => {
   if (item.available && item.path) {
-    openPage(stage2Enabled && item.path.startsWith('/pages/mall/order-') ? '/pages/mall/pending/index' : item.path)
+    openPage(stage2Enabled && !stage3Enabled && item.path.startsWith('/pages/mall/order-') ? '/pages/mall/pending/index' : item.path)
     return
   }
   showUnavailable.value = true

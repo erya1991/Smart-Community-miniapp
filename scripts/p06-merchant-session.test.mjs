@@ -96,7 +96,7 @@ function fixture(options = {}) {
     if (input.path === urls.applicantLogout || input.path === urls.storeLogout) return success(null)
     throw new Error('UNEXPECTED_OFFLINE_REQUEST')
   }
-  const ports = { baseUrl: options.baseUrl ?? apiBaseUrl, now: () => clock, storage, request }
+  const ports = { baseUrl: options.baseUrl ?? apiBaseUrl, storageKey: options.storageKey, now: () => clock, storage, request }
   const client = new MerchantSessionClient(ports)
   return {
     client, ports, calls, storageCalls, handlers, map,
@@ -110,6 +110,35 @@ function fixture(options = {}) {
   }
 }
 const rejected = (promise, code) => assert.rejects(promise, (error) => error instanceof MerchantError && (!code || error.code === code))
+
+check('Stage2 login, restore and logout preserve the Stage1 session in shared app storage', async () => {
+  const key = 'daguanglu:merchant:stage2:https://s2.synthetic.invalid/api:session:v1'
+  const f = fixture({ storageKey: key })
+  const protectedStage1 = { marker: 'unchanged-stage1-session' }
+  f.map.set(MERCHANT_SESSION_KEY, protectedStage1)
+  await f.login()
+  assert.ok(f.map.has(key))
+  const restored = new MerchantSessionClient(f.ports)
+  restored.restore()
+  assert.equal(restored.authenticated, true)
+  await restored.logout()
+  assert.equal(f.map.has(key), false)
+  assert.deepEqual(f.map.get(MERCHANT_SESSION_KEY), protectedStage1)
+  assert.ok(f.storageCalls.every(call => call.key !== MERCHANT_SESSION_KEY))
+})
+
+check('a different Stage2 API origin cannot restore or delete another environment session', async () => {
+  const f = fixture({ storageKey: 's2-A' })
+  await f.login()
+  const other = new MerchantSessionClient({ ...f.ports, baseUrl: 'https://s2-other.synthetic.invalid/api', storageKey: 's2-B' })
+  other.restore()
+  assert.equal(other.authenticated, false)
+  assert.ok(f.map.has('s2-A'))
+  f.map.set('s2-B', structuredClone(f.map.get('s2-A')))
+  assert.throws(() => other.restore(), error => error instanceof MerchantError && error.code === 'SESSION_REJECTED')
+  assert.ok(f.map.has('s2-A'))
+  assert.equal(f.map.has('s2-B'), false)
+})
 
 check('anonymous restore never fabricates merchant identity or contacts an identity endpoint', async () => {
   const f = fixture()
@@ -501,7 +530,7 @@ check('existing four Merchant tabs and registered business assets are preserved'
   assert.deepEqual([...navigation.matchAll(/label:\s*'([^']+)'/g)].map((entry) => entry[1]), ['工作台', '经营', '订单', '我的'])
   const pages = JSON.parse(source('apps/merchant-miniapp/src/pages.json')).pages.map((entry) => entry.path)
   for (const page of ['pages/workbench/index', 'pages/operation/index', 'pages/order/index', 'pages/profile/index', 'pages/onboarding/application/index', 'pages/product/editor/index']) assert.ok(pages.includes(page))
-  const protectedFiles = JSON.parse(source('.npm-cache/p06/evidence/protected20-start.json'))
+  const protectedFiles = JSON.parse(readFileSync(process.env.DGL_P06_PROTECTION_MANIFEST || path.resolve(root,'.npm-cache/p06/evidence/protected20-start.json'),'utf8'))
   assert.equal(protectedFiles.length, 20)
 })
 
@@ -737,7 +766,9 @@ check('every existing business deep link and unsafe or unknown path stays restri
   const guards = loadModule('apps/merchant-miniapp/src/services/merchant-route-guard.ts')
   const pages = JSON.parse(source('apps/merchant-miniapp/src/pages.json')).pages.map((entry) => `/${entry.path}`)
   const restricted = pages.filter((page) => !['/pages/profile/index', '/pages/workbench/index'].includes(page))
-  assert.equal(restricted.length, 21) // The three approved Stage1 pages also remain closed in Stage0 mode.
+  assert.equal(restricted.length, 25) // Stage3's22 plus the three approved Stage45 evaluation/funds pages remain closed in Stage0 mode.
+  for (const page of ['/pages/evaluation/index', '/pages/funds/index', '/pages/funds/detail/index']) assert.ok(restricted.includes(page))
+  assert.ok(restricted.includes('/pages/messages/index'))
   for (const page of restricted) {
     assert.equal(guards.merchantIdentityPage(page), false)
     assert.equal(guards.merchantIdentityPage(`${page}?storeId=910000000000000009`), false)

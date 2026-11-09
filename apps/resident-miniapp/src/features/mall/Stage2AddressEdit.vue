@@ -20,18 +20,84 @@ const id = ref(''), status = ref<'loading' | 'ready' | 'error'>('loading'), savi
 const form = reactive({ name: '', mobile: '', region: '', detail: '', label: '', isDefault: false, provinceCode: '', cityCode: '', districtCode: '', version: 0 })
 const errors = reactive({ name: '', mobile: '', region: '', detail: '', label: '' })
 const provinces = ref<S2Region[]>([]), cities = ref<S2Region[]>([]), districts = ref<S2Region[]>([])
-let sequence = 0
-async function load() { if (!props.options) return; const current = ++sequence, owner = stage2Owner(); status.value = 'loading'; error.value = ''; try { id.value = props.options.id || ''; const [book, region] = await Promise.all([stage2Mall.book(), stage2Mall.regions()]); if (current !== sequence || owner !== stage2Owner()) return; addressBookVersion.value = book.version; provinces.value = region; if (id.value) { const address = book.records.find((a) => a.id === id.value); if (!address) throw new Error('该地址已删除或不可访问。'); Object.assign(form, address, { label: address.alias || '' }); const province = region.find((r) => r.code === address.provinceCode); cities.value = province ? await stage2Mall.regions(province.id) : []; const city = cities.value.find((r) => r.code === address.cityCode); districts.value = city ? await stage2Mall.regions(city.id) : [] } conflict.value=false;originalForm.value=JSON.stringify(form); status.value = 'ready' } catch (e) { if (current === sequence) { error.value = e instanceof Error ? e.message : '地址加载失败'; status.value = 'error' } } }
-async function provinceChanged(event: { detail: { value: string | number } }) { const p = provinces.value[Number(event.detail.value)], owner = stage2Owner(); form.provinceCode = p.code; form.cityCode = ''; form.districtCode = ''; cities.value = []; districts.value = []; try { const result = await stage2Mall.regions(p.id); if (owner === stage2Owner() && p.code === form.provinceCode) cities.value = result } catch (e) { error.value = e instanceof Error ? e.message : '市区加载失败' } }
-async function cityChanged(event: { detail: { value: string | number } }) { const c = cities.value[Number(event.detail.value)], owner = stage2Owner(); form.cityCode = c.code; form.districtCode = ''; districts.value = []; try { const result = await stage2Mall.regions(c.id); if (owner === stage2Owner() && c.code === form.cityCode) districts.value = result } catch (e) { error.value = e instanceof Error ? e.message : '区县加载失败' } }
+let sequence = 0, regionSequence = 0
+const current = (version: number, owner: string) => version === sequence && owner === stage2Owner()
+function clearForm() {
+  Object.assign(form, { name: '', mobile: '', region: '', detail: '', label: '', isDefault: false, version: 0, provinceCode: '', cityCode: '', districtCode: '' })
+  for (const key of Object.keys(errors)) errors[key as keyof typeof errors] = ''
+  provinces.value = []; cities.value = []; districts.value = []
+  originalForm.value = ''; allowLeave.value = false; saving.value = false; conflict.value = false; addressBookVersion.value = 0
+}
+async function load() {
+  const version = ++sequence, owner = stage2Owner(), addressId = props.options?.id || ''
+  regionSequence++; clearForm(); id.value = addressId; status.value = 'loading'; error.value = ''
+  if (!props.options) return
+  try {
+    const [book, region] = await Promise.all([stage2Mall.book(), stage2Mall.regions()])
+    if (!current(version, owner)) return
+    const address = addressId ? book.records.find(a => a.id === addressId) : undefined
+    if (addressId && !address) throw new Error('该地址已删除或不可访问。')
+    const province = region.find(r => r.code === address?.provinceCode)
+    const nextCities = province ? await stage2Mall.regions(province.id) : []
+    if (!current(version, owner)) return
+    const city = nextCities.find(r => r.code === address?.cityCode)
+    const nextDistricts = city ? await stage2Mall.regions(city.id) : []
+    if (!current(version, owner)) return
+    addressBookVersion.value = book.version; provinces.value = region; cities.value = nextCities; districts.value = nextDistricts
+    if (address) Object.assign(form, { name: address.name, mobile: address.mobile, region: address.region, detail: address.detail, label: address.alias || '', isDefault: address.isDefault, version: address.version, provinceCode: address.provinceCode, cityCode: address.cityCode, districtCode: address.districtCode })
+    originalForm.value = JSON.stringify(form); status.value = 'ready'
+  } catch (e) { if (current(version, owner)) { error.value = e instanceof Error ? e.message : '地址加载失败'; status.value = 'error' } }
+}
+async function provinceChanged(event: { detail: { value: string | number } }) {
+  const p = provinces.value[Number(event.detail.value)], owner = stage2Owner(), version = sequence, regionVersion = ++regionSequence
+  if (!p) return
+  form.provinceCode = p.code; form.cityCode = ''; form.districtCode = ''; cities.value = []; districts.value = []
+  try { const result = await stage2Mall.regions(p.id); if (current(version, owner) && regionVersion === regionSequence) cities.value = result }
+  catch (e) { if (current(version, owner) && regionVersion === regionSequence) error.value = e instanceof Error ? e.message : '市区加载失败' }
+}
+async function cityChanged(event: { detail: { value: string | number } }) {
+  const c = cities.value[Number(event.detail.value)], owner = stage2Owner(), version = sequence, regionVersion = ++regionSequence
+  if (!c) return
+  form.cityCode = c.code; form.districtCode = ''; districts.value = []
+  try { const result = await stage2Mall.regions(c.id); if (current(version, owner) && regionVersion === regionSequence) districts.value = result }
+  catch (e) { if (current(version, owner) && regionVersion === regionSequence) error.value = e instanceof Error ? e.message : '区县加载失败' }
+}
 function validate() { errors.name = form.name.trim().length >= 1 && form.name.trim().length <= 30 ? '' : '姓名需为1—30字'; errors.mobile = /^1\d{10}$/.test(form.mobile) ? '' : '请输入11位手机号'; errors.region = form.provinceCode && form.cityCode && form.districtCode ? '' : '请逐级选择省、市、区县'; errors.detail = form.detail.trim().length >= 5 && form.detail.trim().length <= 200 ? '' : '详细地址需为5—200字'; errors.label = form.label.trim().length <= 30 ? '' : '标签最多30字'; return !Object.values(errors).some(Boolean) }
 const defaultChanged = (event: unknown) => { form.isDefault = Boolean((event as { detail?: { value?: boolean } }).detail?.value) }
-async function save() { if (saving.value || conflict.value || !validate()) return; saving.value = true; error.value = ''; const owner = stage2Owner(); try { await stage2Mall.saveAddress({ ...form, id: id.value || undefined, addressBookVersion: addressBookVersion.value, name: form.name.trim(), detail: form.detail.trim(), label: form.label.trim() }); if (owner === stage2Owner()) { uni.showToast({ title: '地址已保存', icon: 'success' }); allowLeave.value=true; back() } } catch (e) { if (owner === stage2Owner()) {conflict.value=(e as {status?:number}).status===409;error.value = conflict.value ? '地址或默认设置已更新，本次输入已保留。请核对最新资料后再保存。' : e instanceof Error ? e.message : '保存未完成，请核实地址簿后重试';const fields=(e as {fields?:Record<string,unknown>}).fields;if(fields&&typeof fields==='object')for(const key of Object.keys(errors))if(Object.prototype.hasOwnProperty.call(fields,key))(errors as Record<string,string>)[key]='请核对该字段的填写和范围。';} } finally { saving.value = false } }
-function requestLeave(){if(allowLeave.value)return false;if(saving.value)return true;if(!originalForm.value||JSON.stringify(form)===originalForm.value)return false;uni.showModal({title:'放弃未保存的地址？',content:'当前输入尚未保存。返回将放弃本次修改。',confirmText:'放弃并返回',success:({confirm})=>{if(confirm){allowLeave.value=true;back();}}});return true;}
-function reload(){if(originalForm.value&&JSON.stringify(form)!==originalForm.value){uni.showModal({title:'重新读取地址簿？',content:'重新读取会放弃本次未保存的输入。',success:({confirm})=>{if(confirm)void load();}});}else void load();}
+async function save() {
+  if (saving.value || conflict.value || !validate()) return
+  const version = sequence, owner = stage2Owner()
+  saving.value = true; error.value = ''
+  try {
+    await stage2Mall.saveAddress({ ...form, id: id.value || undefined, addressBookVersion: addressBookVersion.value, name: form.name.trim(), detail: form.detail.trim(), label: form.label.trim() })
+    if (current(version, owner)) { uni.showToast({ title: '地址已保存', icon: 'success' }); allowLeave.value = true; back() }
+  } catch (e) {
+    if (current(version, owner)) {
+      conflict.value = (e as {status?: number}).status === 409
+      error.value = conflict.value ? '地址或默认设置已更新，本次输入已保留。请核对最新资料后再保存。' : e instanceof Error ? e.message : '保存未完成，请核实地址簿后重试'
+      const fields = (e as {fields?: Record<string, unknown>}).fields
+      if (fields && typeof fields === 'object') for (const key of Object.keys(errors)) if (Object.prototype.hasOwnProperty.call(fields, key)) (errors as Record<string, string>)[key] = '请核对该字段的填写和范围。'
+    }
+  } finally { if (current(version, owner)) saving.value = false }
+}
+function requestLeave() {
+  if (allowLeave.value) return false
+  if (saving.value) return true
+  if (!originalForm.value || JSON.stringify(form) === originalForm.value) return false
+  const version = sequence, owner = stage2Owner()
+  uni.showModal({ title: '放弃未保存的地址？', content: '当前输入尚未保存。返回将放弃本次修改。', confirmText: '放弃并返回', success: ({confirm}) => { if (confirm && current(version, owner)) { allowLeave.value = true; back() } } })
+  return true
+}
+function reload() {
+  if (originalForm.value && JSON.stringify(form) !== originalForm.value) {
+    const version = sequence, owner = stage2Owner()
+    uni.showModal({ title: '重新读取地址簿？', content: '重新读取会放弃本次未保存的输入。', success: ({confirm}) => { if (confirm && current(version, owner)) void load() } })
+  } else void load()
+}
+
 defineExpose({requestLeave})
 watch(() => props.options, load, { immediate: true })
-watch(stage2Owner, () => { sequence++; Object.assign(form, { name: '', mobile: '', region: '', detail: '', label: '', isDefault:false,version:0,provinceCode: '', cityCode: '', districtCode: '' }); status.value = 'error'; error.value = '登录身份已变化，请重新进入地址簿。' }, { flush: 'sync' })
+watch(stage2Owner, () => { sequence++; regionSequence++; clearForm(); id.value = ''; status.value = 'error'; error.value = '登录身份已变化，请重新进入地址簿。' }, { flush: 'sync' })
 </script>
 <template><AppPage v-if="accessRequired(error)" status="ready"><template #navbar><view class="s2-address-nav"><AppNavbar :title="id ? '编辑收货地址' : '新增收货地址'" centered/><button class="navbar__back s2-address-back" aria-label="返回地址簿" @click="back"><AppIcon name="chevron-right" :size="20"/></button></view></template><Stage2Notice :error="error"/></AppPage><AppPage v-else :status="status" :state-message="error" secondary with-bottom-action @retry="load"><template #navbar><view class="s2-address-nav"><AppNavbar :title="id ? '编辑收货地址' : '新增收货地址'" centered/><button class="navbar__back s2-address-back" aria-label="返回地址簿" @click="back"><AppIcon name="chevron-right" :size="20"/></button></view></template><view class="stack s2-address"><text v-if="error" class="error">{{ error }}</text><FormSection title="本人收货地址" description="编辑不改变已创建订单的历史快照"><FormField label="收货人" required :error="errors.name"><input v-model="form.name" maxlength="30" :disabled="saving" placeholder="1—30字" /></FormField><FormField label="手机号" required :error="errors.mobile"><input v-model="form.mobile" maxlength="11" type="number" :disabled="saving" placeholder="11位手机号" /></FormField><FormField label="省市区" required :error="errors.region"><picker :range="provinces" range-key="name" :disabled="saving" @change="provinceChanged"><view class="pick">{{ provinces.find(r => r.code === form.provinceCode)?.name || '选择省份' }} ›</view></picker><picker :range="cities" range-key="name" :disabled="saving || !cities.length" @change="cityChanged"><view class="pick">{{ cities.find(r => r.code === form.cityCode)?.name || '选择城市' }} ›</view></picker><picker :range="districts" range-key="name" :disabled="saving || !districts.length" @change="form.districtCode = districts[Number($event.detail.value)].code"><view class="pick">{{ districts.find(r => r.code === form.districtCode)?.name || '选择区县' }} ›</view></picker></FormField><FormField label="详细地址" required :error="errors.detail" hint="5—200字"><textarea v-model="form.detail" maxlength="200" :disabled="saving" placeholder="街道、门牌、楼栋与房间" /></FormField><FormField label="地址标签" :error="errors.label"><input v-model="form.label" maxlength="30" :disabled="saving" placeholder="选填" /></FormField><view class="default"><text>设为默认地址</text><switch :checked="form.isDefault" :disabled="saving" @change="defaultChanged" /></view><text class="tip">首次新增自动成为默认；取消默认或删除默认后，不会自动替选其他地址。</text></FormSection><AppButton variant="secondary" :disabled="saving" @click="reload">重新读取当前地址簿</AppButton></view><BottomActionBar><view v-if="conflict" class="tip">输入已保留，请先核对最新地址。</view><AppButton :loading="saving" :disabled="saving || conflict" @click="save">保存地址</AppButton></BottomActionBar></AppPage></template>
 <style scoped lang="scss">.s2-address{gap:$space-3}.error{color:$color-error;font-size:14px;line-height:22px}.pick{min-height:48px;padding:10px 0;font-size:16px;line-height:26px}.default{display:flex;align-items:center;justify-content:space-between;min-height:48px;font-size:16px}.tip{color:$color-text-secondary;font-size:13px;line-height:22px}.s2-address input{min-height:44px}.s2-address textarea{width:100%;min-height:88px;font-size:16px}.s2-address-nav{position:sticky;top:0;z-index:90;background:$color-page-bg}.s2-address-back{position:absolute;z-index:91;bottom:6px;left:$page-gutter;display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;padding:0;border:0;background:transparent}.s2-address-back::after{border:0}.s2-address-back :deep(image){transform:rotate(180deg)}</style>

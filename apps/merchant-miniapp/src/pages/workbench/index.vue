@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
+import {stage45Api,stage45Enabled} from '@/services/stage45'
+import Stage45Entries from '@shared/ui/components/stage45/StoreEntries.vue'
+import Stage3Workbench from '../../features/stage3/Workbench.vue'
+import {stage3Enabled} from '../../services/stage3'
 import Stage1Home from '../../components/stage1/Home.vue'
 import {stage1Enabled} from '../../services/stage1'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -20,8 +24,10 @@ onShow(loadIdentity)
     <template #navbar><AppNavbar title="工作台" compact show-user /></template>
     <view class="stack workbench-stack">
       <MerchantIdentityPanel />
+      <Stage3Workbench v-if="stage3Enabled"/>
+      <Stage45Entries v-if="stage45Enabled" :api="stage45Api"/>
       <Stage1Home v-if="stage1Enabled"/>
-      <BaseCard v-else class="workbench-scope">
+      <BaseCard v-if="!stage1Enabled&&!stage3Enabled&&!stage45Enabled" class="workbench-scope">
         <SectionHeader title="经营服务暂未开放" />
         <text>当前仅提供商户身份确认和本设备登录管理。身份核实不代表商品、订单或交易操作已经开放。</text>
       </BaseCard>

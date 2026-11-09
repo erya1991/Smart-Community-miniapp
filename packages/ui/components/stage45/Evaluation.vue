@@ -1,0 +1,27 @@
+<script setup lang="ts">
+import {ref,computed,watch,onBeforeUnmount} from 'vue'
+import type {Stage45Api,Eligibility,Evaluation} from '../../../business-common/stage45/types'
+import {date,specification} from '../../../business-common/stage45/presentation'
+import ProductImage from './ProductImage.vue'
+import BaseCard from '../BaseCard.vue'
+import AppButton from '../AppButton.vue'
+import BottomActionBar from '../BottomActionBar.vue'
+import Evidence from './Evidence.vue'
+import OperationRecovery from './OperationRecovery.vue'
+const props=defineProps<{api:Stage45Api;orderId?:string;itemId?:string;id?:string}>(),emit=defineEmits<{created:[id:string]}>()
+const eligible=ref<Eligibility|null>(null),record=ref<Evaluation|null>(null),index=ref(0),star=ref(0),content=ref(''),files=ref<string[]>([]),error=ref(''),loading=ref(false),busy=ref(false),uploading=ref(false)
+const item=computed(()=>eligible.value?.items[index.value]),name=()=> 'evaluation:'+(props.orderId||'')+':'+(item.value?.orderItemId||'')
+let ticket=0
+async function load(){const run=++ticket,owner=props.api.owner();loading.value=true;error.value='';try{if(props.id){const row=await props.api.read<Evaluation>('/evaluations/'+props.id);if(run===ticket&&owner===props.api.owner())record.value=row}else if(props.orderId){const row=await props.api.read<Eligibility>('/orders/'+props.orderId+'/eligibility');if(run!==ticket||owner!==props.api.owner())return;eligible.value=row;const i=row.items.findIndex(v=>v.orderItemId===props.itemId||v.skuId===props.itemId);if(i>=0)index.value=i}}catch(e){if(run===ticket){record.value=null;eligible.value=null;error.value=e instanceof Error?e.message:'评价读取失败。'}}finally{if(run===ticket)loading.value=false}}
+function recovered(value:unknown){const id=(value as Evaluation)?.id;if(id)emit('created',id);else load()}
+async function submit(){if(!item.value?.canEvaluate||busy.value||uploading.value||props.api.pending(name()))return;if(star.value<1||star.value>5){error.value='请明确选择1～5星，评分不会默认代选。';return}const owner=props.api.owner(),choice=await uni.showModal({title:'提交商品评价',content:'本订单项可评价一次，提交后不支持追评或改评。请确认已选择 '+star.value+' 星。'});if(!choice.confirm||owner!==props.api.owner())return;busy.value=true;error.value='';try{const row=await props.api.command<Evaluation>(name(),'/orders/'+props.orderId+'/evaluations',{orderItemId:item.value.orderItemId,star:star.value,content:content.value.trim(),files:files.value});emit('created',row.id)}catch(e){error.value=e instanceof Error?e.message:'提交结果待核实。'}finally{busy.value=false}}
+watch(()=>[props.id,props.orderId,props.itemId,props.api.owner()],()=>{ticket++;record.value=null;eligible.value=null;star.value=0;files.value=[];content.value='';load()},{immediate:true})
+onBeforeUnmount(()=>{ticket++;record.value=null;eligible.value=null})
+</script>
+<template><view class="s45"><BaseCard v-if="error"><text class="error" role="alert">{{error}}</text><AppButton class="s45-action" variant="secondary" @click="load">重新读取</AppButton></BaseCard><text v-if="loading" class="state">正在核对评价记录…</text>
+<template v-if="record"><view class="hero"><text class="hero-title">已提交商品评价</text><text>{{record.storeName}}</text><text class="hero-meta">{{date(record.createdAt)}}</text></view><BaseCard><text class="section">{{record.goodsName}}</text><text class="price">{{record.star==null?'历史无单星':record.star+' 星'}}</text><text class="notice">{{record.content||'未填写文字评价'}}</text><Evidence v-if="record.files.length" :api="api" :order-id="record.orderId||''" purpose="EVALUATION" :model-value="record.files" readonly/><text class="muted">{{record.status==='CLOSE'?'当前评价已被平台屏蔽，原提交仍保留。':'当前评价公开展示。'}}</text><text class="muted">一次提交，保留真实完成及原商品记录。</text></BaseCard><BaseCard v-if="record.history?.length"><text class="section">展示记录</text><view v-for="event in record.history" :key="event.at" class="timeline"><text>{{event.reason||'评价已提交'}}</text><text class="muted">{{date(event.at)}}</text></view></BaseCard></template>
+<template v-else-if="eligible"><OperationRecovery :api="api" :name="name()" @recovered="recovered"/><BaseCard><text class="section">评价商品</text><picker v-if="eligible.items.length>1" :range="eligible.items.map(v=>v.name)" :value="index" @change="index=Number($event.detail.value);star=0"><view class="picker">{{item?.name}} ▾</view></picker><view v-if="item" class="goods"><ProductImage :api="api" :order-id="orderId||''" :item-id="item.orderItemId"/><view><text class="strong">{{item.name}}</text><text class="muted">{{specification(item.specifications)}}</text><text class="muted">真实完成：{{date(eligible.completedAt)}}</text></view></view><text class="error" v-if="!item?.canEvaluate">{{item?.evaluated?'该商品已评价，请从评价记录回看。':'该商品当前没有可评价的有效完成数量。'}}</text></BaseCard>
+<BaseCard><text class="section">商品评分 *</text><view class="stars"><view v-for="value in [1,2,3,4,5]" :key="value" class="star" :class="{selected:star>=value}" :aria-label="value+'星'" @click="!busy&&(star=value)">★</view></view><text class="muted">{{star?star+' 星':'请选择1～5星，未选不提交'}}</text><view class="field"><text>文字评价（选填）</text><textarea v-model="content" maxlength="500" :disabled="busy" placeholder="记录真实的商品体验"/></view><Evidence v-model="files" :api="api" :order-id="orderId||''" purpose="EVALUATION" :readonly="busy" @busy="uploading=$event"/></BaseCard>
+<BottomActionBar><AppButton class="s45-action" :loading="busy" :disabled="uploading||!item?.canEvaluate||star<1||api.pending(name())" @click="submit">提交评价</AppButton></BottomActionBar>
+</template></view></template>
+<style scoped lang="scss">@import './stage45.scss';</style>

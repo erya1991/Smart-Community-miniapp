@@ -1,0 +1,35 @@
+<script setup lang="ts">
+import {ref,watch,computed,onBeforeUnmount} from 'vue'
+import type {Stage45Api,Eligibility,AfterSale} from '../../../business-common/stage45/types'
+import {money,cents,date,specification,label} from '../../../business-common/stage45/presentation'
+import ProductImage from './ProductImage.vue'
+import BaseCard from '../BaseCard.vue'
+import AppButton from '../AppButton.vue'
+import BottomActionBar from '../BottomActionBar.vue'
+import Evidence from './Evidence.vue'
+import OperationRecovery from './OperationRecovery.vue'
+const props=defineProps<{api:Stage45Api;orderId:string;itemId?:string}>(),emit=defineEmits<{created:[id:string]}>()
+const data=ref<Eligibility|null>(null),loading=ref(false),busy=ref(false),uploading=ref(false),error=ref(''),itemIndex=ref(0),quantity=ref(1),type=ref('REFUND'),amount=ref(''),reason=ref('商品问题'),description=ref(''),files=ref<string[]>([])
+const reasons=computed(()=>data.value?.reasonOptions?.[type.value]||[]),item=computed(()=>data.value?.items[itemIndex.value]),maximum=computed(()=>item.value?.availableSharesCent.slice(0,quantity.value).reduce((a,b)=>a+b,0)||0),name=()=> 'apply:'+props.orderId+':'+(item.value?.orderItemId||'')
+let ticket=0
+async function load(){if(!props.orderId)return;const run=++ticket,owner=props.api.owner();loading.value=true;error.value='';try{const value=await props.api.read<Eligibility>('/orders/'+props.orderId+'/eligibility');if(run!==ticket||owner!==props.api.owner())return;data.value=value;if(props.itemId){const i=value.items.findIndex(v=>v.orderItemId===props.itemId||v.skuId===props.itemId);if(i>=0)itemIndex.value=i}quantity.value=Math.min(Math.max(quantity.value,1),item.value?.availableQuantity||1);if(!item.value?.types.includes(type.value))type.value='REFUND';amount.value=money(maximum.value)}catch(e){if(run===ticket){data.value=null;error.value=e instanceof Error?e.message:'资格读取失败。'}}finally{if(run===ticket)loading.value=false}}
+function change(delta:number){if(!item.value)return;quantity.value=Math.max(1,Math.min(item.value.availableQuantity,quantity.value+delta));amount.value=money(maximum.value)}
+function recovered(value:unknown){const id=(value as AfterSale)?.id;if(id)emit('created',id)}
+async function submit(){if(busy.value||uploading.value||!data.value?.eligible||!item.value||props.api.pending(name()))return;error.value='';if(!reasons.value.includes(reason.value)){error.value='请选择当前售后类型的有效原因。';return}const cent=cents(amount.value);if(!cent||cent>maximum.value||!item.value.delivered&&cent!==maximum.value){error.value='请核对退款金额；未交付须退所选数量的完整商品金额。';return}if(reason.value==='其他'&&description.value.trim().length<2){error.value='选择其他原因时，请补充至少2字说明。';return}
+ const owner=props.api.owner();const choice=await uni.showModal({title:'确认售后申请',content:'申请 '+quantity.value+' 件商品退款 ¥'+money(cent)+'。商户审核与资金成功是不同阶段。'});if(!choice.confirm||owner!==props.api.owner())return
+ busy.value=true;try{const result=await props.api.command<AfterSale>(name(),'/orders/'+props.orderId+'/aftersales',{orderItemId:item.value.orderItemId,quantity:quantity.value,amountCent:cent,type:type.value,reason:reason.value,description:description.value.trim(),files:files.value});emit('created',result.id)}catch(e){error.value=e instanceof Error?e.message:'申请结果待核实。'}finally{busy.value=false}}
+watch(()=>[props.orderId,props.itemId,props.api.owner()],()=>{ticket++;data.value=null;files.value=[];load()},{immediate:true})
+watch(type,()=>{if(!reasons.value.includes(reason.value))reason.value=''})
+watch(itemIndex,()=>{quantity.value=1;type.value='REFUND';amount.value=money(maximum.value)})
+onBeforeUnmount(()=>{ticket++;data.value=null})
+</script>
+<template><view class="s45"><BaseCard v-if="error"><text class="error" role="alert">{{error}}</text><AppButton class="s45-action" variant="secondary" @click="load">重新读取资格</AppButton></BaseCard><OperationRecovery :api="api" :name="name()" @recovered="recovered"/><view v-if="loading&&!data" class="state">正在核对原订单资格…</view><template v-if="data">
+<text class="notice">提交后由商户处理；需要时可申请平台介入。金额以原订单商品实付为依据。</text>
+<BaseCard><text class="section">{{data.storeName}}</text><picker v-if="data.items.length>1" :range="data.items.map(v=>v.name)" :value="itemIndex" @change="itemIndex=Number($event.detail.value)"><view class="picker">选择商品：{{item?.name}} ▾</view></picker><view v-if="item" class="goods"><ProductImage :api="api" :order-id="orderId" :item-id="item.orderItemId"/><view><text class="strong">{{item.name}}</text><text class="muted">{{specification(item.specifications)}}</text><text class="muted">原购买 {{item.originalQuantity}} 件 · 当前可申请 {{item.availableQuantity}} 件</text><text class="muted">售后占用 {{item.occupiedQuantity==null?'待核实':item.occupiedQuantity}} 件 · 已消耗资格 {{item.consumedQuantity==null?'待核实':item.consumedQuantity}} 件</text></view></view><text class="muted">关联订单 {{data.orderSn}}</text><text class="muted" v-if="data.deadlineExclusive">普通申请截止：{{date(new Date(Date.parse(data.deadlineExclusive)-1).toISOString())}}</text></BaseCard>
+<BaseCard v-if="!data.eligible||!item?.availableQuantity"><text class="error">当前不能提交新的普通售后申请。</text><text class="muted">{{data.blockReason?'付款、期限或历史证据条件未满足，请核对原单。':'本商品当前没有可售后数量；可查看已有申请。'}}</text></BaseCard>
+<BaseCard v-if="item"><text class="section">售后类型</text><view v-for="option in item.types" :key="option" class="choice" :class="{selected:type===option}" @click="!busy&&(type=option)"><view><text class="strong">{{label(option)}}</text><text class="muted">{{option==='REFUND'?'审核同意后进入资金处理':'商户同意后按确认方式退回，收货确认后进入资金处理'}}</text></view><text>{{type===option?'●':'○'}}</text></view></BaseCard>
+<BaseCard v-if="item"><view class="row"><text>申请数量</text><view class="quantity"><button :disabled="busy||quantity<=1" @click="change(-1)">−</button><text>{{quantity}}</text><button :disabled="busy||quantity>=item.availableQuantity" @click="change(1)">＋</button></view></view><view class="field"><text>商品退款金额（元） *</text><input v-model="amount" type="digit" :disabled="busy||!item.delivered" maxlength="18" placeholder="0.00"/></view><text class="muted">所选数量上限 ¥{{money(maximum)}}。{{item.delivered?'本次成功将消耗所选数量的普通售后资格，未申请差额不能再次使用。':'未交付仅支持所选数量完整商品实付退款。'}}</text><text class="notice">{{data.feePolicy}}</text></BaseCard>
+<BaseCard><text class="section">原因与凭证</text><view class="field"><text>申请原因 *</text><picker :range="reasons" :value="reasons.indexOf(reason)" @change="reason=reasons[Number($event.detail.value)]"><view class="picker">{{reason}} ▾</view></picker></view><view class="field"><text>问题说明{{reason==='其他'?' *':'（选填）'}}</text><textarea v-model="description" maxlength="255" :disabled="busy" placeholder="说明商品情况及需要协商的问题"/></view><Evidence v-model="files" :api="api" :order-id="orderId" purpose="AFTERSALE" :readonly="busy" @busy="uploading=$event"/></BaseCard>
+<BottomActionBar><AppButton class="s45-action" :loading="busy" :disabled="loading||uploading||!data.eligible||!item?.availableQuantity||api.pending(name())" @click="submit">提交申请</AppButton></BottomActionBar>
+</template></view></template>
+<style scoped lang="scss">@import './stage45.scss';</style>

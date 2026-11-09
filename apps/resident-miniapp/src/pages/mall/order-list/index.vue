@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import Stage3Page from '../../../features/stage3/OrderListPage.vue'
+import {stage3Enabled} from '@/services/stage3'
+import {ref as stage3Ref} from 'vue'
+import {onLoad as stage3OnLoad} from '@dcloudio/uni-app'
+const stage3Query=stage3Ref<Record<string,any>>({}),stage3Ready=stage3Ref(false)
+stage3OnLoad(options=>{stage3Query.value=options||{};stage3Ready.value=true})
+
 import { stage2Enabled } from '@/adapters/stage2-http'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
@@ -23,11 +30,12 @@ const orders = computed(() => (data.value || []).filter((order) => {
 }))
 const money = (value: number) => (value / 100).toFixed(2)
 const tone = (order: { displayStatus: string }) => order.displayStatus === '已完成' ? 'success' : order.displayStatus === '已关闭' ? 'error' : 'pending'
-onLoad(options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} if (options?.filter === 'after-sale') active.value = '售后/退款'; load() }); onShow(() => { if(!stage2Enabled)load() })
+onLoad(options => { if(stage3Enabled)return; if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} if (options?.filter === 'after-sale') active.value = '售后/退款'; load() }); onShow(() => { if(!stage2Enabled&&!stage3Enabled)load() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary @retry="load">
+  <Stage3Page v-if="stage3Enabled && stage3Ready" :query="stage3Query"/>
+  <AppPage v-else-if="!stage3Enabled" :status="status" :state-message="errorMessage" secondary @retry="load">
     <template #navbar><AppNavbar title="商城订单" centered show-back /></template>
     <view class="stack resident-order-page"><scroll-view scroll-x :show-scrollbar="false" class="order-tabs"><view><text v-for="tab in tabs" :key="tab" class="order-tab" :class="{ 'order-tab--active': active === tab }" @click="active = tab">{{ tab }}</text></view></scroll-view><BaseCard v-for="order in orders" :key="order.id" class="resident-order-card" :padded="false" @click="openSubPage(`/pages/mall/order-detail/index?id=${order.id}`)"><view class="resident-order-card__head"><text>{{ order.merchantName }}</text><StatusTag :tone="tone(order)">{{ order.displayStatus }}</StatusTag></view><view class="resident-order-card__items"><view v-for="item in order.items" :key="item.skuId" class="resident-order-item"><image :src="item.productImage" mode="aspectFill" /><view><text>{{ item.productName }}</text><text>{{ item.skuName }} · ×{{ item.quantity }}</text></view><text>¥{{ money(item.unitPrice * item.quantity) }}</text></view></view><view v-if="order.hasAfterSaleRecords" class="after-sale-summary">{{ order.afterSaleSummary }}</view><view class="resident-order-card__foot"><text>{{ order.fulfillmentMethod }} · {{ order.createdAt }}</text><text>实付 <text>¥{{ money(order.paidAmount || order.payableAmount) }}</text></text></view></BaseCard><view v-if="!orders.length" class="order-empty">暂无此状态订单</view></view>
   </AppPage>

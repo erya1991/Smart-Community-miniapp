@@ -15,6 +15,17 @@ const iconSource = computed(() => iconModules[`../assets/icons/${props.name}.svg
 </script>
 
 <template>
+  <!-- #ifdef H5 -->
+  <img
+    class="app-icon"
+    :src="iconSource"
+    :style="{ width: props.size + 'px', height: props.size + 'px', objectFit: 'contain' }"
+    :aria-label="props.label"
+    :alt="props.label"
+    draggable="false"
+  />
+  <!-- #endif -->
+  <!-- #ifndef H5 -->
   <image
     class="app-icon"
     :src="iconSource"
@@ -22,6 +33,7 @@ const iconSource = computed(() => iconModules[`../assets/icons/${props.name}.svg
     mode="aspectFit"
     :aria-label="props.label"
   />
+  <!-- #endif -->
 </template>
 
 <style scoped lang="scss">

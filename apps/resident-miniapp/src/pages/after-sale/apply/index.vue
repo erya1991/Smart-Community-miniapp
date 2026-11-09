@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {stage45Api,stage45Enabled} from '@/services/stage45'
+import AfterSaleApply from '@shared/ui/components/stage45/AfterSaleApply.vue'
+const stage45Item=ref(''),stage45Refresh=ref(0)
+function stage45Created(id:string){uni.redirectTo({url:'/pages/after-sale/detail/index?id='+id})}
+function stage45Open(id:string){uni.navigateTo({url:'/pages/after-sale/detail/index?id='+id})}
 import { stage2Enabled } from '@/adapters/stage2-http'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
@@ -46,10 +51,11 @@ const submit = async () => {
   } catch (error) { message.value = error instanceof Error ? error.message : '申请未提交，请重试。'; await refresh() }
   finally { busy.value = false }
 }
-onLoad(async options => { if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} orderId.value = options?.orderId || ''; skuId.value = options?.skuId || ''; await load(); if (data.value) amount.value = money(data.value.maxRefundAmount) })
+onLoad(async options => { if(stage45Enabled){orderId.value=options?.orderId||'';stage45Item.value=options?.itemId||options?.skuId||'';return} if(stage2Enabled){uni.redirectTo({url:"/pages/mall/pending/index"});return} orderId.value = options?.orderId || ''; skuId.value = options?.skuId || ''; await load(); if (data.value) amount.value = money(data.value.maxRefundAmount) })
 </script>
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <AppPage v-if="stage45Enabled" secondary><template #navbar><AppNavbar title="申请售后" centered show-back/></template><AfterSaleApply :api="stage45Api" :order-id="orderId" :item-id="stage45Item" @created="stage45Created"/></AppPage>
+  <AppPage v-else :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="申请售后" centered show-back /></template>
     <view v-if="data" class="stack apply-page">
       <view class="notice">申请由商家审核，退款结果由平台支付/退款服务确认。</view>

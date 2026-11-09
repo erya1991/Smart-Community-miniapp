@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import {stage45Api,stage45Enabled} from '@/services/stage45'
+import Stage45EvaluationList from '@shared/ui/components/stage45/EvaluationList.vue'
 import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
 import {stage2Mall} from '@/services/stage2-mall'
 import {moneyCent} from '../../../../../../packages/common/utils/commercePresentation'
 import Stage2Notice from '@/features/mall/Stage2Notice.vue'
-import { stage2Enabled } from '@/adapters/stage2-http'
+import { stage2Enabled, stage2Owner } from '@/adapters/stage2-http'
 import { computed, ref, watch } from 'vue'
 import { onBackPress, onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon.vue'
@@ -28,18 +30,26 @@ const isSubmitting = ref(false)
 const actionMessage = ref('')
 const cartCount = ref(0)
 const galleryIndex = ref(0)
+let actionSequence = 0, readProduct = ''
+function clearPrivateAction() { actionSequence++; readProduct = ''; isSubmitting.value = false; actionMessage.value = ''; selectedValues.value = {}; quantity.value = 1; showSkuSheet.value = false; cartCount.value = 0 }
+if (stage2Enabled) { watch(stage2Owner, clearPrivateAction, { flush: 'sync' }); watch(productId, clearPrivateAction, { flush: 'sync' }) }
 const { status, data, errorMessage, load, refresh } = usePageResource(async () => {
+  const owner = stage2Enabled ? stage2Owner() : '', product = productId.value
   const [detail, count] = await Promise.all([residentMallService.getDetail(productId.value), residentMallService.getCartCount()])
+  if (stage2Enabled && (owner !== stage2Owner() || product !== productId.value)) throw new Error('登录或商品上下文已变化，请重新读取。')
   const groups = getSpecificationGroups(detail)
+  const previousSelectionCount = Object.keys(selectedValues.value).length
   selectedValues.value = Object.fromEntries(Object.entries(selectedValues.value).filter(([name, value]) => groups.some((group) => group.name === name && group.values.includes(value))))
-  if (detail.skus.length === 1 && !findSelectedSku(detail, selectedValues.value)) selectedValues.value = getSkuSpecValues(detail, detail.skus[0])
+  if (stage2Enabled && Object.keys(selectedValues.value).length < previousSelectionCount) actionMessage.value = '原选择的规格已不可用，请重新选择。'
+  if ((!stage2Enabled || readProduct !== product) && detail.skus.length === 1 && !findSelectedSku(detail, selectedValues.value)) selectedValues.value = getSkuSpecValues(detail, detail.skus[0])
+  readProduct = product
   cartCount.value = count
   return {...detail,uiDetailBlocks:stage2Enabled?await stage2Mall.detailBlocks(productId.value):[]}
 })
 const selectedSku = computed(() => data.value ? findSelectedSku(data.value, selectedValues.value) : undefined)
 const displaySku = computed(() => selectedSku.value || data.value?.skus.find((item) => item.id === data.value?.currentSkuId))
 const canPurchase = computed(() => status.value === 'ready' && Boolean(data.value?.purchaseEligibility.allowed && data.value.skus.some(isSellableSku)))
-const selectionIssue = computed(() => !data.value ? '商品加载中' : !data.value.purchaseEligibility.allowed ? data.value.purchaseEligibility.reason : getSkuSelectionIssue(data.value, selectedValues.value, quantity.value))
+const selectionIssue = computed(() => !data.value ? '商品加载中' : !data.value.purchaseEligibility.allowed ? data.value.purchaseEligibility.reason : stage2Enabled && quantity.value > 99 ? '单种规格最多购买99件。' : getSkuSelectionIssue(data.value, selectedValues.value, quantity.value))
 const gallery = computed(() => Array.from(new Set([displaySku.value?.image, ...(data.value?.gallery || []), data.value?.mainImage].filter((item): item is string => Boolean(item)))))
 watch(() => selectedSku.value?.id, () => { galleryIndex.value = 0 })
 const money = (value?: number) => moneyCent(value)
@@ -53,8 +63,16 @@ const selectSpec = (name: string, value: string) => {
   selectedValues.value = nextValues
   actionMessage.value = ''
 }
-const changeQuantity = (value: number) => { if (!isSubmitting.value && Number.isSafeInteger(value) && value > 0) { quantity.value = value; actionMessage.value = '' } }
-const openSkuSheet = (action: 'select' | 'add' | 'buy') => { if (!isSubmitting.value) { sheetAction.value = action; actionMessage.value = ''; showSkuSheet.value = true } }
+const changeQuantity = (value: number) => {
+  if (isSubmitting.value) return
+  if (!Number.isSafeInteger(value) || value < 1 || stage2Enabled && value > 99) { if (stage2Enabled) actionMessage.value = '购买数量须为1～99的整数。'; return }
+  quantity.value = value; actionMessage.value = ''
+}
+const openSkuSheet = (action: 'select' | 'add' | 'buy') => {
+  if (isSubmitting.value) return
+  if (stage2Enabled && !data.value?.skus.length) { actionMessage.value = '当前没有可选规格，请刷新后再选择。'; return }
+  sheetAction.value = action; actionMessage.value = ''; showSkuSheet.value = true
+}
 const previewImage = (current: string) => uni.previewImage({ current, urls: gallery.value })
 const fulfillmentHint = (method: string) => {
   if(stage2Enabled)return '本店当前支持'+method+'，请在确认页核对地址或服务点及费用。本期不开放核销、收货和售后动作。'
@@ -65,24 +83,31 @@ const fulfillmentHint = (method: string) => {
 const submitSku = async () => {
   if (selectionIssue.value || isSubmitting.value || !data.value || !selectedSku.value) return
   if (sheetAction.value === 'select') { showSkuSheet.value = false; return }
+  const version = ++actionSequence, owner = stage2Enabled ? stage2Owner() : '', product = productId.value
+  const current = () => !stage2Enabled || version === actionSequence && owner === stage2Owner() && product === productId.value
   isSubmitting.value = true
   actionMessage.value = ''
   try {
     if (sheetAction.value === 'add') {
       await residentMallService.addCart(data.value.id, selectedSku.value.id, selectedSku.value.price, quantity.value)
-      cartCount.value = await residentMallService.getCartCount()
+      if (!current()) return
+      const count = await residentMallService.getCartCount()
+      if (!current()) return
+      cartCount.value = count
       showSkuSheet.value = false
       uni.showToast({ title: '已加入购物车', icon: 'success' })
     } else {
       const request = await residentMallService.prepareBuyNow(data.value.id, selectedSku.value.id, quantity.value, selectedSku.value.price)
+      if (!current()) return
       showSkuSheet.value = false
       openSubPage(`/pages/mall/confirm/index?productId=${encodeURIComponent(request.productId!)}&skuId=${encodeURIComponent(request.skuId!)}&quantity=${request.quantity}`)
     }
   } catch (error) {
+    if (!current()) return
     actionMessage.value = error instanceof Error ? error.message : '商品暂不可购买，请刷新后重试。'
     uni.showToast({ title: actionMessage.value, icon: 'none' })
     await load()
-  } finally { isSubmitting.value = false }
+  } finally { if (current()) isSubmitting.value = false }
 }
 onBackPress(() => { if (showSkuSheet.value) { if (!isSubmitting.value) showSkuSheet.value = false; return true } return false })
 onLoad((options) => { productId.value = typeof options?.id === 'string' ? options.id : ''; load() })
@@ -100,7 +125,8 @@ onShow(() => { if (data.value) refresh() })
       <BaseCard class="merchant-card"><view class="merchant-card__icon"><AppIcon name="store" :size="24" /></view><view class="merchant-card__main"><text>{{ data.merchantName }}<text v-if="data.storeName !== data.merchantName">（{{ data.storeName }}）</text></text><text>{{ data.storeAddress }}</text></view></BaseCard>
       <BaseCard><view class="section-title"><view /><text>商品说明与售后</text></view><view class="info-row"><text>商品详情</text><view v-if="stage2Enabled"><view v-for="(block,index) in data.uiDetailBlocks" :key="index"><text v-if="block.type==='text'" style="white-space:pre-wrap">{{block.text}}</text><image v-else-if="block.image" :src="block.image" mode="widthFix" style="width:100%;margin-top:12px"/><text v-else class="action-error">详情图片未加载，请重新读取。</text></view></view><text v-else>{{data.detail}}</text></view><view class="info-row"><text>配送说明</text><text>{{ data.deliveryNote }}</text></view><view v-if="!stage2Enabled" class="info-row"><text>售后说明</text><text>{{ data.afterSaleNote }}</text></view></BaseCard>
     </view>
-    <template #tabbar><BottomActionBar v-if="status === 'ready'" class="detail-actions"><view class="cart-shortcut" @click="openSubPage('/pages/mall/cart/index')"><view class="cart-shortcut__icon"><AppIcon name="cart" :size="23" /><text v-if="cartCount" class="cart-shortcut__badge">{{ cartCount > 99 ? '99+' : cartCount }}</text></view><text>购物车</text></view><AppButton variant="secondary" :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('add')">加入购物车</AppButton><AppButton :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('buy')">立即购买</AppButton></BottomActionBar><BottomActionBar v-else-if="status === 'error'"><AppButton variant="secondary" @click="openPage('/pages/mall/index')">返回商城</AppButton></BottomActionBar><SkuPickerSheet v-if="showSkuSheet && status === 'ready' && data" :product="data" :selected-values="selectedValues" :quantity="quantity" :action="sheetAction" :busy="isSubmitting" :message="actionMessage" @close="showSkuSheet = false" @select="selectSpec" @quantity="changeQuantity" @submit="submitSku" /></template>
+    <Stage45EvaluationList v-if="stage45Enabled&&data" :api="stage45Api" :goods-id="productId"/>
+    <template #tabbar><BottomActionBar v-if="status === 'ready'" class="detail-actions"><view class="cart-shortcut" @click="openSubPage('/pages/mall/cart/index')"><view class="cart-shortcut__icon"><AppIcon name="cart" :size="23" /><text v-if="cartCount" class="cart-shortcut__badge">{{ cartCount > 99 ? '99+' : cartCount }}</text></view><text>购物车</text></view><AppButton variant="secondary" :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('add')">加入购物车</AppButton><AppButton :disabled="!canPurchase || isSubmitting" @click="openSkuSheet('buy')">立即购买</AppButton></BottomActionBar><BottomActionBar v-else-if="status === 'error'"><AppButton variant="secondary" @click="openPage('/pages/mall/index')">返回商城</AppButton></BottomActionBar><SkuPickerSheet v-if="showSkuSheet && status === 'ready' && data" :product="data" :selected-values="selectedValues" :quantity="quantity" :max-quantity="stage2Enabled ? 99 : undefined" :action="sheetAction" :busy="isSubmitting" :message="actionMessage" @close="showSkuSheet = false" @select="selectSpec" @quantity="changeQuantity" @submit="submitSku" /></template>
   </AppPage>
 </template>
 

@@ -10,7 +10,7 @@ export const isWechat = process.env.UNI_PLATFORM === 'mp-weixin'
 export function createResidentClient(): ResidentSessionClient {
   return new ResidentSessionClient({
     baseUrl: apiBaseUrl,
-    storageKey: import.meta.env.VITE_STAGE2_ENABLED === 'true' ? `daguanglu:resident:stage2:${apiBaseUrl}:session:v1` : undefined,
+    storageKey: import.meta.env.VITE_STAGE45_ENABLED === 'true' ? `daguanglu:resident:stage45:${apiBaseUrl}:session:v1` : import.meta.env.VITE_STAGE2_ENABLED === 'true' ? `daguanglu:resident:stage2:${apiBaseUrl}:session:v1` : undefined,
     storage: {
       get: (key) => uni.getStorageSync(key),
       set: (key, value) => uni.setStorageSync(key, value),
@@ -29,6 +29,10 @@ export function createResidentClient(): ResidentSessionClient {
         success: (response) => resolve({ status: response.statusCode, filePath: response.tempFilePath }),
         fail: () => reject(new ResidentError('ASSET_UNAVAILABLE')),
       })
+    }),
+    businessUpload:({path,filePath,metadata,accessToken})=>new Promise<ResidentResponse>((resolve,reject)=>{
+      uni.uploadFile({url:apiBaseUrl+path,filePath,name:'file',formData:{metadata},header:{accessToken},timeout:30000,
+        success:r=>{try{resolve({status:r.statusCode,data:JSON.parse(r.data)})}catch{reject(new ResidentError('INVALID_RESPONSE'))}},fail:()=>reject(new ResidentError('NETWORK_ERROR'))})
     }),
     upload: ({ filePath, accessToken }) => new Promise<ResidentResponse>((resolve, reject) => {
       uni.uploadFile({

@@ -15,7 +15,7 @@ export interface S2Quote { quoteId: string; confirmationHash: string; amountCent
 export interface S2Trade { tradeId: string; intentId: string; status: 'WAIT_PAY' | 'PAY_CONFIRMING' | 'CLOSE_CONFIRMING' | 'PAID' | 'CLOSED'; paymentStatus: string; closeStatus: string; closeReason?: string; closeDetails?: { causeCode: string; details?: { changes?: Array<{ storeId: string; fields: string[] }>; storeId?: string } }; protection: string | null; attention: boolean; amountCent: number; createdAt: string; payDeadline: string; paidAt: string | null; paidAmountCent: number | null; lastVerifiedAt: string | null; allowedActions: string[]; orders: S2Order[]; serverTime: string; mode: 'MOCK' }
 export interface S2Intent { intentId: string; status: 'ACCEPTED' | 'VERIFYING' | 'SUCCEEDED' | 'FAILED'; tradeId: string | null; reasonCode: string | null; trade: S2Trade | null }
 export interface S2Pending { key: string; type: 'INTENT' | 'TRADE'; intentId: string; tradeId?: string; status: string; createdAt: string; summary?: S2Trade }
-export interface S2Page<T> { records: T[]; total: number; page: number; pageSize: number }
+export interface S2Page<T> { records: T[]; total: number; page: number; pageSize: number; readComplete?: boolean }
 export interface S2Region { id: string; code: string; name: string; level: string }
 
 export function openingText(value: unknown): string {

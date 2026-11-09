@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {accessRequired} from '../../../../../../packages/common/utils/commercePresentation'
 import {moneyCent,shanghaiTime} from '../../../../../../packages/common/utils/commercePresentation'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppPage from '@/components/AppPage.vue'
 import AppNavbar from '@/components/AppNavbar.vue'
@@ -16,7 +16,27 @@ import type { S2Pending } from '@/services/stage2-types'
 const page = ref(1), actionError = ref(''), busy = ref(false)
 const { status, data, errorMessage, load } = usePageResource(async () => { if (!stage2Enabled) throw new Error('当前未配置正式模拟交易环境。'); return stage2Mall.pending(page.value) })
 const names: Record<string, string> = { WAIT_PAY: '待支付', PAY_CONFIRMING: '结果核验中', CLOSE_CONFIRMING: '整体关闭中', ACCEPTED: '提交结果待核实', VERIFYING: '创建结果核验中', PAID: '已收到付款结果', CLOSED: '关闭异常待核实' }
-async function open(card: S2Pending) { if (busy.value) return; busy.value = true; actionError.value = ''; const owner = stage2Owner(); try { let trade = card.tradeId; if (!trade) { const intent = await stage2Mall.intent(card.intentId); trade = intent.tradeId || undefined; if (intent.status === 'FAILED') { actionError.value = '本次原提交已确认未创建交易。'; await load(); return } } if (owner !== stage2Owner()) return; if (trade) openSubPage(`/pages/pay/result/index?tradeId=${trade}`); else actionError.value = '原提交仍由后台核验，请稍后刷新此清单。' } catch (e) { actionError.value = e instanceof Error ? e.message : '查询未完成' } finally { busy.value = false } }
+let actionSequence = 0
+watch(stage2Owner, () => { actionSequence++; busy.value = false; actionError.value = ''; page.value = 1 }, { flush: 'sync' })
+async function open(card: S2Pending) {
+  if (busy.value) return
+  const version = ++actionSequence, owner = stage2Owner(), intentId = card.intentId, tradeId = card.tradeId
+  const current = () => version === actionSequence && owner === stage2Owner()
+  busy.value = true; actionError.value = ''
+  try {
+    let trade = tradeId
+    if (!trade) {
+      const intent = await stage2Mall.intent(intentId)
+      if (!current()) return
+      trade = intent.tradeId || undefined
+      if (intent.status === 'FAILED') { actionError.value = '本次原提交已确认未创建交易。'; await load(); return }
+    }
+    if (!current()) return
+    if (trade) openSubPage(`/pages/pay/result/index?tradeId=${trade}`)
+    else actionError.value = '原提交仍由后台核验，请稍后刷新此清单。'
+  } catch (e) { if (current()) actionError.value = e instanceof Error ? e.message : '查询未完成' }
+  finally { if (current()) busy.value = false }
+}
 const turn = (n: number) => { page.value = n; load() }
 onShow(load)
 </script>

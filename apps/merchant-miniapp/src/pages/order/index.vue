@@ -1,12 +1,19 @@
 <script setup lang="ts">
+import Stage3Page from '../../features/stage3/OrderListPage.vue'
+import {stage3Enabled} from '@/services/stage3'
+import {ref as stage3Ref} from 'vue'
+import {onLoad as stage3OnLoad} from '@dcloudio/uni-app'
+const stage3Query=stage3Ref<Record<string,any>>({}),stage3Ready=stage3Ref(false)
+stage3OnLoad(options=>{stage3Query.value=options||{};stage3Ready.value=true})
+
 import Stage1View from '../../components/stage1/OrdersUnavailable.vue'
 import {stage1Enabled} from '../../services/stage1'
 import {ref as stage1Ref} from 'vue'
 import {onLoad as stage1OnLoad} from '@dcloudio/uni-app'
 const stage1Query=stage1Ref<Record<string,any>>({}),stage1Ready=stage1Ref(false)
 stage1OnLoad(options=>{stage1Query.value=options||{};stage1Ready.value=true})
-function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
-function onShow(callback:(...args:any[])=>any){registerStage1LegacyonShow((...args:any[])=>{if(!stage1Enabled)return callback(...args)})}
+function onLoad(callback:(...args:any[])=>any){registerStage1LegacyonLoad((...args:any[])=>{if(!stage1Enabled&&!stage3Enabled)return callback(...args)})}
+function onShow(callback:(...args:any[])=>any){registerStage1LegacyonShow((...args:any[])=>{if(!stage1Enabled&&!stage3Enabled)return callback(...args)})}
 
 import { computed, ref } from 'vue'
 import {onLoad as registerStage1LegacyonLoad,onShow as registerStage1LegacyonShow} from '@dcloudio/uni-app'
@@ -45,8 +52,9 @@ onShow(() => { if (data.value) refresh() })
 </script>
 
 <template>
-  <Stage1View v-if="stage1Enabled&&stage1Ready" :query="stage1Query" />
-  <AppPage v-else-if="!stage1Enabled" :status="status" :state-message="errorMessage" @retry="load">
+  <Stage3Page v-if="stage3Enabled && stage3Ready" :query="stage3Query"/>
+  <Stage1View v-else-if="!stage3Enabled&&stage1Enabled&&stage1Ready" :query="stage1Query" />
+  <AppPage v-else-if="!stage3Enabled&&!stage1Enabled" :status="status" :state-message="errorMessage" @retry="load">
     <template #navbar><AppNavbar title="订单" compact show-user /></template>
     <view class="stack order-stack">
       <MerchantOrderDemoPanel @changed="refresh" />

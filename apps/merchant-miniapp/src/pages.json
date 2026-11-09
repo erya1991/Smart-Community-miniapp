@@ -6,6 +6,10 @@
         "navigationStyle": "custom"
       }
     },
+    { "path": "pages/evaluation/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/funds/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/funds/detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/messages/index", "style": { "navigationStyle": "custom" } },
     {
       "path": "pages/operation/index",
       "style": {

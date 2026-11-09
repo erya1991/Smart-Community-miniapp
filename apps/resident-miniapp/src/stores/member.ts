@@ -44,6 +44,7 @@ export async function residentBusinessRequest(path: string, method: ResidentMeth
   initializeResidentContext()
   try { return await client.business(path, method, body) } finally { sync() }
 }
+export async function residentStage45Upload(path:string,metadata:string,filePath:string){initializeResidentContext();try{return await client.uploadBusiness(path,metadata,filePath)}finally{sync()}}
 async function failure(error: unknown, operation: number) {
   if (operation !== action || (error instanceof ResidentError && error.code === 'STALE_OPERATION')) return
   sync()

@@ -11,13 +11,14 @@ const selected = new Map<string, string>()
 const notices = new Map<string, string>()
 const unresolved = new Map<string, { operationId: string; body: Record<string, unknown> }>()
 function scope() { const current = stage2Owner(); if (current !== owner) { owner = current; selected.clear(); notices.clear(); unresolved.clear(); lines = []; book = undefined } return current }
+function requireOwner(expected: string) { if (expected !== stage2Owner()) throw new Stage2Error('STALE_OPERATION') }
 function fingerprint(line: S2CartLine) { return `${line.version}:${line.unitPriceCent}:${line.quantity}` }
 async function command<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body: Record<string, unknown>): Promise<T> {
-  scope(); const key = `${method}:${path}:${JSON.stringify(body)}`
+  const currentOwner = scope(), key = `${method}:${path}:${JSON.stringify(body)}`
   let original = unresolved.get(key)
   if (!original) { original = { operationId: operation(), body }; unresolved.set(key, original) }
-  try { const result = await request<T>(method, path, { ...original.body, operationId: original.operationId }); unresolved.delete(key); return result }
-  catch (error) { if (error instanceof Stage2Error && error.status >= 400 && error.status < 500) unresolved.delete(key); throw error }
+  try { const result = await request<T>(method, path, { ...original.body, operationId: original.operationId }); requireOwner(currentOwner); if (unresolved.get(key) === original) unresolved.delete(key); return result }
+  catch (error) { if (currentOwner === stage2Owner() && unresolved.get(key) === original && error instanceof Stage2Error && error.status >= 400 && error.status < 500) unresolved.delete(key); throw error }
 }
 export function productView(raw: S2Product): MallProductDetail {
   const skus = raw.skus.map((sku) => {
@@ -45,22 +46,26 @@ export const stage2Mall = {
   async getProducts(query: MallProductQuery = {}) { return (await stage2Mall.products(query)).records },
   async getHome() {
     if (stage2Owner().startsWith('anonymous:')) throw new Stage2Error('AUTH_REQUIRED',403)
+    const currentOwner = scope()
     const [categories, products, cart] = await Promise.allSettled([request<Array<{ id: string; name: string; parentId?: string }>>('GET', '/catalog'), stage2Mall.products({}, 1, 20), stage2Mall.getCartCount()])
     for (const result of [categories, products, cart]) if (result.status === 'rejected' && result.reason instanceof Stage2Error && [401,403].includes(result.reason.status)) throw result.reason
+    requireOwner(currentOwner)
     const sectionErrors: Record<string,string> = {}
     if (categories.status === 'rejected') sectionErrors.categories = '分类暂未加载，可重试分类或直接搜索商品。'
     if (products.status === 'rejected') sectionErrors.products = '商品暂未加载，请重试；当前未显示旧推荐。'
+    else if (products.value.readComplete === false) sectionErrors.products = '部分商品信息暂未核实，已显示核实可购的商品，请稍后重试。'
     if (cart.status === 'rejected') sectionErrors.cart = '购物车数量暂未核实，可重试或进入购物车查看。'
     return { categories: categories.status === 'fulfilled' ? categories.value.map((c) => ({ ...c, icon: 'bag', enabled: true })) : [], products: products.status === 'fulfilled' ? products.value.records : [], communityName: '大光路智慧社区', cartCount: cart.status === 'fulfilled' ? cart.value : 0, sectionErrors }
   },
   async homeSection(section: 'categories' | 'products' | 'cart') {
     if (section === 'categories') return { categories: (await request<Array<{ id: string; name: string }>>('GET', '/catalog')).map(c => ({...c,icon:'bag',enabled:true})) }
-    if (section === 'products') return { products: (await stage2Mall.products({},1,20)).records }
+    if (section === 'products') { const result = await stage2Mall.products({},1,20); return { products: result.records, sectionErrors: result.readComplete === false ? { products: '部分商品信息暂未核实，已显示核实可购的商品，请稍后重试。' } : {} } }
     return { cartCount: await stage2Mall.getCartCount() }
   },
-  async getDetail(id: string) { scope(); return hydrate(productView(await request<S2Product>('GET', `/goods/${id}`))) },
+  async getDetail(id: string) { const currentOwner = scope(), product = await hydrate(productView(await request<S2Product>('GET', `/goods/${id}`))); requireOwner(currentOwner); return product },
   async prepareBuyNow(productId: string, skuId: string, quantity: number, expectedPrice?: number): Promise<CheckoutRequest> {
-    const product = await stage2Mall.getDetail(productId), sku = product.skus.find((s) => s.id === skuId)
+    const currentOwner = scope(), product = await stage2Mall.getDetail(productId), sku = product.skus.find((s) => s.id === skuId)
+    requireOwner(currentOwner)
     if (!product.purchaseEligibility.allowed || !sku?.valid || quantity < 1 || quantity > 99 || quantity > sku.availableStock || (expectedPrice !== undefined && expectedPrice !== sku.price)) throw new Error('商品、数量或价格已变化，请刷新后重新选择。')
     return { productId, skuId, quantity }
   },
@@ -86,12 +91,20 @@ export const stage2Mall = {
     return { groups: [...groups.values()], invalidItems }
   },
   async addCart(productId: string, skuId?: string, expectedPrice?: number, quantity = 1) {
+    const currentOwner = scope()
     const prepared = await stage2Mall.prepareBuyNow(productId, skuId || (await stage2Mall.getDetail(productId)).currentSkuId, quantity, expectedPrice)
+    requireOwner(currentOwner)
     await command('POST', '/cart/items', { skuId: prepared.skuId, quantity })
   },
   async updateCartQuantity(id: string, quantity: number) { scope(); const line = lines.find((l) => l.id === id); if (!line) throw new Error('请刷新购物车后再调整。'); await command('PUT', `/cart/items/${id}`, { expectedVersion: line.version, quantity }); selected.delete(id) },
   async toggleCartItem(id: string, value: boolean) { scope(); const line = lines.find((l) => l.id === id); if (!line?.available) throw new Error('该商品当前不可结算。'); if (value) { selected.set(id, fingerprint(line)); notices.delete(id) } else selected.delete(id) },
-  async removeCartItem(id: string) { scope(); const line = lines.find((l) => l.id === id); if (!line) throw new Error('请刷新购物车。'); await command('POST', '/cart/remove', { items: [{ id, expectedVersion: line.version }] }); selected.delete(id) },
+  cartRemoval(id: string) {
+    const currentOwner = scope(), line = lines.find((l) => l.id === id)
+    if (!line) throw new Error('请刷新购物车。')
+    const item = { id, expectedVersion: line.version }
+    return async () => { requireOwner(currentOwner); await command('POST', '/cart/remove', { items: [item] }); selected.delete(id) }
+  },
+  async removeCartItem(id: string) { await stage2Mall.cartRemoval(id)() },
   invalidRemoval() { scope(); const currentOwner = owner; const items = lines.filter(l => !l.available).map(l => ({ id: l.id, expectedVersion: l.version })); return async () => { if (currentOwner !== stage2Owner()) throw new Error('登录状态已变化，请重新选择。'); if (items.length) await command('POST', '/cart/remove', { items }) } },
   async clearInvalidCart() { scope(); const invalid = lines.filter((l) => !l.available); if (invalid.length) await command('POST', '/cart/remove', { items: invalid.map((l) => ({ id: l.id, expectedVersion: l.version })) }) },
   async book() { scope(); book = await request<S2Book>('GET', '/addresses'); return book },

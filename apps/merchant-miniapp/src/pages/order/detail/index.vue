@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import Stage3Page from '../../../features/stage3/OrderDetailPage.vue'
+import {stage3Enabled} from '@/services/stage3'
+import {ref as stage3Ref} from 'vue'
+import {onLoad as stage3OnLoad} from '@dcloudio/uni-app'
+const stage3Query=stage3Ref<Record<string,any>>({}),stage3Ready=stage3Ref(false)
+stage3OnLoad(options=>{stage3Query.value=options||{};stage3Ready.value=true})
+
 import {stage1Enabled} from '../../../services/stage1'
 import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
@@ -49,12 +56,13 @@ const fulfill = async () => {
 }
 const shipped = async () => { shipmentOpen.value = false; await refresh() }
 const saveRemark = async () => { if (!data.value || busy.value) return; busy.value = true; actionError.value = ''; try { await merchantTradeService.saveRemark(data.value.id, remark.value); await refresh(); uni.showToast({ title: '备注已保存', icon: 'success' }) } catch (error) { actionError.value = error instanceof Error ? error.message : '保存失败，请重试。' } finally { busy.value = false } }
-onLoad((options) => { if(stage1Enabled)return; orderId.value = options?.id || ''; load() })
-onShow(() => { if(stage1Enabled)return; if (data.value) refresh() })
+onLoad((options) => { if(stage1Enabled||stage3Enabled)return; orderId.value = options?.id || ''; load() })
+onShow(() => { if(stage1Enabled||stage3Enabled)return; if (data.value) refresh() })
 </script>
 
 <template>
-  <AppPage :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
+  <Stage3Page v-if="stage3Enabled && stage3Ready" :query="stage3Query"/>
+  <AppPage v-else-if="!stage3Enabled" :status="status" :state-message="errorMessage" secondary with-bottom-action @retry="load">
     <template #navbar><AppNavbar title="订单详情" centered show-back /></template>
     <view v-if="data" class="stack merchant-detail-page">
       <BaseCard class="merchant-status"><view><StatusTag :tone="tone">{{ data.paymentStatus === '支付中' ? '支付结果确认中' : data.paymentStatus === 'Mock成功' ? '支付成功' : data.paymentStatus }}</StatusTag><text>{{ data.fulfillmentMethod }}</text></view><view><text>履约：{{ paid ? data.fulfillmentStatus : '等待支付确认' }}</text><StatusTag v-if="data.afterSaleStatus !== '无售后'" tone="error">{{ data.afterSaleStatus }}</StatusTag></view><text>当前子订单 {{ data.no }}</text><text>下单 {{ data.createdAt }}</text></BaseCard>

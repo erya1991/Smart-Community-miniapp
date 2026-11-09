@@ -20,15 +20,18 @@ const selecting = ref(false)
 const checkoutKey = ref('')
 const actionError = ref('')
 const busy = ref(false)
+let actionSequence = 0
 const { status, data, errorMessage, load } = usePageResource(residentMallService.getAddresses)
 const empty = computed(() => data.value?.length === 0)
 const edit = (id?: string) => openSubPage(`/pages/member/address-edit/index${id ? `?id=${id}` : ''}`)
 const act = async (work: () => Promise<unknown>) => {
   if (busy.value) return
-  const owner = stage2Owner(); busy.value = true; actionError.value = ''
-  try { await work(); if (!stage2Enabled || owner === stage2Owner()) await load() }
-  catch (error) { if (!stage2Enabled || owner === stage2Owner()) actionError.value = error instanceof Error ? error.message : '操作未完成，请刷新地址簿。' }
-  finally { busy.value = false }
+  const version = ++actionSequence, owner = stage2Owner()
+  const current = () => !stage2Enabled || version === actionSequence && owner === stage2Owner()
+  busy.value = true; actionError.value = ''
+  try { await work(); if (current()) await load() }
+  catch (error) { if (current()) actionError.value = error instanceof Error ? error.message : '操作未完成，请刷新地址簿。' }
+  finally { if (current()) busy.value = false }
 }
 const setDefault = (id: string) => act(() => residentMallService.setDefaultAddress(id))
 const clearDefault = () => act(() => stage2Mall.clearDefault())
@@ -37,7 +40,7 @@ const remove = (id: string) => {
   try { const owner = stage2Owner(), deletion = stage2Enabled ? stage2Mall.addressRemoval(id) : () => residentMallService.deleteAddress(id); uni.showModal({ title: '删除地址', content: '仅删除当前选择的这条地址，不影响已创建订单中的地址快照。', success: ({ confirm }) => { if (confirm && (!stage2Enabled || owner === stage2Owner())) void act(deletion) } }) }
   catch (error) { actionError.value = error instanceof Error ? error.message : '请先刷新地址簿。' }
 }
-watch(stage2Owner, () => { actionError.value = '' }, { flush: 'sync' })
+watch(stage2Owner, () => { actionError.value = ''; if (stage2Enabled) { actionSequence++; busy.value = false } }, { flush: 'sync' })
 const choose = async (id: string) => {
   if (!selecting.value) return
   try { checkoutAddressSelection.select(checkoutKey.value, id); uni.navigateBack() }

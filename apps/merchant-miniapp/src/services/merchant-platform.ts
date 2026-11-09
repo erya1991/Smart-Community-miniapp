@@ -7,6 +7,7 @@ export const isWechat = process.env.UNI_PLATFORM === 'mp-weixin'
 export function createMerchantClient(): MerchantSessionClient {
   return new MerchantSessionClient({
     baseUrl: apiBaseUrl,
+    storageKey: import.meta.env.VITE_STAGE45_ENABLED === 'true' ? `daguanglu:merchant:stage45:${apiBaseUrl}:session:v1` : import.meta.env.VITE_STAGE2_ENABLED === 'true' ? `daguanglu:merchant:stage2:${apiBaseUrl}:session:v1` : undefined,
     storage: {
       get: (key) => uni.getStorageSync(key),
       set: (key, value) => uni.setStorageSync(key, value),

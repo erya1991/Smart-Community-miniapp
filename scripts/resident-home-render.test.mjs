@@ -15,6 +15,7 @@ function page(initial, status = 'loading') {
     defineComponent: x => x, _export_sfc: x => x,
     ref: value => ({ value }), unref: x => x && typeof x === 'object' && 'value' in x ? x.value : x,
     onLoad() {}, onShow() {},
+    accessRequired: () => false,
     e: (...parts) => Object.assign({}, ...parts),
     p: x => { props.push(x); return x }, t: String,
     o: x => x, f: (items, fn) => items.map(fn),
@@ -22,6 +23,7 @@ function page(initial, status = 'loading') {
   const modules = {
     '../../common/vendor.js': vendor,
     '../../common/assets.js': { _imports_0: 'local-hero' },
+    '../../adapters/stage2-http.js': { stage2Enabled: true },
     '../../composables/usePageResource.js': { usePageResource: () => ({ data, status: state, errorMessage: { value: '' }, load() {}, refresh() {} }) },
     '../../services/mall.js': { residentMallService: { getCommunityHome() {} } },
     '../../features/mall/useCatalogCart.js': { useCatalogCart: () => ({ actionMessage: { value: '' }, addCart() {} }) },

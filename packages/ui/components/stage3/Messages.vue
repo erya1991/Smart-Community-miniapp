@@ -1,0 +1,15 @@
+<script setup lang="ts">
+import {ref,watch,onBeforeUnmount} from 'vue'
+import type {Stage3Api,Message} from '../../../business-common/stage3/types'
+import {date} from '../../../business-common/stage3/presentation'
+import BaseCard from '../BaseCard.vue'
+import AppButton from '../AppButton.vue'
+const props=defineProps<{api:Stage3Api;refreshKey?:number}>();const emit=defineEmits<{open:[id:string]}>()
+const records=ref<Message[]>([]),total=ref(0),page=ref(1),loading=ref(false),error=ref('');let ticket=0
+async function load(){const run=++ticket,owner=props.api.owner();loading.value=true;error.value='';try{const data=await props.api.messages(page.value);if(run===ticket&&owner===props.api.owner()){records.value=data.records;total.value=data.total}}catch(e){if(run===ticket){records.value=[];error.value=e instanceof Error?e.message:'消息暂不可用。'}}finally{if(run===ticket)loading.value=false}}
+async function open(message:Message){const owner=props.api.owner();try{await props.api.read(message.id);if(owner!==props.api.owner())return;message.read=true;emit('open',message.orderId)}catch(e){error.value=e instanceof Error?e.message:'当前无权进入原订单。'}}
+function turn(delta:number){page.value+=delta;load()}
+watch(()=>props.api.owner(),()=>{ticket++;records.value=[];total.value=0;page.value=1;load()},{immediate:true});watch(()=>props.refreshKey,load);onBeforeUnmount(()=>{ticket++;records.value=[]})
+</script>
+<template><view class="s3-view messages"><BaseCard v-if="error"><text class="s3-text error">{{error}}</text><AppButton variant="secondary" @click="load">重新读取</AppButton></BaseCard><text v-else-if="loading" class="s3-text state">正在读取消息…</text><text v-else-if="!records.length" class="s3-text state">暂无订单与履约消息。</text><BaseCard v-for="message in records" :key="message.id" @click="open(message)"><view class="s3-view head"><text class="s3-text title">{{message.title}}</text><text class="s3-text unread">{{message.read?'已读':'未读'}}</text></view><text class="s3-text">{{message.storeName}} · {{message.orderSn}}</text><text class="s3-text content">{{message.content}}</text><text class="s3-text meta">{{date(message.at)}}</text><AppButton variant="secondary" size="compact" @click.stop="open(message)">查看订单最新状态</AppButton></BaseCard><view v-if="total" class="s3-view pagination"><AppButton variant="secondary" size="compact" :disabled="page===1||loading" @click="turn(-1)">上一页</AppButton><text class="s3-text">{{page}} 页 · {{total}} 条</text><AppButton variant="secondary" size="compact" :disabled="page*20>=total||loading" @click="turn(1)">下一页</AppButton></view></view></template>
+<style scoped lang="scss">.messages{display:flex;flex-direction:column;gap:16px;font-size:15px;line-height:1.65}.head,.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:17px;font-weight:600}.unread{font-size:13px;color:$color-primary}.content{display:block;margin:8px 0}.meta{display:block;font-size:13px;color:$color-text-secondary;margin:8px 0}.error{color:$color-error;display:block}.state{padding:40px 12px;text-align:center;color:$color-text-secondary}.messages .s3-text{overflow-wrap:anywhere}</style>
