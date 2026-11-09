@@ -24,6 +24,7 @@ export function date(value:string|null|undefined):string{
 }
 export function blocked(reason:string|null):string{
  if(!reason)return ''
+ if(reason==='FULFILLMENT_ENDED_REFUNDED')return '未交付商品已退款完成，本单不再继续履约。退款进度可在售后记录中查看。'
  if(reason==='POINT_UNAVAILABLE')return '成交时点位当前不可交付，请联系商户核实，订单点位保持原记录。'
  if(reason==='STAGE3_WRITES_DISABLED'||reason==='SC23_NOT_ADMITTED')return '当前履约操作尚未开放，可查看订单并联系商户核实。'
  return '订单付款或履约条件待核实，请保留原订单并稍后查询。'
