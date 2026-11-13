@@ -7,17 +7,19 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:resident:h5": "npm.cmd run dev:h5 --workspace=@daguanglu/resident-miniapp",
-    "dev:resident:mp-weixin": "npm.cmd run dev:mp-weixin --workspace=@daguanglu/resident-miniapp",
-    "build:resident:h5": "npm.cmd run build:h5 --workspace=@daguanglu/resident-miniapp",
-    "build:resident:mp-weixin": "npm.cmd run build:mp-weixin --workspace=@daguanglu/resident-miniapp",
-    "dev:merchant:h5": "npm.cmd run dev:h5 --workspace=@daguanglu/merchant-miniapp",
-    "dev:merchant:mp-weixin": "npm.cmd run dev:mp-weixin --workspace=@daguanglu/merchant-miniapp",
-    "build:merchant:h5": "npm.cmd run build:h5 --workspace=@daguanglu/merchant-miniapp",
-    "build:merchant:mp-weixin": "npm.cmd run build:mp-weixin --workspace=@daguanglu/merchant-miniapp",
+    "dev:resident:h5": "npm run dev:h5 --workspace=@daguanglu/resident-miniapp",
+    "dev:resident:mp-weixin": "npm run dev:mp-weixin --workspace=@daguanglu/resident-miniapp",
+    "build:resident:h5": "npm run build:h5 --workspace=@daguanglu/resident-miniapp",
+    "build:resident:mp-weixin": "npm run build:mp-weixin --workspace=@daguanglu/resident-miniapp",
+    "dev:merchant:h5": "npm run dev:h5 --workspace=@daguanglu/merchant-miniapp",
+    "dev:merchant:mp-weixin": "npm run dev:mp-weixin --workspace=@daguanglu/merchant-miniapp",
+    "build:merchant:h5": "npm run build:h5 --workspace=@daguanglu/merchant-miniapp",
+    "build:merchant:mp-weixin": "npm run build:mp-weixin --workspace=@daguanglu/merchant-miniapp",
+    "build:wechat-test:resident": "node scripts/build-wechat-test.mjs resident",
+    "build:wechat-test:merchant": "node scripts/build-wechat-test.mjs merchant",
     "type-check:resident": "vue-tsc --noEmit -p apps/resident-miniapp/tsconfig.json",
     "type-check:merchant": "vue-tsc --noEmit -p apps/merchant-miniapp/tsconfig.json",
-    "type-check": "npm.cmd run type-check:resident && npm.cmd run type-check:merchant",
+    "type-check": "npm run type-check:resident && npm run type-check:merchant",
     "check:boundaries": "node scripts/check-boundaries.mjs"
   },
   "dependencies": {
