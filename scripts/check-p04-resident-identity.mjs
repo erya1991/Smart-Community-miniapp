@@ -604,7 +604,7 @@ function storeFixture(options = {}) {
   const store = loadModule('apps/resident-miniapp/src/stores/member.ts', {
     '../services/resident-session': clientExports,
     '../services/resident-platform': {
-      createResidentClient: () => f.client, isWechat: options.isWechat ?? true,
+      createResidentClient: () => f.client, isWechat: options.isWechat ?? true, profileBasicOnly: options.profileBasicOnly ?? false,
       residentLoginCode: async () => { platformCalls.login++; return 'synthetic-login-code' },
       residentRequestId: () => { platformCalls.requestId++; return `synthetic-request-id-${platformCalls.requestId}` },
       selectResidentAvatar: async () => { platformCalls.choose++; return { filePath: 'synthetic-local-path.png', size: 1024, type: 'png' } },
@@ -612,6 +612,31 @@ function storeFixture(options = {}) {
   })
   return { ...f, context: store.useResidentContext(), platformCalls }
 }
+
+check('company profile preset keeps basic login and nickname editing available without offering phone later', async () => {
+  const f = storeFixture({ profileBasicOnly: true })
+  await f.context.loginBasic()
+  assert.equal(f.context.state.authenticated, true)
+  assert.doesNotMatch(f.context.state.notice, /手机号可稍后/)
+  f.handlers.set(urls.edit, () => { const value = profile('a', 1, { nickname: '测试新昵称' }); f.setProfile(value); return success(value) })
+  await f.context.saveProfile({ version: 0, nickname: '测试新昵称' })
+  assert.equal(f.context.state.profile.nickname, '测试新昵称')
+  assert.equal(f.context.state.error, '')
+})
+
+check('company profile preset rejects phone and avatar actions before platform or HTTP side effects', async () => {
+  const f = storeFixture({ profileBasicOnly: true })
+  await f.context.authorizePhone('unused-phone-code')
+  assert.equal(f.platformCalls.login, 0)
+  assert.equal(f.count(urls.phone), 0)
+  assert.match(f.context.state.error, /手机号能力尚未开放/)
+  await f.context.loginBasic()
+  await f.context.changeAvatar()
+  assert.equal(f.platformCalls.choose, 0)
+  assert.equal(f.uploads.length, 0)
+  assert.equal(f.count(urls.edit), 0)
+  assert.equal(f.context.state.authenticated, true)
+})
 
 check('real store preserves basic login when phone authorization is cancelled before or after login', async () => {
   const f = storeFixture()
@@ -758,6 +783,11 @@ function platformModule(environment, uni) {
   return loadModule(file, { './resident-session': clientExports, __uni: uni }, code)
 }
 
+check('only the company profile preset narrows profile capabilities', () => {
+  assert.equal(platformModule({ VITE_RESIDENT_PROFILE_BASIC_ONLY: 'true' }, {}).profileBasicOnly, true)
+  assert.equal(platformModule({}, {}).profileBasicOnly, false)
+})
+
 check('real platform adapter calls uni.login and sends the exact login/profile headers through uni.request', async () => {
   const calls = { login: [], requests: [], upload: [] }
   const storage = new Map()
@@ -846,6 +876,8 @@ function pageFixture(initial = {}) {
   }
   const overrides = {
     '@/adapters/stage2-http': { stage2Enabled: false },
+    '@/services/stage3': { stage3Enabled: false },
+    '@/services/stage45': { stage45Enabled: false },
     '@/stores/member': { useResidentContext: () => context },
     '@/utils/navigation': { openPage: (url) => calls.navigation.push(url), openSubPage: (url) => calls.navigation.push(url) },
     '@/config/navigation': { residentTabItems: [] },

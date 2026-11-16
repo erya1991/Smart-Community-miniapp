@@ -23,7 +23,7 @@ import type { ProfileGroupSummary, ProfileItemSummary } from '@/types/app'
 
 type ProfileItem = ProfileItemSummary
 
-const { state, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, logout, confirmExistingLink, isWechat } = useResidentContext()
+const { state, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, logout, confirmExistingLink, isWechat, profileBasicOnly } = useResidentContext()
 const groups = ref<ProfileGroupSummary[]>([])
 const navigationError = ref(false)
 const avatarFailed = ref(false)
@@ -101,22 +101,22 @@ onShow(() => { void loadProfile() })
             <view v-if="state.authenticated && state.profile" class="profile-summary__mobile"><AppIcon name="message" :size="14" /><text>{{ state.profile.phoneBound ? state.profile.maskedMobile : '手机号未绑定' }}</text></view>
             <text v-else class="profile-summary__hint">{{ state.authenticated ? '本人资料暂未获取' : '登录后查看和管理本人资料' }}</text>
             <text v-if="state.loading" class="profile-summary__hint" role="status">正在读取本人资料…</text>
-            <text v-else-if="state.authenticated && state.profile" class="profile-summary__hint">点击编辑昵称与头像</text>
+            <text v-else-if="state.authenticated && state.profile" class="profile-summary__hint">{{ profileBasicOnly ? '点击编辑昵称' : '点击编辑昵称与头像' }}</text>
           </view>
           <view v-if="state.authenticated && state.profile" class="profile-identity__arrow"><AppIcon name="chevron-right" :size="17" /></view>
         </view>
         <view v-if="!state.authenticated" class="profile-actions">
           <!-- #ifdef MP-WEIXIN -->
-          <button class="profile-button profile-button--primary" open-type="getPhoneNumber" :disabled="state.busy || state.loading" :loading="state.busy" @getphonenumber="phoneAuthorized">微信手机号快捷登录</button>
-          <button class="profile-button profile-button--secondary" :disabled="state.busy || state.loading" @click="loginBasic">暂不绑定手机号，使用微信基本登录</button>
+          <button v-if="!profileBasicOnly" class="profile-button profile-button--primary" open-type="getPhoneNumber" :disabled="state.busy || state.loading" :loading="state.busy" @getphonenumber="phoneAuthorized">微信手机号快捷登录</button>
+          <button class="profile-button" :class="profileBasicOnly ? 'profile-button--primary' : 'profile-button--secondary'" :disabled="state.busy || state.loading" @click="loginBasic">{{ profileBasicOnly ? '微信登录' : '暂不绑定手机号，使用微信基本登录' }}</button>
           <!-- #endif -->
           <!-- #ifndef MP-WEIXIN -->
-          <button class="profile-button profile-button--primary" disabled>微信手机号快捷登录</button>
-          <button class="profile-button profile-button--secondary" disabled>微信基本登录</button>
+          <button v-if="!profileBasicOnly" class="profile-button profile-button--primary" disabled>微信手机号快捷登录</button>
+          <button class="profile-button" :class="profileBasicOnly ? 'profile-button--primary' : 'profile-button--secondary'" disabled>微信基本登录</button>
           <!-- #endif -->
-          <text class="profile-note">手机号由您主动授权；不绑定也可使用基本登录。</text>
+          <text class="profile-note">{{ profileBasicOnly ? '使用微信身份登录，无需绑定手机号。' : '手机号由您主动授权；不绑定也可使用基本登录。' }}</text>
         </view>
-        <view v-else-if="state.profile" class="profile-phone-action">
+        <view v-else-if="state.profile && !profileBasicOnly" class="profile-phone-action">
           <!-- #ifdef MP-WEIXIN -->
           <button class="profile-button profile-button--secondary" open-type="getPhoneNumber" :disabled="state.busy || state.loading" :loading="state.busy" @getphonenumber="phoneAuthorized">{{ state.profile.phoneBound ? '更换微信手机号' : '绑定微信手机号' }}</button>
           <!-- #endif -->

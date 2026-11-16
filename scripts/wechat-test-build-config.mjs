@@ -9,5 +9,6 @@ export function wechatTestConfig(app, env) {
   if(!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~-]+)*$/.test(api) || url.protocol!=='https:' || url.username || url.password || url.search || url.hash || !url.hostname ||
       ['localhost','127.0.0.1','0.0.0.0','[::1]'].includes(url.hostname.toLowerCase()) || url.hostname.endsWith('.invalid'))
     throw new Error(`${name} 必须是测试设备可访问的 HTTPS 地址，不得使用本机回环或占位地址`);
-  return {appId,apiName:name,api};
+  // Match the company server preset: real basic login, without phone/avatar services.
+  return {appId,apiName:name,api,profileBasicOnly:true};
 }

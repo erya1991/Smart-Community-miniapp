@@ -8,7 +8,7 @@ import BaseCard from '@/components/BaseCard.vue'
 import FormField from '@/components/FormField.vue'
 import { useResidentContext } from '@/stores/member'
 
-const { state, loadProfile, saveProfile, changeAvatar } = useResidentContext()
+const { state, loadProfile, saveProfile, changeAvatar, profileBasicOnly } = useResidentContext()
 const nickname = ref('')
 const originalNickname = ref('')
 const version = ref<number | null>(null)
@@ -59,7 +59,7 @@ const saveNickname = async () => {
   if (!state.error && state.profile) fillLatestProfile()
 }
 const selectAvatar = async () => {
-  if (state.busy || state.loading) return
+  if (profileBasicOnly || state.busy || state.loading) return
   localNotice.value = ''
   if (dirty.value) { localNotice.value = '请先保存昵称或读取最新资料，再更换头像。'; return }
   if (outdated.value) { localNotice.value = '资料已经更新，请先读取最新资料再更换头像。'; return }
@@ -112,11 +112,11 @@ onShow(() => { void readProfile() })
             </view>
             <view class="profile-edit__avatar-copy">
               <text class="profile-edit__title">我的头像</text>
-              <text class="profile-edit__hint">仅支持 JPEG / PNG，大小不超过 2 MiB。</text>
+              <text class="profile-edit__hint">{{ profileBasicOnly ? '当前测试版暂不支持更换头像。' : '仅支持 JPEG / PNG，大小不超过 2 MiB。' }}</text>
             </view>
           </view>
-          <button class="profile-edit__button profile-edit__button--secondary" :disabled="state.busy || state.loading" @click="selectAvatar">选择图片并保存头像</button>
-          <text class="profile-edit__hint">上传与保存成功后才会更新头像。服务暂不可用时，原头像保持不变。</text>
+          <button v-if="!profileBasicOnly" class="profile-edit__button profile-edit__button--secondary" :disabled="state.busy || state.loading" @click="selectAvatar">选择图片并保存头像</button>
+          <text v-if="!profileBasicOnly" class="profile-edit__hint">上传与保存成功后才会更新头像。服务暂不可用时，原头像保持不变。</text>
         </BaseCard>
 
         <BaseCard>

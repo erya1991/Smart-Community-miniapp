@@ -12,6 +12,7 @@ const cli=path.join(root,'node_modules','@dcloudio','vite-plugin-uni','bin','uni
 if(!fs.existsSync(cli))throw new Error('请先按 lockfile 安装依赖');
 const env={...process.env,UNI_PLATFORM:'mp-weixin',UNI_INPUT_DIR:path.join(project,'src'),UNI_OUTPUT_DIR:output,
   VITE_STAGE1_ENABLED:'true',VITE_STAGE2_ENABLED:app==='resident'?'true':'false',VITE_STAGE3_ENABLED:'true',VITE_STAGE45_ENABLED:'true',VITE_UAT_TEST_LOGIN:'false',
+  VITE_RESIDENT_PROFILE_BASIC_ONLY:String(config.profileBasicOnly),
   [config.apiName]:config.api};
 const result=spawnSync(process.execPath,[cli,'build','-p','mp-weixin','--config',path.join(project,'vite.config.ts')],{cwd:project,env,stdio:'inherit'});
 if(result.error)throw result.error;if(result.status!==0)process.exit(result.status??1);

@@ -1,7 +1,7 @@
 import { reactive, readonly } from 'vue'
 import { ResidentError, residentErrorMessage } from '../services/resident-session'
 import type { ResidentEdit, ResidentProfile, ResidentMethod, ResidentResponse } from '../services/resident-session'
-import { apiBaseUrl, localTestLoginEnabled, createResidentClient, isWechat, residentLoginCode, residentRequestId, selectResidentAvatar } from '../services/resident-platform'
+import { apiBaseUrl, localTestLoginEnabled, createResidentClient, isWechat, profileBasicOnly, residentLoginCode, residentRequestId, selectResidentAvatar } from '../services/resident-platform'
 
 const client = createResidentClient()
 const state = reactive({
@@ -103,7 +103,7 @@ async function readAfterWrite(profile: ResidentProfile, operation: number) {
   accept(latest)
 }
 async function loginBasic(): Promise<void> {
-  await change(async (operation) => { await basic(operation); active(operation); state.notice = '已使用微信基本登录，手机号可稍后主动授权。' })
+  await change(async (operation) => { await basic(operation); active(operation); state.notice = profileBasicOnly ? '已使用微信登录。' : '已使用微信基本登录，手机号可稍后主动授权。' })
 }
 async function loginLocal(input:{username:string;password:string;uuid:string}): Promise<void> {
   await change(async operation => {
@@ -114,6 +114,7 @@ async function loginLocal(input:{username:string;password:string;uuid:string}): 
 }
 async function authorizePhone(code?: string, outcome: 'cancelled' | 'failed' = 'cancelled'): Promise<void> {
   await change(async (operation) => {
+    if (profileBasicOnly) throw new ResidentError('PHONE_PENDING')
     if (!isWechat) throw new ResidentError('WECHAT_UNAVAILABLE')
     if (!client.authenticated) await basic(operation)
     active(operation)
@@ -143,6 +144,7 @@ async function saveProfile(input: ResidentEdit): Promise<void> {
 }
 async function changeAvatar(): Promise<void> {
   await change(async (operation) => {
+    if (profileBasicOnly) throw new ResidentError('STORAGE_PENDING')
     if (!state.profile || !client.authenticated) throw new ResidentError('SESSION_REQUIRED')
     const version = state.profile.version
     const revision = client.revision
@@ -181,5 +183,5 @@ async function logout(): Promise<void> {
 }
 export function useResidentContext() {
   initializeResidentContext()
-  return { state: readonly(state), isWechat, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, saveProfile, changeAvatar, confirmExistingLink, logout }
+  return { state: readonly(state), isWechat, profileBasicOnly, apiBaseUrl, localTestLoginEnabled, loginLocal, loadProfile, loginBasic, authorizePhone, saveProfile, changeAvatar, confirmExistingLink, logout }
 }

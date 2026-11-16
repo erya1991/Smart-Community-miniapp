@@ -7,6 +7,8 @@ declare const process: { env: { UNI_PLATFORM?: string } }
 // Public API origin only. No AppID, AppSecret, Code or fallback mock endpoint.
 export const apiBaseUrl = String(import.meta.env.VITE_RESIDENT_API_BASE_URL || '').replace(/\/$/, '')
 export const isWechat = process.env.UNI_PLATFORM === 'mp-weixin'
+// Company test builds match configure-test-server.mjs; other builds retain their existing capabilities.
+export const profileBasicOnly = import.meta.env.VITE_RESIDENT_PROFILE_BASIC_ONLY === 'true'
 export const localTestLoginEnabled = !isWechat && import.meta.env.VITE_UAT_TEST_LOGIN === 'true' && apiBaseUrl === 'https://127.0.0.1:19794/api'
 export function createResidentClient(): ResidentSessionClient {
   return new ResidentSessionClient({
